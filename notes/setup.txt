@@ -1,0 +1,175 @@
+# Laravel Project Setup Instructions (Herd + XAMPP MySQL)
+
+---
+
+## 1. Prerequisites
+
+Make sure the following are installed on your system:
+
+1. **Herd** (Laravel local development server)(Optional)
+
+   * Download: [https://herd.laravel.com](https://herd.laravel.com)
+
+2. **XAMPP** (for MySQL / phpMyAdmin)
+   * Download: [https://www.apachefriends.org/index.html](https://www.apachefriends.org/index.html)
+
+3. **Composer** (PHP dependency manager)
+   * Download: [https://getcomposer.org/](https://getcomposer.org/)
+
+4. **Node.js** (for frontend assets like Vite)
+   * Download: [https://nodejs.org/](https://nodejs.org/)
+
+5. **VS Code** (recommended code editor)
+   * Download: [https://code.visualstudio.com/](https://code.visualstudio.com/)
+
+---
+
+## 2. Herd Setup (Optional)
+
+1. Open **Herd**
+2. Set PHP version to **8.1 or 8.2** in Herd Settings
+3. Create a new Laravel project via Herd UI:
+
+   * Click **“+ Add Project” → “Create New Laravel Project”**
+   * Project Name: e.g., `myapp`
+   * Directory: Herd default folder (e.g., `C:\Users\USERNAME\Herd`)
+   * Herd will auto-generate the local URL: `http://myapp.test`
+
+> If you cloned the repo instead of creating new, use **“Add Existing Project”** in Herd.
+
+---
+
+## 3. XAMPP MySQL Setup
+
+1. Open **XAMPP** → Start **MySQL**
+2. Open **phpMyAdmin** (`http://localhost/phpmyadmin`)
+3. Create a new database with the same name as in `.env`, e.g.:
+
+   ```
+   wmsu_paynet
+   ```
+
+---
+
+## 4. Project Configuration
+
+1. Open the project folder in **VS Code**
+2. Copy `.env.example` → `.env`:
+
+   ```powershell
+   copy .env.example .env
+   ```
+3. Update `.env` for MySQL + Herd:
+
+   ```env
+   APP_NAME=Laravel
+   APP_ENV=local
+   APP_KEY=base64:GENERATE_THIS
+   APP_DEBUG=true
+   APP_URL=http://myapp.test
+
+   DB_CONNECTION=mysql
+   DB_HOST=127.0.0.1
+   DB_PORT=3306
+   DB_DATABASE=wmsu_paynet
+   DB_USERNAME=root
+   DB_PASSWORD=
+
+   SESSION_DRIVER=database
+   SESSION_LIFETIME=120
+   ```
+4. Save `.env`
+
+---
+
+## 5. Install Dependencies
+
+1. Open **Herd Terminal** in the project folder
+2. Run:
+
+composer install
+
+* This installs all Laravel dependencies and generates the `vendor` folder
+
+3. Generate the application key:
+
+php artisan key:generate
+
+---
+
+## 6. Set Up Database Tables
+
+1. Create session table (required if using database session driver):
+
+php artisan session:table
+
+2. Run all migrations:
+
+php artisan migrate
+
+> This will create all necessary tables in MySQL.
+
+---
+
+## 7. Frontend Setup
+
+1. Install Node modules:
+
+npm install
+
+2. Run frontend dev server:
+
+npm run dev
+
+* Keep this running while developing if using Vite/JS/CSS assets
+
+---
+
+## 8. Clear Cache (if needed)
+
+php artisan config:clear
+php artisan cache:clear
+php artisan route:clear
+php artisan view:clear
+
+
+---
+
+## 9. Access the Application
+
+Open browser:
+
+http://myapp.test
+
+* You should see the **Laravel Welcome Page**
+* If using database sessions, make sure the `sessions` table exists
+
+---
+
+10. Troubleshooting
+
+| Error                         | Solution                                                            |
+| ----------------------------- | ------------------------------------------------------------------- |
+| `vendor/autoload.php` missing | Run `composer install`                                              |
+| `.env` missing                | Copy `.env.example` → `.env`                                        |
+| `APP_KEY` missing             | Run `php artisan key:generate`                                      |
+| SQLite database file missing  | Switch to MySQL in `.env` or create `database/database.sqlite`      |
+| Sessions table missing        | Run `php artisan session:table` → `php artisan migrate`             |
+| `.test` domain not resolving  | Run Herd as Administrator, flush DNS: `ipconfig /flushdns`          |
+| Internal Server Error         | Clear caches: `php artisan config:clear && php artisan cache:clear` |
+
+
+For VS Code
+Laravel / Blade Support
+
+Laravel Blade Snippets
+ -Syntax highlighting and code snippets for Blade templates.
+
+Laravel Artisan
+ -Lets you run Artisan commands directly from VS Code.
+
+Optional: Laravel Extra Intellisense
+ -Autocomplete for routes, views, and config values.
+
+Frontend / Node.js (if using Vite / JS / CSS)
+- Tailwind CSS IntelliSense (if using Tailwind)
