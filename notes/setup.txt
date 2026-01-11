@@ -168,3 +168,10 @@ Optional: Laravel Extra Intellisense
 
 Frontend / Node.js (if using Vite / JS / CSS)
 - Tailwind CSS IntelliSense (if using Tailwind)
+
+Login page
+composer require laravel/breeze --dev
+php artisan breeze:install
+   Stack → Blade
+   Dark mode → your choice
+   Tests → 0
