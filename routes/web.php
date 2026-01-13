@@ -2,10 +2,24 @@
 
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
 
 Route::get('/', function () {
     return view('welcome');
 });
+
+
+Route::middleware('auth')->get('/dashboard', function () {
+    $role = Auth::user()->role;
+
+    return match($role) {
+        'osa' => redirect()->route('osa.dashboard'),
+        'usc' => redirect()->route('usc.dashboard'),
+        'college' => redirect()->route('college.dashboard'),
+        default => abort(403), // Prevent unknown roles
+    };
+})->name('dashboard');
+
 
 Route::middleware(['auth', 'role:osa'])->group(function () {
     Route::get('/osa/dashboard', function () {
