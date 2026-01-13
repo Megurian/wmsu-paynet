@@ -20,13 +20,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Share active school year and semester with all views
         View::composer('*', function ($view) {
-            $activeSchoolYear = SchoolYear::with('semesters')
+            $latestSchoolYear = SchoolYear::with('semesters')
                 ->where('is_active', true)
+                ->latest('sy_start')
                 ->first();
-
-            $view->with('activeSchoolYear', $activeSchoolYear);
+            $view->with('latestSchoolYear', $latestSchoolYear);
         });
     }
 }
