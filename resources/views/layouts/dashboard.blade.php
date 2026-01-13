@@ -41,8 +41,7 @@
                         {{ request()->routeIs('osa.reports') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
                     Reports
                 </a>
-                <a href="#"
-                class="block px-4 py-2 rounded-md transition
+               <a href="{{ route('osa.setup') }}" class="block px-4 py-2 rounded-md transition
                         {{ request()->routeIs('osa.setup') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
                     Setup
                 </a>
@@ -62,6 +61,10 @@
                 class="block px-4 py-2 rounded-md transition
                         {{ request()->routeIs('usc.approvals') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
                     Approvals
+                </a>
+                <a href="{{ route('osa.setup') }}" class="block px-4 py-2 rounded-md transition
+                        {{ request()->routeIs('osa.setup') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    Setup
                 </a>
 
             @elseif($role === 'college')

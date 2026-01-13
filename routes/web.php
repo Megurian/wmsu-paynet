@@ -25,6 +25,10 @@ Route::middleware(['auth', 'role:osa'])->group(function () {
     Route::get('/osa/dashboard', function () {
         return view('osa.dashboard');
     })->name('osa.dashboard');
+
+     Route::get('/osa/setup', function () {
+        return view('osa.setup');
+    })->name('osa.setup'); // <-- new route
 });
 
 Route::middleware(['auth', 'role:usc'])->group(function () {
