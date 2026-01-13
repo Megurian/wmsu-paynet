@@ -7,7 +7,6 @@
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
-        /* Sidebar transition for collapsible */
         #sidebar {
             transition: width 0.3s;
         }

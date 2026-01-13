@@ -1,4 +1,7 @@
 @extends('layouts.dashboard')
+@php
+    use Carbon\Carbon;
+@endphp
 
 @section('title', 'OSA Setup')
 @section('page-title', 'OSA Academic Setup')
@@ -91,11 +94,16 @@
     {{-- Card Header --}}
     <div class="p-5 border-b flex justify-between items-start">
         <div>
-            <h4 class="text-lg font-bold text-gray-800">
-                {{ $sy->sy_start }} – {{ $sy->sy_end }}
+            <h4 class="text-2xl font-bold text-gray-800 leading-tight">
+                {{ Carbon::parse($sy->sy_start)->year }}–{{ Carbon::parse($sy->sy_end)->year }}
             </h4>
             <p class="text-xs text-gray-500 uppercase tracking-wide mt-1">
                 School Year
+            </p>
+            <p class="text-sm text-gray-400 mt-2">
+                {{ Carbon::parse($sy->sy_start)->format('F d, Y') }}
+                –
+                {{ Carbon::parse($sy->sy_end)->format('F d, Y') }}
             </p>
         </div>
 
@@ -106,7 +114,7 @@
         @endif
     </div>
 
-    {{-- Card Body --}}
+    
     <div class="p-5 space-y-4">
 
         {{-- Semester History --}}
