@@ -42,13 +42,11 @@
         <!-- SIDEBAR -->
         <aside id="sidebar" class="fixed top-0 left-0 h-screen w-64 bg-red-800 text-white flex flex-col z-40">
             <!-- Collapse Toggle -->
-            <div class="flex justify-end px-3 py-2">
-                <button onclick="document.getElementById('sidebar').classList.toggle('collapsed')" class="text-white focus:outline-none">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"></path>
-                    </svg>
-                </button>
-            </div>
+            <button onclick="toggleSidebar()" class="text-white focus:outline-none">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"></path>
+                </svg>
+            </button>
 
             <!-- LOGO -->
             <div class="flex flex-col items-center py-6 border-b border-red-700">
@@ -114,12 +112,12 @@
         </aside>
 
         <!-- MAIN AREA -->
-        <div class="flex-1 flex flex-col ml-64">
+        <div id="main-area" class="flex-1 flex flex-col ml-64 transition-all duration-300">
 
             <!-- NAVBAR -->
-            <header class="fixed top-0 left-64 right-0 bg-white shadow-sm px-6 py-3 flex items-center justify-between z-30">
+            <header id="main-header" class="fixed top-0 left-64 right-0 bg-white shadow-sm px-6 py-3 flex items-center justify-between z-30 transition-all duration-300">
 
-                <!-- Page Title (Left) -->
+                <!-- Page Title  -->
                 <div class="text-lg font-semibold text-gray-800">
                     @yield('page-title', 'Dashboard')
                 </div>
@@ -127,8 +125,8 @@
                 <!-- Academic Period -->
                 <div class="text-sm text-gray-600 flex items-center gap-2">
                     @if($latestSchoolYear)
-                    <span class="font-medium text-gray-700"> S.Y
-                        {{ \Carbon\Carbon::parse($latestSchoolYear->sy_start)->format('Y') }} –
+                    <span class="font-medium text-gray-700">
+                        S.Y {{ \Carbon\Carbon::parse($latestSchoolYear->sy_start)->format('Y') }} –
                         {{ \Carbon\Carbon::parse($latestSchoolYear->sy_end)->format('Y') }}
                     </span>
                     <span class="text-gray-400">·</span>
@@ -150,27 +148,43 @@
                     </button>
 
                     <div id="user-dropdown" class="hidden absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-20">
-                        <a href="{{ route('profile.edit') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                            Profile
-                        </a>
+                        <a href="{{ route('profile.edit') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profile</a>
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
-                            <button type="submit" class="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                                Logout
-                            </button>
+                            <button type="submit" class="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Logout</button>
                         </form>
                     </div>
                 </div>
 
             </header>
 
-
             <!-- PAGE CONTENT -->
-            <main class="flex-1 p-8">
+            <main class="flex-1 p-8 mt-16">
                 @yield('content')
             </main>
-
         </div>
+
+        <script>
+            function toggleSidebar() {
+                const sidebar = document.getElementById('sidebar');
+                const mainArea = document.getElementById('main-area');
+                const header = document.getElementById('main-header');
+
+                sidebar.classList.toggle('collapsed');
+
+                if (sidebar.classList.contains('collapsed')) {
+                    mainArea.style.marginLeft = '100px'; 
+                    header.style.left = '100px'; 
+                    header.style.right = '0'; 
+                } else {
+                    mainArea.style.marginLeft = '16rem'; 
+                    header.style.left = '16rem';
+                    header.style.right = '0';
+                }
+            }
+
+        </script>
+
     </div>
 
 </body>

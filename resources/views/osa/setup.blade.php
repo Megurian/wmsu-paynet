@@ -8,7 +8,7 @@
 
 @section('content')
 <div class="mb-8 ">
-    <h2 class="text-3xl font-bold text-gray-800 mt-10">OSA Academic Setup</h2>
+    <h2 class="text-3xl font-bold text-gray-800">OSA Academic Setup</h2>
     <p class="text-sm text-gray-500 mt-1">
         Manage school years and semester timelines for the Office of Student Affairs.
     </p>
