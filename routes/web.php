@@ -16,7 +16,7 @@ Route::middleware('auth')->get('/dashboard', function () {
         'osa' => redirect()->route('osa.dashboard'),
         'usc' => redirect()->route('usc.dashboard'),
         'college' => redirect()->route('college.dashboard'),
-        default => abort(403), // Prevent unknown roles
+        default => abort(403), 
     };
 })->name('dashboard');
 

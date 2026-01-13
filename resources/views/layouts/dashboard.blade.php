@@ -26,20 +26,60 @@
             @endphp
 
             @if($role === 'osa')
-                <a href="{{ route('osa.dashboard') }}" class="block px-4 py-2 rounded-md hover:bg-red-700 transition">Dashboard</a>
-                <a href="#" class="block px-4 py-2 rounded-md hover:bg-red-700 transition">Payments</a>
-                <a href="#" class="block px-4 py-2 rounded-md hover:bg-red-700 transition">Reports</a>
-                <a href="#" class="block px-4 py-2 rounded-md hover:bg-red-700 transition">Setup</a>
+                <a href="{{ route('osa.dashboard') }}"
+                class="block px-4 py-2 rounded-md transition
+                        {{ request()->routeIs('osa.dashboard') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    Dashboard
+                </a>
+                <a href="#"
+                class="block px-4 py-2 rounded-md transition
+                        {{ request()->routeIs('osa.payments') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    Payments
+                </a>
+                <a href="#"
+                class="block px-4 py-2 rounded-md transition
+                        {{ request()->routeIs('osa.reports') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    Reports
+                </a>
+                <a href="#"
+                class="block px-4 py-2 rounded-md transition
+                        {{ request()->routeIs('osa.setup') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    Setup
+                </a>
 
             @elseif($role === 'usc')
-                <a href="{{ route('usc.dashboard') }}" class="block px-4 py-2 rounded-md hover:bg-red-700 transition">Dashboard</a>
-                <a href="#" class="block px-4 py-2 rounded-md hover:bg-red-700 transition">Student Requests</a>
-                <a href="#" class="block px-4 py-2 rounded-md hover:bg-red-700 transition">Approvals</a>
+                <a href="{{ route('usc.dashboard') }}"
+                class="block px-4 py-2 rounded-md transition
+                        {{ request()->routeIs('usc.dashboard') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    Dashboard
+                </a>
+                <a href="#"
+                class="block px-4 py-2 rounded-md transition
+                        {{ request()->routeIs('usc.requests') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    Student Requests
+                </a>
+                <a href="#"
+                class="block px-4 py-2 rounded-md transition
+                        {{ request()->routeIs('usc.approvals') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    Approvals
+                </a>
 
             @elseif($role === 'college')
-                <a href="{{ route('college.dashboard') }}" class="block px-4 py-2 rounded-md hover:bg-red-700 transition">Dashboard</a>
-                <a href="#" class="block px-4 py-2 rounded-md hover:bg-red-700 transition">Finance Reports</a>
-                <a href="#" class="block px-4 py-2 rounded-md hover:bg-red-700 transition">Faculty Requests</a>
+                <a href="{{ route('college.dashboard') }}"
+                class="block px-4 py-2 rounded-md transition
+                        {{ request()->routeIs('college.dashboard') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    Dashboard
+                </a>
+                <a href="#"
+                class="block px-4 py-2 rounded-md transition
+                        {{ request()->routeIs('college.reports') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    Finance Reports
+                </a>
+                <a href="#"
+                class="block px-4 py-2 rounded-md transition
+                        {{ request()->routeIs('college.requests') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    Faculty Requests
+                </a>
             @endif
         </nav>
     </aside>
@@ -56,28 +96,28 @@
             <div class="flex items-center gap-4">
                 <!-- ROLE BADGE -->
                 <div class="relative">
-    <!-- Trigger Button -->
-    <button type="button" class="flex items-center gap-2 text-sm text-gray-700 hover:text-gray-900 focus:outline-none" id="user-menu-button" aria-expanded="false" aria-haspopup="true" onclick="document.getElementById('user-dropdown').classList.toggle('hidden')">
-        <span>{{ Auth::user()->name }}</span>
-        <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-        </svg>
-    </button>
+                <!-- Trigger Button -->
+                <button type="button" class="flex items-center gap-2 text-sm text-gray-700 hover:text-gray-900 focus:outline-none" id="user-menu-button" aria-expanded="false" aria-haspopup="true" onclick="document.getElementById('user-dropdown').classList.toggle('hidden')">
+                    <span>{{ Auth::user()->name }}</span>
+                    <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </button>
 
-    <!-- Dropdown Menu -->
-    <div id="user-dropdown" class="hidden absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-20">
-        <a href="{{ route('profile.edit') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-            Profile
-        </a>
+                <!-- Dropdown Menu -->
+                <div id="user-dropdown" class="hidden absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-20">
+                    <a href="{{ route('profile.edit') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                        Profile
+                    </a>
 
-        <form method="POST" action="{{ route('logout') }}">
-            @csrf
-            <button type="submit" class="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                Logout
-            </button>
-        </form>
-    </div>
-</div>
+                    <form method="POST" action="{{ route('logout') }}">
+                        @csrf
+                        <button type="submit" class="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                            Logout
+                        </button>
+                    </form>
+                </div>
+            </div>
 
             </div>
         </header>
