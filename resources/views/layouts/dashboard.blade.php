@@ -75,11 +75,9 @@
                 <a href="#" class="block px-4 py-2 rounded-md transition
                     {{ request()->routeIs('osa.reports') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
                     <span>Reports</span>
-                </a>
-                <a href="{{ route('osa.setup') }}" class="block px-4 py-2 rounded-md transition
-                    {{ request()->routeIs('osa.setup') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-                    <span>Setup</span>
-                </a>
+                
+                <a href="{{ route('osa.setup') }}" class=" block px-4 py-2 rounded-md transition
+                {{ request()->routeIs('osa.setup') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">Setup</a>
 
             @elseif($role === 'usc')
                 <a href="{{ route('usc.dashboard') }}" class="block px-4 py-2 rounded-md transition

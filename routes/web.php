@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\OSASetupController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 
@@ -28,7 +29,10 @@ Route::middleware(['auth', 'role:osa'])->group(function () {
 
      Route::get('/osa/setup', function () {
         return view('osa.setup');
-    })->name('osa.setup'); // <-- new route
+    })->name('osa.setup'); 
+      Route::get('/osa/setup', [OSASetupController::class, 'edit'])->name('osa.setup');
+    Route::post('/osa/setup', [OSASetupController::class, 'store'])->name('osa.setup.store');
+     Route::post('/osa/setup/{id}/add-semester', [OSASetupController::class, 'addSemester'])->name('osa.setup.addSemester');
 });
 
 Route::middleware(['auth', 'role:usc'])->group(function () {
