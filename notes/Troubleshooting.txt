@@ -8,3 +8,22 @@
 | `.test` domain not resolving  | Run Herd as Administrator, flush DNS: `ipconfig /flushdns`              |
 | Internal Server Error         | Clear caches: `php artisan config:clear && php artisan cache:clear`     |
 | git ownership doesn’t match   | git config --global --add safe.directory C:/Users/DELL/Herd/wmsu-paynet |
+
+
+Login error troubleshooting
+change Session_driver from database to file in env
+-Clear everything Laravel cached
+
+Run ALL of these:
+
+php artisan optimize:clear
+php artisan cache:clear
+php artisan config:clear
+php artisan view:clear
+
+- Delete old session files 
+
+Delete everything inside:
+
+storage/framework/sessions/
+(do NOT delete the folder — just the files inside)
