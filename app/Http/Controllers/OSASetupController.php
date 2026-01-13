@@ -11,7 +11,7 @@ class OSASetupController extends Controller
     public function edit()
     {
         $schoolYears = SchoolYear::with('semesters')->orderBy('sy_start', 'desc')->get();
-        $latestSchoolYear = SchoolYear::latest('created_at')->first();
+        $latestSchoolYear = SchoolYear::where('is_active', true)->with('semesters')->first();
 
         $existingSemesters = [];
         if ($latestSchoolYear) {
@@ -28,13 +28,18 @@ class OSASetupController extends Controller
             'sy_end'   => 'required|date|after_or_equal:sy_start',
         ]);
 
-        SchoolYear::create([
+        // Deactivate all previous school years and their semesters
+        SchoolYear::where('is_active', true)->update(['is_active' => false]);
+        Semester::where('is_active', true)->update(['is_active' => false]);
+
+        // Create new school year as active
+        $newSY = SchoolYear::create([
             'sy_start' => $request->sy_start,
             'sy_end'   => $request->sy_end,
-            'is_active' => false,
+            'is_active' => true,
         ]);
 
-        return redirect()->back()->with('status', 'School Year added successfully!');
+        return redirect()->back()->with('status', 'New School Year added and activated successfully!');
     }
 
     public function addSemester(Request $request, $schoolYearId)
@@ -45,15 +50,19 @@ class OSASetupController extends Controller
 
         $schoolYear = SchoolYear::findOrFail($schoolYearId);
 
-        $schoolYear->semesters()->where('is_active', true)->update(['is_active' => false]);
+        // Deactivate all previous semesters for this S.Y
+        $schoolYear->semesters()->update(['is_active' => false]);
 
-        
+        // Create new active semester
         Semester::create([
             'school_year_id' => $schoolYear->id,
             'name' => $request->semester,
             'is_active' => true,
         ]);
 
-        return redirect()->back()->with('status', 'Semester added successfully!');
+        // Make sure the school year itself is active (if adding a semester activates the S.Y)
+        $schoolYear->update(['is_active' => true]);
+
+        return redirect()->back()->with('status', 'Semester added and activated successfully!');
     }
 }

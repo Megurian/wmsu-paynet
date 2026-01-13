@@ -117,9 +117,30 @@
         <div class="flex-1 flex flex-col ml-64">
 
             <!-- NAVBAR -->
-            <header class="fixed top-0 left-64 right-0 bg-white shadow-sm px-6 py-4 flex justify-between items-center z-30">
-                <h1 class="text-lg font-semibold text-gray-800">@yield('page-title', 'Dashboard')</h1>
+            <header class="fixed top-0 left-64 right-0 bg-white shadow-sm px-6 py-3 flex items-center justify-between z-30 space-x-6">
 
+                <!-- Page Title -->
+                <div class="flex flex-col">
+                    <h1 class="text-lg font-semibold text-gray-800">@yield('page-title', 'Dashboard')</h1>
+
+                    <!-- Academic Period -->
+                    <div class="mt-1 text-sm text-gray-600 flex items-center gap-2">
+                        @if($latestSchoolYear)
+                        <span class="font-medium text-gray-700">
+                            {{ \Carbon\Carbon::parse($latestSchoolYear->sy_start)->format('Y') }} –
+                            {{ \Carbon\Carbon::parse($latestSchoolYear->sy_end)->format('Y') }}
+                        </span>
+                        <span class="text-gray-400">·</span>
+                        <span class="font-medium text-red-700">
+                            {{ ucfirst($latestSchoolYear->semesters->firstWhere('is_active', true)?->name ?? 'No active semester') }}
+                        </span>
+                        @else
+                        <span class="italic text-gray-400">No active academic period</span>
+                        @endif
+                    </div>
+                </div>
+
+                <!-- User Dropdown -->
                 <div class="relative">
                     <button type="button" class="flex items-center gap-2 text-sm text-gray-700 hover:text-gray-900 focus:outline-none" onclick="document.getElementById('user-dropdown').classList.toggle('hidden')">
                         <span>{{ Auth::user()->name }}</span>
@@ -141,6 +162,7 @@
                     </div>
                 </div>
             </header>
+
 
             <!-- PAGE CONTENT -->
             <main class="flex-1 p-8">
