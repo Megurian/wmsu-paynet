@@ -7,9 +7,24 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-Route::get('/dashboard', function () {
-    return view('dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+Route::middleware(['auth', 'role:osa'])->group(function () {
+    Route::get('/osa/dashboard', function () {
+        return view('osa.dashboard');
+    })->name('osa.dashboard');
+});
+
+Route::middleware(['auth', 'role:usc'])->group(function () {
+    Route::get('/usc/dashboard', function () {
+        return view('usc.dashboard');
+    })->name('usc.dashboard');
+});
+
+Route::middleware(['auth', 'role:college'])->group(function () {
+    Route::get('/college/dashboard', function () {
+        return view('college.dashboard');
+    })->name('college.dashboard');
+});
+
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
