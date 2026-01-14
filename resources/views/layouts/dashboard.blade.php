@@ -62,39 +62,40 @@
                 @php $role = Auth::user()->role; @endphp
 
                 @if($role === 'osa')
-                <a href="{{ route('osa.dashboard') }}" class="block px-4 py-2 rounded-md transition
-                    {{ request()->routeIs('osa.dashboard') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-                    <span>Dashboard</span>
-                </a>
-                <a href="#" class="block px-4 py-2 rounded-md transition
-                    {{ request()->routeIs('osa.payments') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-                    <span>Payments</span>
-                </a>
-                <a href="#" class="block px-4 py-2 rounded-md transition
+                    <a href="{{ route('osa.dashboard') }}" class="block px-4 py-2 rounded-md transition
+                        {{ request()->routeIs('osa.dashboard') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                        <span>Dashboard</span>
+                    </a>
+                    <a href="#" class="block px-4 py-2 rounded-md transition
+                        {{ request()->routeIs('osa.payments') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                        <span>Payments</span>
+                    </a>
+                    <a href="#" class="block px-4 py-2 rounded-md transition
                     {{ request()->routeIs('osa.reports') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
                     <span>Reports</span>
 
                     <a href="{{ route('osa.setup') }}" class=" block px-4 py-2 rounded-md transition
-                {{ request()->routeIs('osa.setup') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">Setup</a>
+                    {{ request()->routeIs('osa.setup') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">Setup</a>
 
-                    @elseif($role === 'usc')
+                @elseif($role === 'usc')
                     <a href="{{ route('usc.dashboard') }}" class="block px-4 py-2 rounded-md transition
                     {{ request()->routeIs('usc.dashboard') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
                         <span>Dashboard</span>
                     </a>
-                    <a href="#" class="block px-4 py-2 rounded-md transition
-                    {{ request()->routeIs('usc.requests') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-                        <span>Student Requests</span>
+                    <a href="{{ route('usc.fees') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('usc.fees') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                        <span>Fees</span>
                     </a>
-                    <a href="#" class="block px-4 py-2 rounded-md transition
-                    {{ request()->routeIs('usc.approvals') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-                        <span>Approvals</span>
+                    <a href="{{ route('usc.remittance') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('usc.remittance') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                        <span>Remittance</span>
                     </a>
-                    <a href="#" class="block px-4 py-2 rounded-md transition hover:bg-red-700">
-                        <span>Setup</span>
+                    <a href="{{ route('usc.reports') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('usc.reports') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                        <span>Reports</span>
                     </a>
 
-                    @elseif($role === 'college')
+                @elseif($role === 'college')
                     <a href="{{ route('college.dashboard') }}" class="block px-4 py-2 rounded-md transition
                     {{ request()->routeIs('college.dashboard') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
                         <span>Dashboard</span>
@@ -173,11 +174,11 @@
                 sidebar.classList.toggle('collapsed');
 
                 if (sidebar.classList.contains('collapsed')) {
-                    mainArea.style.marginLeft = '100px'; 
-                    header.style.left = '100px'; 
-                    header.style.right = '0'; 
+                    mainArea.style.marginLeft = '100px';
+                    header.style.left = '100px';
+                    header.style.right = '0';
                 } else {
-                    mainArea.style.marginLeft = '16rem'; 
+                    mainArea.style.marginLeft = '16rem';
                     header.style.left = '16rem';
                     header.style.right = '0';
                 }
