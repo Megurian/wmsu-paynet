@@ -73,4 +73,18 @@ class OSACollegeController extends Controller
 
         return redirect()->route('osa.college')->with('status', 'College and initial admin created successfully!');
     }
+
+    public function destroy($id)
+    {
+        $college = College::findOrFail($id);
+
+        // Optional: delete college admins if you want
+        $college->users()->delete();
+
+        // Delete college
+        $college->delete();
+
+        return redirect()->route('osa.college')->with('status', 'College deleted successfully!');
+    }
+
 }

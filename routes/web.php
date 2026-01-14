@@ -41,6 +41,7 @@ Route::middleware(['auth', 'role:osa'])->group(function () {
     Route::get('/osa/college/create', [OSACollegeController::class, 'create'])->name('osa.college.create');
     Route::post('/osa/college', [OSACollegeController::class, 'store'])->name('osa.college.store');
     Route::get('/osa/college/{id}', [OSACollegeController::class, 'show'])->name('osa.college.details');
+    Route::delete('/osa/college/{id}', [OSACollegeController::class, 'destroy'])->name('osa.college.destroy');
 });
 
 Route::middleware(['auth', 'role:usc'])->group(function () {
