@@ -92,7 +92,7 @@
                     </a>
                     <a href="{{ route('usc.reports') }}" class="block px-4 py-2 rounded-md transition
                     {{ request()->routeIs('usc.reports') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-                        <span>Remittance</span>
+                        <span>Reports</span>
                     </a>
 
                 @elseif($role === 'college')
