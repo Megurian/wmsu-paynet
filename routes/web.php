@@ -27,13 +27,18 @@ Route::middleware(['auth', 'role:osa'])->group(function () {
         return view('osa.dashboard');
     })->name('osa.dashboard');
 
+    //OSA SETUP PAGE ROUTES
     Route::get('/osa/setup', function () {
         return view('osa.setup');
     })->name('osa.setup'); 
-
     Route::get('/osa/setup', [OSASetupController::class, 'edit'])->name('osa.setup');
     Route::post('/osa/setup', [OSASetupController::class, 'store'])->name('osa.setup.store');
     Route::post('/osa/setup/{id}/add-semester', [OSASetupController::class, 'addSemester'])->name('osa.setup.addSemester');
+    //
+    //OSA COLLEGE PAGE ROUTES
+    Route::get('/osa/college', function () {
+        return view('osa.college');
+    })->name('osa.college'); 
 });
 
 Route::middleware(['auth', 'role:usc'])->group(function () {
@@ -52,6 +57,10 @@ Route::middleware(['auth', 'role:usc'])->group(function () {
     Route::get('/usc/reports', function () {
         return view('usc.reports');
     })->name('usc.reports');
+
+    Route::get('/usc/setup', function () {
+        return view('usc.setup');
+    })->name('usc.setup');
 });
 
 Route::middleware(['auth', 'role:college'])->group(function () {
