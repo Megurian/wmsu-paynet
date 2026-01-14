@@ -37,11 +37,11 @@
             </button>
             <div id="menu-{{ $college->id }}" class="hidden absolute right-0 mt-2 w-36 bg-white border border-gray-200 rounded shadow-lg z-10">
                 <a href="{{ route('osa.college.details', $college->id) }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">View Details</a>
-                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Edit</a>
+                {{-- <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Edit</a> --}}
                 <form action="{{ route('osa.college.destroy', $college->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this college?');">
                     @csrf
                     @method('DELETE')
-                    <button type="submit" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100">Delete</button>
+                    <button type="submit" class="w-full text-center px-4 py-2 text-sm text-red-600 hover:bg-gray-100">Delete</button>
                 </form>
             </div>
         </div>
