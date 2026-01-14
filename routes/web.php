@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\OSASetupController;
+use App\Http\Controllers\OSACollegeController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 
@@ -36,9 +37,10 @@ Route::middleware(['auth', 'role:osa'])->group(function () {
     Route::post('/osa/setup/{id}/add-semester', [OSASetupController::class, 'addSemester'])->name('osa.setup.addSemester');
     //
     //OSA COLLEGE PAGE ROUTES
-    Route::get('/osa/college', function () {
-        return view('osa.college');
-    })->name('osa.college'); 
+    Route::get('/osa/college', [OSACollegeController::class, 'index'])->name('osa.college');
+    Route::get('/osa/college/create', [OSACollegeController::class, 'create'])->name('osa.college.create');
+    Route::post('/osa/college', [OSACollegeController::class, 'store'])->name('osa.college.store');
+    Route::get('/osa/college/{id}', [OSACollegeController::class, 'show'])->name('osa.college.details');
 });
 
 Route::middleware(['auth', 'role:usc'])->group(function () {

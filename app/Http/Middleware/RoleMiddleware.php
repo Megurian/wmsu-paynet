@@ -17,12 +17,10 @@ class RoleMiddleware
      */
     public function handle(Request $request, Closure $next, ...$roles): Response
     {
-        // Check if user is logged in
         if (! auth()->check()) {
             return redirect()->route('login');
         }
 
-        // Check if user's role is in allowed roles
         if (! in_array(auth()->user()->role, $roles)) {
             abort(403, 'Unauthorized access.');
         }
