@@ -4,6 +4,7 @@ namespace App\Providers;
 use Illuminate\Support\Facades\View;
 use App\Models\SchoolYear;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\Auth;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -21,11 +22,23 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         View::composer('*', function ($view) {
+
             $latestSchoolYear = SchoolYear::with('semesters')
                 ->where('is_active', true)
                 ->latest('sy_start')
                 ->first();
-            $view->with('latestSchoolYear', $latestSchoolYear);
+
+            $user = Auth::user();
+            $college = null;
+
+            if ($user && $user->college_id) {
+                $college = $user->college; // uses relationship
+            }
+
+            $view->with([
+                'latestSchoolYear' => $latestSchoolYear,
+                'currentCollege' => $college,
+            ]);
         });
     }
 }

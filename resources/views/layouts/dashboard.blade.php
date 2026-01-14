@@ -41,7 +41,6 @@
 
         <!-- SIDEBAR -->
         <aside id="sidebar" class="fixed top-0 left-0 h-screen w-64 bg-red-800 text-white flex flex-col z-40">
-            <!-- Collapse Toggle -->
             <button onclick="toggleSidebar()" class="text-white focus:outline-none">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"></path>
@@ -50,11 +49,28 @@
 
             <!-- LOGO -->
             <div class="flex flex-col items-center py-6 border-b border-red-700">
-                <div class="h-20 w-20 bg-white rounded-full flex items-center justify-center shadow">
-                    <span class="text-red-800 font-bold">Logo</span>
+                <div class="h-20 w-20 bg-white rounded-full flex items-center justify-center shadow overflow-hidden">
+                    @if($currentCollege && $currentCollege->logo)
+                    <img src="{{ asset('storage/' . $currentCollege->logo) }}" alt="College Logo" class="h-full w-full object-cover">
+                    @else
+                    {{-- Fallback (OSA / no college) --}}
+                    <span class="text-red-800 font-bold text-sm text-center">
+                        No<br>logo
+                    </span>
+                    @endif
                 </div>
-                <h2 class="mt-3 text-xl font-bold text-center">WMSU PayNet</h2>
-                <p class="text-xs opacity-80 text-center">{{ strtoupper(Auth::user()->role) }} Panel</p>
+                @if(Auth::user()->role === 'college' && $currentCollege)
+                    <h2 class="mt-3 text-lg font-bold text-center leading-snug break-words max-w-[12rem] mx-auto">
+                        {{ $currentCollege->name }}
+                    </h2>
+                    <p class="text-xs opacity-80 text-center">College Admin</p>
+                @else
+                    <h2 class="mt-3 text-lg font-bold text-center max-w-[12rem] mx-auto break-words">
+                        WMSU PayNet
+                    </h2>
+                    <p class="text-xs opacity-80 text-center">{{ strtoupper(Auth::user()->role) }} Panel</p>
+                @endif
+
             </div>
 
             <!-- NAVIGATION -->
@@ -62,57 +78,59 @@
                 @php $role = Auth::user()->role; @endphp
 
                 @if($role === 'osa')
-                    <a href="{{ route('osa.dashboard') }}" class="block px-4 py-2 rounded-md transition
+                <a href="{{ route('osa.dashboard') }}" class="block px-4 py-2 rounded-md transition
                         {{ request()->routeIs('osa.dashboard') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-                        <span>Dashboard</span>
-                    </a>
-                    <a href="{{ route('osa.college') }}" class="block px-4 py-2 rounded-md transition
+                    <span>Dashboard</span>
+                </a>
+                <a href="{{ route('osa.college') }}" class="block px-4 py-2 rounded-md transition
                         {{ request()->routeIs('osa.college') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-                        <span>College</span>
-                    </a>
-                    <a href="#" class="block px-4 py-2 rounded-md transition
+                    <span>College</span>
+                </a>
+                <a href="#" class="block px-4 py-2 rounded-md transition
                     {{ request()->routeIs('osa.reports') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
                     <span>Reports</span>
-
-                    <a href="{{ route('osa.setup') }}" class=" block px-4 py-2 rounded-md transition
-                    {{ request()->routeIs('osa.setup') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">Setup</a>
+                </a>
+                <a href="{{ route('osa.setup') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('osa.setup') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span>Setup</span>
+                </a>
 
                 @elseif($role === 'usc')
-                    <a href="{{ route('usc.dashboard') }}" class="block px-4 py-2 rounded-md transition
+                <a href="{{ route('usc.dashboard') }}" class="block px-4 py-2 rounded-md transition
                     {{ request()->routeIs('usc.dashboard') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-                        <span>Dashboard</span>
-                    </a>
-                    <a href="{{ route('usc.fees') }}" class="block px-4 py-2 rounded-md transition
+                    <span>Dashboard</span>
+                </a>
+                <a href="{{ route('usc.fees') }}" class="block px-4 py-2 rounded-md transition
                     {{ request()->routeIs('usc.fees') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-                        <span>Fees</span>
-                    </a>
-                    <a href="{{ route('usc.remittance') }}" class="block px-4 py-2 rounded-md transition
+                    <span>Fees</span>
+                </a>
+                <a href="{{ route('usc.remittance') }}" class="block px-4 py-2 rounded-md transition
                     {{ request()->routeIs('usc.remittance') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-                        <span>Remittance</span>
-                    </a>
-                    <a href="{{ route('usc.reports') }}" class="block px-4 py-2 rounded-md transition
+                    <span>Remittance</span>
+                </a>
+                <a href="{{ route('usc.reports') }}" class="block px-4 py-2 rounded-md transition
                     {{ request()->routeIs('usc.reports') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-                        <span>Reports</span>
-                    </a>
-                     <a href="{{ route('usc.setup') }}" class="block px-4 py-2 rounded-md transition
+                    <span>Reports</span>
+                </a>
+                <a href="{{ route('usc.setup') }}" class="block px-4 py-2 rounded-md transition
                     {{ request()->routeIs('usc.setup') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-                        <span>Setup</span>
-                    </a>
+                    <span>Setup</span>
+                </a>
 
                 @elseif($role === 'college')
-                    <a href="{{ route('college.dashboard') }}" class="block px-4 py-2 rounded-md transition
+                <a href="{{ route('college.dashboard') }}" class="block px-4 py-2 rounded-md transition
                     {{ request()->routeIs('college.dashboard') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-                        <span>Dashboard</span>
-                    </a>
-                    <a href="#" class="block px-4 py-2 rounded-md transition
+                    <span>Dashboard</span>
+                </a>
+                <a href="#" class="block px-4 py-2 rounded-md transition
                     {{ request()->routeIs('college.reports') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-                        <span>Finance Reports</span>
-                    </a>
-                    <a href="#" class="block px-4 py-2 rounded-md transition
+                    <span>Finance Reports</span>
+                </a>
+                <a href="#" class="block px-4 py-2 rounded-md transition
                     {{ request()->routeIs('college.requests') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-                        <span>Faculty Requests</span>
-                    </a>
-                    @endif
+                    <span>Faculty Requests</span>
+                </a>
+                @endif
             </nav>
         </aside>
 
