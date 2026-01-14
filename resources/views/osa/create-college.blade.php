@@ -33,9 +33,16 @@
                 <p class="text-xs text-gray-500 mt-1">Unique code for the college</p>
             </div>
 
-            <div class="mb-6">
-                <label class="block font-medium mb-1">College Logo (Optional)</label>
-                <input type="file" name="logo" class="w-full">
+            <div class="mb-6 relative">
+                <label class="block font-medium mb-2">College Logo (Optional)</label>
+
+                <div id="logoUpload" class="w-40 h-40 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center cursor-pointer relative mx-auto">
+                    <button type="button" id="removeLogo" class="hidden absolute -top-7 -right-3 right-0 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-700">×</button>
+                    <span id="logoPlus" class="text-gray-400 text-4xl font-bold">+</span>
+                    <img id="logoPreview" class="hidden w-full h-full object-cover rounded-lg absolute top-0 left-0" alt="Logo Preview">
+                    <input type="file" name="logo" id="logoInput" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                </div>
+                <p class="text-xs text-gray-500 mt-1 text-center">Click to upload college logo</p>
             </div>
 
             <div class="flex justify-end">
@@ -79,14 +86,14 @@
     const totalSteps = 2;
 
     function updateProgress() {
-        if(currentStep === 1){
+        if (currentStep === 1) {
             document.getElementById('dot-1').classList.add('bg-blue-600');
             document.getElementById('dot-1').classList.remove('bg-gray-300');
             document.getElementById('line-1').classList.remove('bg-blue-600');
             document.getElementById('line-1').classList.add('bg-gray-300');
             document.getElementById('dot-2').classList.add('bg-gray-300');
             document.getElementById('dot-2').classList.remove('bg-blue-600');
-        } else if(currentStep === 2){
+        } else if (currentStep === 2) {
             document.getElementById('dot-1').classList.add('bg-blue-600');
             document.getElementById('line-1').classList.add('bg-blue-600');
             document.getElementById('dot-2').classList.add('bg-blue-600');
@@ -107,14 +114,41 @@
         currentStep--;
         updateProgress();
     }
-
-    // Initialize
     updateProgress();
+
+    const logoInput = document.getElementById('logoInput');
+    const logoPreview = document.getElementById('logoPreview');
+    const logoPlus = document.getElementById('logoPlus');
+    const removeLogo = document.getElementById('removeLogo');
+
+    logoInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                logoPreview.src = e.target.result;
+                logoPreview.classList.remove('hidden');
+                logoPlus.classList.add('hidden');
+                removeLogo.classList.remove('hidden');
+            }
+            reader.readAsDataURL(file);
+        }
+    });
+
+    removeLogo.addEventListener('click', function() {
+        logoInput.value = '';
+        logoPreview.src = '';
+        logoPreview.classList.add('hidden');
+        logoPlus.classList.remove('hidden');
+        removeLogo.classList.add('hidden');
+    });
+
 </script>
 
 <style>
     .form-step {
         transition: all 0.3s ease;
     }
+
 </style>
 @endsection

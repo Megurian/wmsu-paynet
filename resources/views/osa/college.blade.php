@@ -28,9 +28,8 @@
 
         <!-- College Name & Code -->
         <h3 class="text-lg font-semibold">{{ $college->name }}</h3>
-        <p class="text-gray-600 mb-2">Code: <span class="font-medium">{{ $college->college_code }}</span></p>
-
-     
+        <p class="text-gray-600 mb-2"><span class="font-medium">{{ $college->college_code }}</span></p>
+ 
         <div class="absolute top-2 right-2">
             <button onclick="document.getElementById('menu-{{ $college->id }}').classList.toggle('hidden')" 
                 class="w-8 h-5 flex items-center justify-center border border-gray-300 rounded-lg text-gray-700 font-bold text-xl hover:bg-gray-100 focus:outline-none">
