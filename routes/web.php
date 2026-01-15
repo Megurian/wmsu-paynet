@@ -3,6 +3,9 @@
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\OSASetupController;
 use App\Http\Controllers\OSACollegeController;
+use App\Http\Controllers\CollegeAcademicController;
+use App\Http\Controllers\CollegeStudentController;
+use App\Http\Controllers\ValidateStudentsController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 
@@ -70,6 +73,39 @@ Route::middleware(['auth', 'role:college'])->group(function () {
     Route::get('/college/dashboard', function () {
         return view('college.dashboard');
     })->name('college.dashboard');
+
+    Route::get('/college/students', function () {
+        return view('college.students');
+    })->name('college.students');
+
+    // Academic Structure Management
+    Route::get('/college/academics', [CollegeAcademicController::class, 'index'])
+        ->name('college.academics');
+
+    Route::post('/college/courses', [CollegeAcademicController::class, 'storeCourse'])
+        ->name('college.courses.store');
+
+    Route::post('/college/years', [CollegeAcademicController::class, 'storeYear'])
+        ->name('college.years.store');
+
+    Route::post('/college/sections', [CollegeAcademicController::class, 'storeSection'])
+        ->name('college.sections.store');
+    
+    //course,year and section delete
+    Route::delete('/college/courses/{id}', [CollegeAcademicController::class, 'destroyCourse'])->name('college.courses.destroy');
+    Route::delete('/college/years/{id}', [CollegeAcademicController::class, 'destroyYear'])->name('college.years.destroy');
+    Route::delete('/college/sections/{id}', [CollegeAcademicController::class, 'destroySection'])->name('college.sections.destroy');
+    Route::get('/college/students', [CollegeStudentController::class, 'index'])->name('college.students');
+   
+    //students
+    Route::post('/college/students', [CollegeStudentController::class, 'store'])->name('college.students.store');
+    Route::delete('/college/students/{id}', [CollegeStudentController::class, 'destroy'])->name('college.students.destroy');
+
+    Route::get('students/validate', [ValidateStudentsController::class, 'index'])->name('college.students.validate');
+    Route::post('students/validate/{student}', [ValidateStudentsController::class, 'store'])->name('college.students.validate.store');
+    Route::post('/college/students/validate/bulk', [ValidateStudentsController::class, 'bulkValidate'])
+        ->name('college.students.validate.bulk');
+
 });
 
 
