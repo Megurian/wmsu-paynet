@@ -12,15 +12,18 @@
     </a>
 </div>
 
-<form method="POST" action="{{ route('college.students.validate.bulk') }}" x-data="studentSelection()" x-init="init()">
+<form method="POST" action="{{ route('college.students.validate.bulk') }}" x-data="studentSelection()">
     @csrf
     <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-500 mb-4">
-        Validate Selected Students
+        Validate Selected
     </button>
+
     <table class="min-w-full text-sm text-gray-800">
         <thead class="bg-gray-50">
             <tr class="uppercase text-xs font-semibold text-gray-600">
-                <th><input type="checkbox" @click="toggleAll($event)"> </th>
+                <th>
+                    <input type="checkbox" @click="toggleAll($event)"> 
+                </th>
                 <th>Student ID</th>
                 <th>Name</th>
                 <th>Course</th>
@@ -39,15 +42,17 @@
             <tr class="{{ $validated ? 'bg-green-100' : '' }}">
                 <td>
                     @if(!$validated)
-                    <input type="checkbox" name="selected_students[]" value="{{ $student->id }}"
-                        @click="toggleOne($event, {{ $student->id }})"
-                        :checked="selected.includes({{ $student->id }})">
+                    <input type="checkbox" name="selected_students[]" 
+                           value="{{ $student->id }}" 
+                           @click="toggleOne($event, '{{ $student->id }}')">
                     @endif
                 </td>
+
                 <td>{{ $student->student_id }}</td>
-                <td>{{ strtoupper($student->last_name) }}, {{ strtoupper($student->first_name) }} {{ strtoupper($student->middle_name ?? '') }} {{ $student->suffix ?? '' }}</td>      
+                <td>{{ strtoupper($student->last_name) }}, {{ strtoupper($student->first_name) }} {{ strtoupper($student->middle_name ?? '') }} {{ $student->suffix ?? '' }}</td>
+
                 <td>
-                    <select name="course_id" required {{ $validated ? 'disabled' : '' }}>
+                    <select name="course_id[{{ $student->id }}]" required {{ $validated ? 'disabled' : '' }}>
                         @foreach($courses as $course)
                         <option value="{{ $course->id }}"
                             @if($validated && $course->id == $enrollment->course_id)
@@ -61,8 +66,9 @@
                         @endforeach
                     </select>
                 </td>
+
                 <td>
-                    <select name="year_level_id" required {{ $validated ? 'disabled' : '' }}>
+                    <select name="year_level_id[{{ $student->id }}]" required {{ $validated ? 'disabled' : '' }}>
                         @foreach($years as $year)
                         <option value="{{ $year->id }}"
                             @if($validated && $year->id == $enrollment->year_level_id)
@@ -76,8 +82,9 @@
                         @endforeach
                     </select>
                 </td>
+
                 <td>
-                    <select name="section_id" required {{ $validated ? 'disabled' : '' }}>
+                    <select name="section_id[{{ $student->id }}]" required {{ $validated ? 'disabled' : '' }}>
                         @foreach($sections as $section)
                         <option value="{{ $section->id }}"
                             @if($validated && $section->id == $enrollment->section_id)
@@ -91,9 +98,14 @@
                         @endforeach
                     </select>
                 </td>
+
                 <td>
                     @if(!$validated)
-                    <button type="submit" class="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-500">Validate</button>
+                    <button formaction="{{ route('college.students.validate.store', $student->id) }}"
+                            formmethod="POST"
+                            class="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-500">
+                        Validate
+                    </button>
                     @else
                     <span class="text-green-800 font-semibold">Validated</span>
                     @endif
@@ -102,33 +114,22 @@
             @endforeach
         </tbody>
     </table>
-
-    <div class="mt-4"> {{ $students->links() }} </div>
+    <div class="mt-4"> {{ $students->links() }} </div> 
 </form>
 
 <script>
 function studentSelection() {
     return {
         selected: [],
-
-        init() {
-            window.addEventListener('beforeunload', (e) => {
-                if(this.selected.length > 0){
-                    e.preventDefault();
-                    e.returnValue = '';
-                }
-            });
-        },
-
         toggleAll(event) {
             const checked = event.target.checked;
-            document.querySelectorAll('input[name="selected_students[]"]').forEach(cb => {
+            const checkboxes = document.querySelectorAll('input[name="selected_students[]"]');
+            checkboxes.forEach(cb => {
                 cb.checked = checked;
                 if (checked && !this.selected.includes(cb.value)) this.selected.push(cb.value);
                 if (!checked) this.selected = this.selected.filter(id => id != cb.value);
             });
         },
-
         toggleOne(event, studentId) {
             if (event.target.checked) this.selected.push(studentId);
             else this.selected = this.selected.filter(id => id != studentId);

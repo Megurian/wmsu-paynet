@@ -30,7 +30,7 @@ class ValidateStudentsController extends Controller
             ->paginate(3); 
 
 
-        
+        // Also fetch the last enrollment before the current SY & Sem
         foreach ($students as $student) {
             $lastEnrollment = StudentEnrollment::where('student_id', $student->id)
                 ->where(function($q) use ($activeSY, $activeSem) {
