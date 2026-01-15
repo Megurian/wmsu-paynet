@@ -16,7 +16,26 @@ class CollegeStudentController extends Controller
         $collegeId = Auth::user()->college_id;
 
         return view('college.students', [
-            'students' => Student::where('college_id', $collegeId)->get(),
+            'students' => Student::where('college_id', $collegeId)
+            ->with(['course','yearLevel','section'])
+            ->get()
+            ->map(fn($s) => [
+                'id' => $s->id,
+                'student_id' => $s->student_id,
+                'last_name' => $s->last_name,
+                'first_name' => $s->first_name,
+                'middle_name' => $s->middle_name,
+                'suffix' => $s->suffix,
+                'course' => $s->course?->name,
+                'course_id' => $s->course_id,
+                'year' => $s->yearLevel?->name,
+                'year_level_id' => $s->year_level_id,
+                'section' => $s->section?->name,
+                'section_id' => $s->section_id,
+                'contact' => $s->contact,
+                'email' => $s->email,
+            ]),
+
             'courses' => Course::where('college_id', $collegeId)->get(),
             'years' => YearLevel::where('college_id', $collegeId)->get(),
             'sections' => Section::where('college_id', $collegeId)->get(),
