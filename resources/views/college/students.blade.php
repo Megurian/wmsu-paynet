@@ -14,7 +14,7 @@
         </div>
         <div class="flex items-center gap-4">
             <button @click="showModal = true" class="bg-red-800 text-white px-4 py-2 rounded hover:bg-red-700 transition">
-                New Student Student
+                New Student
             </button>
             <a href="{{ route('college.academics') }}" class="text-blue-600 hover:underline text-sm">
                 Manage Courses / Years / Sections
@@ -79,7 +79,7 @@
                 <template x-for="student in filteredStudents" :key="student.id">
                     <tr class="hover:bg-gray-50 transition">
                         <td class="px-4 py-2" x-text="student.student_id"></td>
-                        <td class="px-4 py-2" x-text="student.last_name + ', ' + student.first_name + (student.middle_name ? ' ' + student.middle_name : '') + (student.suffix ? ', ' + student.suffix : '')"></td>
+                        <td class="px-4 py-2 uppercase" x-text="student.last_name + ', ' + student.first_name + (student.middle_name ? ' ' + student.middle_name : '') + '. ' + (student.suffix ? ', ' + student.suffix : '')"></td>
                         <td class="px-4 py-2" x-text="student.course"></td>
                         <td class="px-4 py-2" x-text="student.year"></td>
                         <td class="px-4 py-2" x-text="student.section"></td>
