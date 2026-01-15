@@ -14,7 +14,7 @@
         </div>
         <div class="flex items-center gap-4">
             <button @click="showModal = true" class="bg-red-800 text-white px-4 py-2 rounded hover:bg-red-700 transition">
-                + Add Student
+                New Student Student
             </button>
             <a href="{{ route('college.academics') }}" class="text-blue-600 hover:underline text-sm">
                 Manage Courses / Years / Sections
@@ -54,7 +54,7 @@
                         Student ID
                         <span x-text="sortKey === 'student_id' ? (sortAsc ? '▲' : '▼') : ''"></span>
                     </th>
-                    <th class="px-4 py-3 cursor-pointer" @click="sortTable('name')">
+                    <th class="px-4 py-3 cursor-pointer" @click="sortTable('last_name')">
                         Name
                         <span x-text="sortKey === 'name' ? (sortAsc ? '▲' : '▼') : ''"></span>
                     </th>
@@ -115,13 +115,7 @@
                 <label class="text-sm font-medium">
                     Student ID <span class="text-red-500">*</span>
                 </label>
-                <input
-                    type="text"
-                    name="student_id"
-                    required
-                    placeholder="Enter student ID"
-                    class="w-full border rounded px-3 py-2 text-sm"
-                >
+                <input type="text" name="student_id" required placeholder="Enter student ID" class="w-full border rounded px-3 py-2 text-sm">
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -129,26 +123,14 @@
                     <label class="text-sm font-medium">
                         Last Name <span class="text-red-500">*</span>
                     </label>
-                    <input
-                        type="text"
-                        name="last_name"
-                        required
-                        placeholder="Enter last name"
-                        class="w-full border rounded px-3 py-2 text-sm"
-                    >
+                    <input type="text" name="last_name" required placeholder="Enter last name" class="w-full border rounded px-3 py-2 text-sm" >
                 </div>
 
                 <div>
                     <label class="text-sm font-medium">
                         First Name <span class="text-red-500">*</span>
                     </label>
-                    <input
-                        type="text"
-                        name="first_name"
-                        required
-                        placeholder="Enter first name"
-                        class="w-full border rounded px-3 py-2 text-sm"
-                    >
+                    <input type="text" name="first_name" required placeholder="Enter first name" class="w-full border rounded px-3 py-2 text-sm">
                 </div>
             </div>
 
@@ -157,13 +139,7 @@
                     <label class="text-sm font-medium">
                         Middle Name <span class="text-red-500">*</span>
                     </label>
-                    <input
-                        type="text"
-                        name="middle_name"
-                        required
-                        placeholder="Enter middle name"
-                        class="w-full border rounded px-3 py-2 text-sm"
-                    >
+                    <input type="text" name="middle_name" placeholder="Enter middle name" class="w-full border rounded px-3 py-2 text-sm">
                 </div>
 
                 <div>
