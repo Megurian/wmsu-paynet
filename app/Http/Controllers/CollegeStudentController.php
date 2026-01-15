@@ -8,7 +8,7 @@ use App\Models\Student;
 use App\Models\Course;
 use App\Models\YearLevel;
 use App\Models\Section;
-
+use Illuminate\Validation\Rule;
 class CollegeStudentController extends Controller
 {
     public function index()
@@ -44,8 +44,17 @@ class CollegeStudentController extends Controller
 
     public function store(Request $request)
     {
+        $collegeId = Auth::user()->college_id;
+
         $request->validate([
-            'student_id' => 'required|string|max:50',
+            'student_id' => [
+                'required',
+                'string',
+                'max:50',
+                Rule::unique('students')->where(fn ($q) =>
+                    $q->where('college_id', $collegeId)
+                ),
+            ],
             'last_name' => 'required|string|max:255',
             'first_name' => 'required|string|max:255',
             'middle_name' => 'nullable|string|max:255',
@@ -54,12 +63,15 @@ class CollegeStudentController extends Controller
             'section_id' => 'required|exists:sections,id',
             'contact' => 'nullable|string|max:50',
             'email' => 'nullable|email|max:255',
-            'suffix' => 'nullable|email|max:255',
+            'suffix' => 'nullable|string|max:255',
+        ], [
+            'student_id.unique' => 'This Student ID already exists in your college.',
         ]);
 
-        Student::create(array_merge($request->all(), [
-            'college_id' => Auth::user()->college_id,
-        ]));
+        Student::create([
+            ...$request->all(),
+            'college_id' => $collegeId,
+        ]);
 
         return back()->with('success', 'Student added successfully.');
     }

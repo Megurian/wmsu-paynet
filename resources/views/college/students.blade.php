@@ -4,7 +4,7 @@
 @section('page-title', 'Student Directory')
 
 @section('content')
-<div class="max-w-6xl mx-auto space-y-6" x-data="studentDirectory()">
+<div class="max-w-6xl mx-auto space-y-5"  x-data="studentDirectory()" x-init="@if ($errors->any()) showModal = true @endif">
 
     {{-- Header --}}
     <div class="flex justify-between items-center border-b border-gray-300 pb-3 mb-4">
@@ -176,8 +176,24 @@
                 <label class="text-sm font-medium">
                     Student ID <span class="text-red-500">*</span>
                 </label>
-                <input type="text" name="student_id" required placeholder="Enter student ID" class="w-full border rounded px-3 py-2 text-sm">
+
+                <input
+                    type="text"
+                    name="student_id"
+                    value="{{ old('student_id') }}"
+                    required
+                    class="w-full rounded border px-3 py-2 text-sm
+                        @error('student_id') border-red-500 focus:ring-red-200 @enderror"
+                    placeholder="Enter student ID"
+                >
+
+                @error('student_id')
+                    <p class="text-red-600 text-xs mt-1">
+                        {{ $message }}
+                    </p>
+                @enderror
             </div>
+
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
