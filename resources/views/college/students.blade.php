@@ -46,56 +46,72 @@
     </div>
 
     {{-- Students Table --}}
-    <div class="bg-white shadow rounded-lg overflow-hidden">
-        <table class="min-w-full text-sm">
-            <thead class="bg-gray-100">
-                <tr class="text-left text-gray-600 uppercase text-xs tracking-wider">
-                    <th class="px-4 py-3 cursor-pointer" @click="sortTable('student_id')">
+    <div class="bg-white shadow-sm border border-gray-200 rounded-xl overflow-hidden">
+        <table class="min-w-full text-sm text-gray-800">
+            <thead class="bg-gray-50 border-b border-gray-200">
+                <tr class="text-left text-[11px] font-semibold uppercase tracking-wide text-gray-600">
+                    
+                    <th class="px-5 py-3 cursor-pointer select-none" @click="sortTable('student_id')">
                         Student ID
-                        <span x-text="sortKey === 'student_id' ? (sortAsc ? '▲' : '▼') : ''"></span>
+                        <span class="ml-1" x-text="sortKey === 'student_id' ? (sortAsc ? '▲' : '▼') : ''"></span>
                     </th>
-                    <th class="px-4 py-3 cursor-pointer" @click="sortTable('last_name')">
+
+                    <th class="px-5 py-3 cursor-pointer select-none" @click="sortTable('last_name')">
                         Name
-                        <span x-text="sortKey === 'name' ? (sortAsc ? '▲' : '▼') : ''"></span>
+                        <span class="ml-1" x-text="sortKey === 'last_name' ? (sortAsc ? '▲' : '▼') : ''"></span>
                     </th>
-                    <th class="px-4 py-3 cursor-pointer" @click="sortTable('course')">
+
+                    <th class="px-5 py-3 cursor-pointer select-none" @click="sortTable('course')">
                         Course
-                        <span x-text="sortKey === 'course' ? (sortAsc ? '▲' : '▼') : ''"></span>
+                        <span class="ml-1" x-text="sortKey === 'course' ? (sortAsc ? '▲' : '▼') : ''"></span>
                     </th>
-                    <th class="px-4 py-3 cursor-pointer" @click="sortTable('year')">
-                        Year
-                        <span x-text="sortKey === 'year' ? (sortAsc ? '▲' : '▼') : ''"></span>
+
+                    <th class="px-5 py-3 cursor-pointer select-none" @click="sortTable('year')">
+                        Year & Section
+                        <span class="ml-1" x-text="sortKey === 'year' ? (sortAsc ? '▲' : '▼') : ''"></span>
                     </th>
-                    <th class="px-4 py-3 cursor-pointer" @click="sortTable('section')">
-                        Section
-                        <span x-text="sortKey === 'section' ? (sortAsc ? '▲' : '▼') : ''"></span>
-                    </th>
-                    <th class="px-4 py-3">Contact</th>
-                    <th class="px-4 py-3">Email</th>
-                    <th class="px-4 py-3">Actions</th>
+
+                    {{-- <th class="px-5 py-3">Contact</th>
+                    <th class="px-5 py-3">Email</th> --}}
+                    <th class="px-5 py-3 text-center">Actions</th>
                 </tr>
             </thead>
-            <tbody class="divide-y">
+
+            <tbody class="divide-y divide-gray-100">
                 <template x-for="student in filteredStudents" :key="student.id">
                     <tr class="hover:bg-gray-50 transition">
-                        <td class="px-4 py-2" x-text="student.student_id"></td>
-                        <td class="px-4 py-2 uppercase" x-text="student.last_name + ', ' + student.first_name + (student.middle_name ? ' ' + student.middle_name : '') + '. ' + (student.suffix ? ', ' + student.suffix : '')"></td>
-                        <td class="px-4 py-2" x-text="student.course"></td>
-                        <td class="px-4 py-2" x-text="student.year"></td>
-                        <td class="px-4 py-2" x-text="student.section"></td>
-                        <td class="px-4 py-2" x-text="student.contact || '-'"></td>
-                        <td class="px-4 py-2" x-text="student.email || '-'"></td>
-                        <td class="px-4 py-2">
-                            <form :action="`/college/students/${student.id}`" method="POST" onsubmit="return confirm('Are you sure?')">
+
+                        <td class="px-5 py-3 font-medium text-gray-700"
+                            x-text="student.student_id"></td>
+
+                        <td class="px-5 py-3 font-semibold uppercase tracking-wide"
+                            x-text="student.last_name + ', ' + student.first_name + (student.middle_name ? ' ' + student.middle_name : '') + (student.suffix ? ', ' + student.suffix : '')">
+                        </td>
+
+                        <td class="px-5 py-3 text-gray-700" x-text="student.course || '-'"></td>
+                        <td class="px-5 py-3 text-gray-700" x-text="student.year + ' ' + student.section || '-' "></td>
+                        {{-- <td class="px-5 py-3 text-gray-600" x-text="student.contact || '-'"></td>
+                        <td class="px-5 py-3 text-gray-600" x-text="student.email || '-'"></td> --}}
+
+                        <td class="px-5 py-3 text-center">
+                            <form :action="`/college/students/${student.id}`"
+                                method="POST"
+                                onsubmit="return confirm('Are you sure?')">
                                 @csrf
                                 @method('DELETE')
-                                <button class="text-red-600 hover:text-red-800 text-sm">Delete</button>
+                                <button
+                                    class="text-red-600 hover:text-red-800 font-medium transition">
+                                    Delete
+                                </button>
                             </form>
                         </td>
                     </tr>
                 </template>
+
                 <tr x-show="filteredStudents.length === 0">
-                    <td colspan="8" class="text-center py-4 text-gray-400 italic">No students found</td>
+                    <td colspan="8" class="text-center py-6 text-gray-400 italic">
+                        No students found
+                    </td>
                 </tr>
             </tbody>
         </table>
