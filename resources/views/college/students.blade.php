@@ -6,6 +6,15 @@
 @section('content')
 <div class="max-w-6xl mx-auto space-y-5"  x-data="studentDirectory()" x-init="@if ($errors->any()) showModal = true @endif">
 
+   
+    <div class="text-center py-6">
+        <p class="text-gray-500 mb-3">No students have been validated for the current semester yet.</p>
+        <a href="{{ route('college.students.validate') }}" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-500">
+            Validate Students
+        </a>
+    </div>
+
+
     {{-- Header --}}
     <div class="flex justify-between items-center border-b border-gray-300 pb-3 mb-4">
         <div>
@@ -178,14 +187,7 @@
                 </label>
 
                 <input
-                    type="text"
-                    name="student_id"
-                    value="{{ old('student_id') }}"
-                    required
-                    class="w-full rounded border px-3 py-2 text-sm
-                        @error('student_id') border-red-500 focus:ring-red-200 @enderror"
-                    placeholder="Enter student ID"
-                >
+                    type="text" name="student_id"  value="{{ old('student_id') }}"  required class="w-full rounded border px-3 py-2 text-sm  @error('student_id') border-red-500 focus:ring-red-200 @enderror" placeholder="Enter student ID">
 
                 @error('student_id')
                     <p class="text-red-600 text-xs mt-1">
