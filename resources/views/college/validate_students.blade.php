@@ -26,39 +26,78 @@
     </thead>
     <tbody>
         @foreach($students as $student)
-        <tr>
+        @php
+            $enrollment = $student->enrollments->first(); // current SY & Sem
+            $validated = $enrollment ? true : false;
+            $prev = $student->lastEnrollment; // previous enrollment
+        @endphp
+        <tr class="{{ $validated ? 'bg-green-100' : '' }}">
             <td>{{ $student->student_id }}</td>
             <td>{{ strtoupper($student->last_name) }}, {{ strtoupper($student->first_name) }} {{ strtoupper($student->middle_name ?? '') }} {{ $student->suffix ?? '' }}</td>
+            
             <td>
                 <form method="POST" action="{{ route('college.students.validate.store', $student->id) }}">
                     @csrf
-                    <select name="course_id" required>
+                    <select name="course_id" required {{ $validated ? 'disabled' : '' }}>
                         @foreach($courses as $course)
-                        <option value="{{ $course->id }}">{{ $course->name }}</option>
+                        <option value="{{ $course->id }}"
+                            @if($validated && $course->id == $enrollment->course_id)
+                                selected
+                            @elseif(!$validated && $prev && $course->id == $prev->course_id)
+                                selected
+                            @endif
+                        >
+                            {{ $course->name }}
+                        </option>
                         @endforeach
                     </select>
             </td>
+
             <td>
-                <select name="year_level_id" required>
+                <select name="year_level_id" required {{ $validated ? 'disabled' : '' }}>
                     @foreach($years as $year)
-                    <option value="{{ $year->id }}">{{ $year->name }}</option>
+                    <option value="{{ $year->id }}"
+                        @if($validated && $year->id == $enrollment->year_level_id)
+                            selected
+                        @elseif(!$validated && $prev && $year->id == $prev->year_level_id)
+                            selected
+                        @endif
+                    >
+                        {{ $year->name }}
+                    </option>
                     @endforeach
                 </select>
             </td>
+
             <td>
-                <select name="section_id" required>
+                <select name="section_id" required {{ $validated ? 'disabled' : '' }}>
                     @foreach($sections as $section)
-                    <option value="{{ $section->id }}">{{ $section->name }}</option>
+                    <option value="{{ $section->id }}"
+                        @if($validated && $section->id == $enrollment->section_id)
+                            selected
+                        @elseif(!$validated && $prev && $section->id == $prev->section_id)
+                            selected
+                        @endif
+                    >
+                        {{ $section->name }}
+                    </option>
                     @endforeach
                 </select>
             </td>
+
             <td>
+                @if(!$validated)
                 <button type="submit" class="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-500">Validate</button>
+                @else
+                <span class="text-green-800 font-semibold">Validated</span>
+                @endif
                 </form>
             </td>
         </tr>
         @endforeach
+
     </tbody>
+
 </table>
 
 @endsection

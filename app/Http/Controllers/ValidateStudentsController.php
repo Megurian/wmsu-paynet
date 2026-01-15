@@ -22,21 +22,38 @@ class ValidateStudentsController extends Controller
         $activeSY = SchoolYear::where('is_active', true)->first();
         $activeSem = Semester::where('is_active', true)->first();
 
-        // students not yet validated for this semester
+        // Fetch all students in the college
         $students = Student::where('college_id', $collegeId)
-            ->whereDoesntHave('enrollments', function ($q) use ($activeSY, $activeSem) {
+            ->with(['enrollments' => function($q) use ($activeSY, $activeSem) {
+                // only get enrollment for current active SY & Sem
                 $q->where('school_year_id', $activeSY->id)
                 ->where('semester_id', $activeSem->id);
-            })
-            ->get();
+            }])->get();
 
-        // fetch all courses, years, sections for dropdowns
+        // Also fetch the last enrollment before the current SY & Sem
+        foreach ($students as $student) {
+            $lastEnrollment = StudentEnrollment::where('student_id', $student->id)
+                ->where(function($q) use ($activeSY, $activeSem) {
+                    $q->where('school_year_id', '<', $activeSY->id)
+                    ->orWhere(function($q2) use ($activeSY, $activeSem) {
+                        $q2->where('school_year_id', $activeSY->id)
+                            ->where('semester_id', '<', $activeSem->id);
+                    });
+                })
+                ->latest('id') // get most recent previous enrollment
+                ->first();
+
+            $student->lastEnrollment = $lastEnrollment;
+        }
+
         $courses = Course::where('college_id', $collegeId)->get();
         $years = YearLevel::where('college_id', $collegeId)->get();
         $sections = Section::where('college_id', $collegeId)->get();
 
         return view('college.validate_students', compact('students', 'activeSY', 'activeSem', 'courses', 'years', 'sections'));
     }
+
+
 
 
     public function store(Request $request, $studentId)
