@@ -122,13 +122,13 @@
                     {{ request()->routeIs('college.dashboard') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
                     <span>Dashboard</span>
                 </a>
-                <a href="#" class="block px-4 py-2 rounded-md transition
-                    {{ request()->routeIs('college.reports') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-                    <span>Finance Reports</span>
+                <a href="{{ route('college.students') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('college.students') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span>Student Directory</span>
                 </a>
                 <a href="#" class="block px-4 py-2 rounded-md transition
                     {{ request()->routeIs('college.requests') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-                    <span>Faculty Requests</span>
+                    <span>Placeholder</span>
                 </a>
                 @endif
             </nav>
@@ -161,7 +161,7 @@
                     @endif
                 </div>
 
-                <!-- User Dropdown (Right) -->
+                <!-- User Dropdown -->
                 <div class="relative">
                     <button type="button" class="flex items-center gap-2 text-sm text-gray-700 hover:text-gray-900 focus:outline-none" onclick="document.getElementById('user-dropdown').classList.toggle('hidden')">
                         <span>{{ Auth::user()->name }}</span>

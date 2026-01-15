@@ -70,6 +70,23 @@ Route::middleware(['auth', 'role:college'])->group(function () {
     Route::get('/college/dashboard', function () {
         return view('college.dashboard');
     })->name('college.dashboard');
+
+    Route::get('/college/students', function () {
+        return view('college.students');
+    })->name('college.students');
+
+    // Academic Structure Management
+    Route::get('/college/academics', [CollegeAcademicController::class, 'index'])
+        ->name('college.academics.index');
+
+    Route::post('/college/courses', [CollegeAcademicController::class, 'storeCourse'])
+        ->name('college.courses.store');
+
+    Route::post('/college/years', [CollegeAcademicController::class, 'storeYear'])
+        ->name('college.years.store');
+
+    Route::post('/college/sections', [CollegeAcademicController::class, 'storeSection'])
+        ->name('college.sections.store');
 });
 
 
