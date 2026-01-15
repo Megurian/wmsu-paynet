@@ -4,6 +4,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\OSASetupController;
 use App\Http\Controllers\OSACollegeController;
 use App\Http\Controllers\CollegeAcademicController;
+use App\Http\Controllers\CollegeStudentController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 
@@ -93,6 +94,11 @@ Route::middleware(['auth', 'role:college'])->group(function () {
     Route::delete('/college/courses/{id}', [CollegeAcademicController::class, 'destroyCourse'])->name('college.courses.destroy');
     Route::delete('/college/years/{id}', [CollegeAcademicController::class, 'destroyYear'])->name('college.years.destroy');
     Route::delete('/college/sections/{id}', [CollegeAcademicController::class, 'destroySection'])->name('college.sections.destroy');
+    Route::get('/college/students', [CollegeStudentController::class, 'index'])->name('college.students');
+   
+    //students
+    Route::post('/college/students', [CollegeStudentController::class, 'store'])->name('college.students.store');
+    Route::delete('/college/students/{id}', [CollegeStudentController::class, 'destroy'])->name('college.students.destroy');
 });
 
 
