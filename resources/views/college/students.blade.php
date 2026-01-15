@@ -23,26 +23,71 @@
     </div>
 
     {{-- Filters --}}
-    <div class="flex flex-wrap gap-3 mb-4">
-        <input type="text" x-model="search" placeholder="Search by name or student ID" class="flex-1 border rounded px-3 py-2 text-sm">
-        <select x-model="filterCourse" class="border rounded px-3 py-2 text-sm">
-            <option value="">Filter by Course</option>
-            @foreach($courses as $course)
-            <option value="{{ $course->id }}">{{ $course->name }}</option>
-            @endforeach
-        </select>
-        <select x-model="filterYear" class="border rounded px-3 py-2 text-sm">
-            <option value="">Filter by Year Level</option>
-            @foreach($years as $year)
-            <option value="{{ $year->id }}">{{ $year->name }}</option>
-            @endforeach
-        </select>
-        <select x-model="filterSection" class="border rounded px-3 py-2 text-sm">
-            <option value="">Filter by Section</option>
-            @foreach($sections as $section)
-            <option value="{{ $section->id }}">{{ $section->name }}</option>
-            @endforeach
-        </select>
+    <div class="bg-white border border-gray-200 rounded-xl p-4 mb-5 shadow-sm">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+
+            {{-- Search --}}
+            <div class="relative col-span-1 sm:col-span-2">
+                <input
+                    type="text"
+                    x-model="search"
+                    placeholder="Search by name or Student ID"
+                    class="w-full rounded-lg border border-gray-300 px-4 py-2.5 pr-10 text-sm
+                        placeholder-gray-400 focus:border-blue-500 focus:ring-2
+                        focus:ring-blue-100 transition"
+                >
+
+                <!-- Clear (X) button -->
+                <button
+                    type="button"
+                    x-show="search"
+                    @click="search = ''"
+                    class="absolute right-3 top-1/2 -translate-y-1/2
+                        text-gray-400 hover:text-gray-600
+                        focus:outline-none transition"
+                    aria-label="Clear search"
+                >
+                    &times;
+                </button>
+            </div>
+
+            {{-- Course --}}
+            <select
+                x-model="filterCourse"
+                class="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm
+                    focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+            >
+                <option value="">All Courses</option>
+                @foreach($courses as $course)
+                    <option value="{{ $course->id }}">{{ $course->name }}</option>
+                @endforeach
+            </select>
+
+            {{-- Year --}}
+            <select
+                x-model="filterYear"
+                class="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm
+                    focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+            >
+                <option value="">All Year Levels</option>
+                @foreach($years as $year)
+                    <option value="{{ $year->id }}">{{ $year->name }}</option>
+                @endforeach
+            </select>
+
+            {{-- Section --}}
+            <select
+                x-model="filterSection"
+                class="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm
+                    focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+            >
+                <option value="">All Sections</option>
+                @foreach($sections as $section)
+                    <option value="{{ $section->id }}">{{ $section->name }}</option>
+                @endforeach
+            </select>
+
+        </div>
     </div>
 
     {{-- Students Table --}}
@@ -117,12 +162,12 @@
         </table>
     </div>
 
-    {{-- Add Student Modal --}}
+    {{-- New Student Modal --}}
     <div x-show="showModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
         <div @click.away="showModal = false" class="bg-white rounded-lg shadow-lg w-full max-w-lg relative p-6">
             <button @click="showModal = false" class="absolute top-2 right-3 text-gray-500 hover:text-gray-800 text-xl">&times;</button>
 
-            <h3 class="text-lg font-semibold mb-4 border-b pb-2">Add New Student</h3>
+            <h3 class="text-lg font-semibold mb-4 border-b pb-2">New Student</h3>
 
             <form method="POST" action="{{ route('college.students.store') }}" class="space-y-4">
                 @csrf
