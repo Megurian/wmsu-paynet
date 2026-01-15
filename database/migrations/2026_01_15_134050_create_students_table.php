@@ -37,7 +37,7 @@ return new class extends Migration
             $table->string('student_id'); 
             $table->string('last_name');
             $table->string('first_name');
-            $table->string('middle_name');
+            $table->string('middle_name')->nullable();
             $table->string('suffix')->nullable(); 
             $table->string('contact')->nullable();
             $table->string('email')->nullable();

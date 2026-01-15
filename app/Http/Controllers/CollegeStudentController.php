@@ -29,7 +29,7 @@ class CollegeStudentController extends Controller
             'student_id' => 'required|string|max:50',
             'last_name' => 'required|string|max:255',
             'first_name' => 'required|string|max:255',
-            'middle_name' => 'required|string|max:255',
+            'middle_name' => 'nullable|string|max:255',
             'course_id' => 'required|exists:courses,id',
             'year_level_id' => 'required|exists:year_levels,id',
             'section_id' => 'required|exists:sections,id',
