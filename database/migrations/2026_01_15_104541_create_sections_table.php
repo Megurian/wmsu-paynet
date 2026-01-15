@@ -19,21 +19,8 @@ return new class extends Migration
                 ->constrained()
                 ->cascadeOnDelete();
 
-            $table->foreignId('course_id')
-                ->constrained()
-                ->cascadeOnDelete();
-
-            $table->foreignId('year_level_id')
-                ->constrained()
-                ->cascadeOnDelete();
-
             $table->string('name'); // A, B, C
-            $table->unique([
-                'college_id',
-                'course_id',
-                'year_level_id',
-                'name'
-            ]);
+            $table->unique(['college_id', 'name']);
         });
     }
 

@@ -10,14 +10,12 @@ use Illuminate\Support\Facades\DB;
 
 class OSACollegeController extends Controller
 {
-    // List all colleges
     public function index()
     {
         $colleges = College::all();
         return view('osa.college', compact('colleges'));
     }
 
-    // Show create college form
     public function create()
     {
         return view('osa.create-college');
@@ -31,19 +29,18 @@ class OSACollegeController extends Controller
 
 
         // Placeholder for organizations, etc.
-        $organizations = []; // Replace with real data later
+        $organizations = [];
 
         return view('osa.college-details', compact('college', 'organizations'));
     }
 
 
-    // Store a new college and initial admin
     public function store(Request $request)
     {
         $request->validate([
             'name' => 'required|string|max:255',
             'college_code' => 'required|string|max:20|unique:colleges,college_code',
-            'logo' => 'nullable|image|max:2048', // optional
+            'logo' => 'nullable|image|max:2048',
             'admin_name' => 'required|string|max:255',
             'admin_email' => 'required|email|unique:users,email',
             'admin_password' => 'required|string|min:8|confirmed',
@@ -51,10 +48,10 @@ class OSACollegeController extends Controller
 
         DB::transaction(function () use ($request) {
 
-            // Handle logo upload
+           
             $logoPath = $request->file('logo') ? $request->file('logo')->store('colleges', 'public') : null;
 
-            // Create college with provided code
+         
             $college = College::create([
                 'name' => $request->name,
                 'college_code' => strtoupper($request->college_code),
@@ -78,10 +75,8 @@ class OSACollegeController extends Controller
     {
         $college = College::findOrFail($id);
 
-        // Optional: delete college admins if you want
+        
         $college->users()->delete();
-
-        // Delete college
         $college->delete();
 
         return redirect()->route('osa.college')->with('status', 'College deleted successfully!');

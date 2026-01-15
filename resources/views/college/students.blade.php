@@ -10,7 +10,7 @@
         <p class="text-sm text-gray-600">Manage students under your college</p>
     </div>
 
-    <a href="{{ route('college.academics.index') }}"
+    <a href="{{ route('college.academics') }}"
        class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition">
         Manage Courses / Years / Sections
     </a>

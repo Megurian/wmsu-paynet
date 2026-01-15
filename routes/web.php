@@ -3,6 +3,7 @@
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\OSASetupController;
 use App\Http\Controllers\OSACollegeController;
+use App\Http\Controllers\CollegeAcademicController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 
@@ -77,7 +78,7 @@ Route::middleware(['auth', 'role:college'])->group(function () {
 
     // Academic Structure Management
     Route::get('/college/academics', [CollegeAcademicController::class, 'index'])
-        ->name('college.academics.index');
+        ->name('college.academics');
 
     Route::post('/college/courses', [CollegeAcademicController::class, 'storeCourse'])
         ->name('college.courses.store');
@@ -87,6 +88,11 @@ Route::middleware(['auth', 'role:college'])->group(function () {
 
     Route::post('/college/sections', [CollegeAcademicController::class, 'storeSection'])
         ->name('college.sections.store');
+    
+    //course,year and section delete
+    Route::delete('/college/courses/{id}', [CollegeAcademicController::class, 'destroyCourse'])->name('college.courses.destroy');
+    Route::delete('/college/years/{id}', [CollegeAcademicController::class, 'destroyYear'])->name('college.years.destroy');
+    Route::delete('/college/sections/{id}', [CollegeAcademicController::class, 'destroySection'])->name('college.sections.destroy');
 });
 
 
