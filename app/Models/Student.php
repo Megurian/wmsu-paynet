@@ -20,6 +20,7 @@ class Student extends Model
         'contact',
         'email',
         'student_id',
+        'suffix',
     ];
 
     public function course() {

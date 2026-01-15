@@ -35,6 +35,7 @@ class CollegeStudentController extends Controller
             'section_id' => 'required|exists:sections,id',
             'contact' => 'nullable|string|max:50',
             'email' => 'nullable|email|max:255',
+            'suffix' => 'nullable|email|max:255',
         ]);
 
         Student::create(array_merge($request->all(), [

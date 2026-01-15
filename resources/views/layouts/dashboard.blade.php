@@ -24,6 +24,10 @@
             opacity: 0;
         }
 
+        #sidebar.collapsed nav {
+           display: none;
+        }
+
         #sidebar.collapsed h2 {
             display: none;
         }
