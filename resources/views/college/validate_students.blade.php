@@ -12,7 +12,7 @@
     </a>
 </div>
 
-<form method="POST" action="{{ route('college.students.validate.bulk') }}" x-data="studentSelection()">
+<form method="POST" action="{{ route('college.students.validate.bulk') }}" x-data="studentSelection()" x-init="init()">
     @csrf
     <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-500 mb-4">
         Validate Selected
@@ -35,9 +35,9 @@
         <tbody>
             @foreach($students as $student)
             @php
-                $enrollment = $student->enrollments->first(); // current SY & Sem
+                $enrollment = $student->enrollments->first(); 
                 $validated = $enrollment ? true : false;
-                $prev = $student->lastEnrollment; // previous enrollment
+                $prev = $student->lastEnrollment; 
             @endphp
             <tr class="{{ $validated ? 'bg-green-100' : '' }}">
                 <td>
@@ -121,6 +121,7 @@
 function studentSelection() {
     return {
         selected: [],
+        submitting: false,
         toggleAll(event) {
             const checked = event.target.checked;
             const checkboxes = document.querySelectorAll('input[name="selected_students[]"]');
@@ -133,8 +134,22 @@ function studentSelection() {
         toggleOne(event, studentId) {
             if (event.target.checked) this.selected.push(studentId);
             else this.selected = this.selected.filter(id => id != studentId);
+        },
+        init() {
+            window.addEventListener('beforeunload', (e) => {
+                if (!this.submitting && this.selected.length > 0) {
+                    e.preventDefault();
+                    e.returnValue = "You have selected students that are not yet validated. Please validate them before leaving the page.";
+                }
+            });
+
+            const form = this.$el; 
+            form.addEventListener('submit', () => {
+                this.submitting = true;
+            });
         }
     }
 }
 </script>
+
 @endsection
