@@ -43,11 +43,12 @@
     @csrf
 
     <div class="flex flex-col md:flex-row items-center justify-between mt-4 gap-2">
-        <div>
+        <div x-show="selected.length > 0" x-transition class="transition duration-200">
             <button type="submit" class="px-4 py-2 bg-red-800 text-white rounded-md hover:bg-red-700 shadow transition">
                 Validate Selected Students
             </button>
         </div>
+
         <div class="mt-2 md:mt-0">
             {{ $students->links() }}
         </div>
