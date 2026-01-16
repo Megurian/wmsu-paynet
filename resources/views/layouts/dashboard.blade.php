@@ -68,12 +68,17 @@
                         {{ $currentCollege->name }}
                     </h2>
                     <p class="text-xs opacity-80 text-center">College Admin</p>
+                @elseif(Auth::user()->role === 'osa')
+                    <h2 class="mt-3 text-lg font-bold text-center leading-snug break-words max-w-[12rem] mx-auto">
+                        Office of the Student Affairs
+                    </h2>
                 @else
                     <h2 class="mt-3 text-lg font-bold text-center max-w-[12rem] mx-auto break-words">
                         WMSU PayNet
                     </h2>
                     <p class="text-xs opacity-80 text-center">{{ strtoupper(Auth::user()->role) }} Panel</p>
                 @endif
+                
 
             </div>
 
