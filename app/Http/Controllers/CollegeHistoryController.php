@@ -14,11 +14,10 @@ class CollegeHistoryController extends Controller
     {
         $collegeId = Auth::user()->college_id;
 
-        // Get all SYs and semesters for the dropdown
+       
         $schoolYears = SchoolYear::orderBy('sy_start', 'desc')->get();
         $semesters = Semester::orderBy('id')->get();
 
-        // Determine active SY & semester if not selected
         $activeSY = SchoolYear::where('is_active', true)->first();
         $activeSem = Semester::where('is_active', true)->first();
 
