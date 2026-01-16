@@ -6,6 +6,7 @@ use App\Http\Controllers\OSACollegeController;
 use App\Http\Controllers\CollegeAcademicController;
 use App\Http\Controllers\CollegeStudentController;
 use App\Http\Controllers\ValidateStudentsController;
+use App\Http\Middleware\CheckActiveSchoolYear;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 
@@ -34,19 +35,19 @@ Route::middleware(['auth', 'role:osa'])->group(function () {
     Route::post('/osa/setup/{id}/add-semester', [OSASetupController::class, 'addSemester'])->name('osa.setup.addSemester');
 });
 
-Route::middleware(['auth', 'role:osa', 'check.active.sy'])->group(function () {
+Route::middleware(['auth', 'role:osa', CheckActiveSchoolYear::class])->group(function () {
     Route::get('/osa/dashboard', function () {
         return view('osa.dashboard');
     })->name('osa.dashboard');
 
-    //OSA SETUP PAGE ROUTES
+    // //OSA SETUP PAGE ROUTES
     // Route::get('/osa/setup', function () {
     //     return view('osa.setup');
     // })->name('osa.setup'); 
     // Route::get('/osa/setup', [OSASetupController::class, 'edit'])->name('osa.setup');
     // Route::post('/osa/setup', [OSASetupController::class, 'store'])->name('osa.setup.store');
     // Route::post('/osa/setup/{id}/add-semester', [OSASetupController::class, 'addSemester'])->name('osa.setup.addSemester');
-    //
+    
     //OSA COLLEGE PAGE ROUTES
     Route::get('/osa/college', [OSACollegeController::class, 'index'])->name('osa.college');
     Route::get('/osa/college/create', [OSACollegeController::class, 'create'])->name('osa.college.create');

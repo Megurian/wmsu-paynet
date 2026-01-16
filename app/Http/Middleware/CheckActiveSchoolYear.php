@@ -13,7 +13,6 @@ class CheckActiveSchoolYear
         $activeSY = SchoolYear::where('is_active', true)->with('semesters')->first();
 
         if (!$activeSY || $activeSY->semesters->where('is_active', true)->isEmpty()) {
-            // Redirect to OSA setup with a warning
             return redirect()->route('osa.setup')
                 ->with('status', 'You must create and activate a School Year and Semester before accessing the system.');
         }
