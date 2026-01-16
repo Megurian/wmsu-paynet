@@ -5,6 +5,7 @@ use App\Http\Controllers\OSASetupController;
 use App\Http\Controllers\OSACollegeController;
 use App\Http\Controllers\CollegeAcademicController;
 use App\Http\Controllers\CollegeStudentController;
+use App\Http\Controllers\CollegeHistoryController;
 use App\Http\Controllers\ValidateStudentsController;
 use App\Http\Middleware\CheckActiveSchoolYear;
 use Illuminate\Support\Facades\Route;
@@ -87,6 +88,10 @@ Route::middleware(['auth', 'role:college'])->group(function () {
         return view('college.students');
     })->name('college.students');
 
+    Route::get('/college/history', function () {
+        return view('college.history');
+    })->name('college.history');
+
     // Academic Structure Management
     Route::get('/college/academics', [CollegeAcademicController::class, 'index'])
         ->name('college.academics');
@@ -116,7 +121,9 @@ Route::middleware(['auth', 'role:college'])->group(function () {
         ->name('college.students.validate.bulk');
 
     Route::delete('/college/students/{student}/unvalidate', [CollegeStudentController::class, 'unvalidate']
-)   ->name('college.students.unvalidate');
+    )  ->name('college.students.unvalidate');
+
+    Route::get('/college/history', [CollegeHistoryController::class, 'history'])->name('college.history');
 
 });
 
