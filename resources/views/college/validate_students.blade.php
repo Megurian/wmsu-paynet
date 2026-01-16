@@ -36,8 +36,13 @@
             @endforeach
         </select>
     </form>
-
 </div>
+
+@if(session('success'))
+<div class="mb-4 p-4 bg-green-100 border border-green-400 text-green-800 rounded">
+    {{ session('success') }}
+</div>
+@endif
 
 <form method="POST" action="{{ route('college.students.validate.bulk') }}" x-data="studentSelection()" x-init="init()" class="space-y-4">
     @csrf
@@ -74,7 +79,7 @@
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-100">
-                @foreach($students as $student)
+                @forelse($students as $student)
                 @php
                     $enrollment = $student->enrollments->first(); 
                     $validated = $enrollment ? true : false;
@@ -144,7 +149,13 @@
                             @endif
                     </td>
                 </tr>
-                @endforeach
+                @empty
+                <tr>
+                    <td colspan="8" class="text-center text-gray-500 py-6 italic">
+                        No students found.
+                    </td>
+                </tr>
+                @endforelse
             </tbody>
         </table>
     </div>
