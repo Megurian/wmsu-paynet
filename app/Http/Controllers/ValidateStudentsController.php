@@ -103,7 +103,7 @@ class ValidateStudentsController extends Controller
                 $q->where('school_year_id', $activeSY->id)
                 ->where('semester_id', $activeSem->id);
             }])
-            ->paginate(5)
+            ->paginate(10)
             ->withQueryString();
 
 
@@ -160,7 +160,7 @@ class ValidateStudentsController extends Controller
         return back()->with('success', 'Student validated successfully.');
     }
 
-    public function bulkValidate(Request $request)
+   public function bulkValidate(Request $request)
     {
         $collegeId = Auth::user()->college_id;
         $activeSY = SchoolYear::where('is_active', true)->first();
@@ -171,31 +171,37 @@ class ValidateStudentsController extends Controller
             'selected_students.*' => 'exists:students,id',
         ]);
 
-        $studentIds = $request->selected_students;
+        foreach ($request->selected_students as $studentId) {
 
-        foreach ($studentIds as $studentId) {
-            $student = Student::findOrFail($studentId);
-            $prevEnrollment = $student->lastEnrollment;
+            $request->validate([
+                "course_id.$studentId" => 'required|exists:courses,id',
+                "year_level_id.$studentId" => 'required|exists:year_levels,id',
+                "section_id.$studentId" => 'required|exists:sections,id',
+            ]);
 
-            StudentEnrollment::firstOrCreate(
+            StudentEnrollment::updateOrCreate(
                 [
-                    'student_id' => $student->id,
-                    'college_id' => $collegeId,
+                    'student_id'     => $studentId,
+                    'college_id'     => $collegeId,
                     'school_year_id' => $activeSY->id,
-                    'semester_id' => $activeSem->id,
+                    'semester_id'    => $activeSem->id,
                 ],
                 [
-                    'course_id' => $prevEnrollment->course_id ?? $student->course_id,
-                    'year_level_id' => $prevEnrollment->year_level_id ?? $student->year_level_id,
-                    'section_id' => $prevEnrollment->section_id ?? $student->section_id,
-                    'validated_by' => Auth::id(),
-                    'validated_at' => now(),
+                    'course_id'      => $request->course_id[$studentId],
+                    'year_level_id'  => $request->year_level_id[$studentId],
+                    'section_id'     => $request->section_id[$studentId],
+                    'validated_by'   => Auth::id(),
+                    'validated_at'   => now(),
                 ]
             );
         }
 
-        return back()->with('success', count($studentIds) . ' students validated successfully.');
+        return back()->with(
+            'success',
+            count($request->selected_students) . ' students validated successfully.'
+        );
     }
+
 
 }
 
