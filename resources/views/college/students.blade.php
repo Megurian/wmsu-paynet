@@ -131,14 +131,11 @@
                         <td class="px-5 py-3 text-gray-600" x-text="student.email || '-'"></td> --}}
 
                         <td class="px-5 py-3 text-center">
-                            <form :action="`/college/students/${student.id}`"
-                                method="POST"
-                                onsubmit="return confirm('Are you sure?')">
+                            <form :action="`/college/students/${student.id}/unvalidate`" method="POST" onsubmit="return confirm( 'This will remove the student from the current semester . Continue?' )" >
                                 @csrf
                                 @method('DELETE')
-                                <button
-                                    class="text-red-600 hover:text-red-800 font-medium transition">
-                                    Delete
+                                <button class="text-red-600 hover:text-red-800 font-medium transition" title="Remove from current semester">
+                                    Remove
                                 </button>
                             </form>
                         </td>

@@ -47,28 +47,6 @@ Route::middleware(['auth', 'role:osa'])->group(function () {
     Route::delete('/osa/college/{id}', [OSACollegeController::class, 'destroy'])->name('osa.college.destroy');
 });
 
-// Route::middleware(['auth', 'role:usc'])->group(function () {
-//     Route::get('/usc/dashboard', function () {
-//         return view('usc.dashboard');
-//     })->name('usc.dashboard');
-
-//     Route::get('/usc/fees', function () {
-//         return view('usc.fees');
-//     })->name('usc.fees');
-
-//     Route::get('/usc/remittance', function () {
-//         return view('usc.remittance');
-//     })->name('usc.remittance');
-
-//     Route::get('/usc/reports', function () {
-//         return view('usc.reports');
-//     })->name('usc.reports');
-
-//     Route::get('/usc/setup', function () {
-//         return view('usc.setup');
-//     })->name('usc.setup');
-// });
-
 Route::middleware(['auth', 'role:university_org'])->group(function () {
     Route::get('/university_org/dashboard', function () {
         return view('university_org.dashboard');
@@ -127,6 +105,9 @@ Route::middleware(['auth', 'role:college'])->group(function () {
     Route::post('students/validate/{student}', [ValidateStudentsController::class, 'store'])->name('college.students.validate.store');
     Route::post('/college/students/validate/bulk', [ValidateStudentsController::class, 'bulkValidate'])
         ->name('college.students.validate.bulk');
+
+    Route::delete('/college/students/{student}/unvalidate', [CollegeStudentController::class, 'unvalidate']
+)   ->name('college.students.unvalidate');
 
 });
 
