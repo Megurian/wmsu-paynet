@@ -4,6 +4,6 @@
 @section('page-title', 'USC Remittance')
 
 @section('content')
-    <h2 class="text-2xl font-bold mb-4">USC Remittance</h2>
+    <h2 class="text-2xl font-bold mb-4"> Remittance</h2>
     <p>Welcome, {{ Auth::user()->name }}. placeholder</p>
 @endsection

@@ -19,7 +19,7 @@ Route::middleware('auth')->get('/dashboard', function () {
 
     return match($role) {
         'osa' => redirect()->route('osa.dashboard'),
-        'usc' => redirect()->route('usc.dashboard'),
+        'university_org' => redirect()->route('university_org.dashboard'),
         'college' => redirect()->route('college.dashboard'),
         default => abort(403), 
     };
@@ -47,26 +47,48 @@ Route::middleware(['auth', 'role:osa'])->group(function () {
     Route::delete('/osa/college/{id}', [OSACollegeController::class, 'destroy'])->name('osa.college.destroy');
 });
 
-Route::middleware(['auth', 'role:usc'])->group(function () {
-    Route::get('/usc/dashboard', function () {
-        return view('usc.dashboard');
-    })->name('usc.dashboard');
+// Route::middleware(['auth', 'role:usc'])->group(function () {
+//     Route::get('/usc/dashboard', function () {
+//         return view('usc.dashboard');
+//     })->name('usc.dashboard');
 
-    Route::get('/usc/fees', function () {
-        return view('usc.fees');
-    })->name('usc.fees');
+//     Route::get('/usc/fees', function () {
+//         return view('usc.fees');
+//     })->name('usc.fees');
 
-    Route::get('/usc/remittance', function () {
-        return view('usc.remittance');
-    })->name('usc.remittance');
+//     Route::get('/usc/remittance', function () {
+//         return view('usc.remittance');
+//     })->name('usc.remittance');
 
-    Route::get('/usc/reports', function () {
-        return view('usc.reports');
-    })->name('usc.reports');
+//     Route::get('/usc/reports', function () {
+//         return view('usc.reports');
+//     })->name('usc.reports');
 
-    Route::get('/usc/setup', function () {
-        return view('usc.setup');
-    })->name('usc.setup');
+//     Route::get('/usc/setup', function () {
+//         return view('usc.setup');
+//     })->name('usc.setup');
+// });
+
+Route::middleware(['auth', 'role:university_org'])->group(function () {
+    Route::get('/university_org/dashboard', function () {
+        return view('university_org.dashboard');
+    })->name('university_org.dashboard');
+
+    Route::get('/university_org/fees', function () {
+        return view('university_org.fees');
+    })->name('university_org.fees');
+
+    Route::get('/university_org/remittance', function () {
+        return view('university_org.remittance');
+    })->name('university_org.remittance');
+
+    Route::get('/university_org/reports', function () {
+        return view('university_org.reports');
+    })->name('university_org.reports');
+
+    Route::get('/university_org/setup', function () {
+        return view('university_org.setup');
+    })->name('university_org.setup');
 });
 
 Route::middleware(['auth', 'role:college'])->group(function () {

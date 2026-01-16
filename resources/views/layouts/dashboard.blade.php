@@ -99,25 +99,25 @@
                     <span>Setup</span>
                 </a>
 
-                @elseif($role === 'usc')
-                <a href="{{ route('usc.dashboard') }}" class="block px-4 py-2 rounded-md transition
-                    {{ request()->routeIs('usc.dashboard') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                @elseif($role === 'university_org')
+                <a href="{{ route('university_org.dashboard') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('university_org.dashboard') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
                     <span>Dashboard</span>
                 </a>
-                <a href="{{ route('usc.fees') }}" class="block px-4 py-2 rounded-md transition
-                    {{ request()->routeIs('usc.fees') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                <a href="{{ route('university_org.fees') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('university_org.fees') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
                     <span>Fees</span>
                 </a>
-                <a href="{{ route('usc.remittance') }}" class="block px-4 py-2 rounded-md transition
-                    {{ request()->routeIs('usc.remittance') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                <a href="{{ route('university_org.remittance') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('university_org.remittance') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
                     <span>Remittance</span>
                 </a>
-                <a href="{{ route('usc.reports') }}" class="block px-4 py-2 rounded-md transition
-                    {{ request()->routeIs('usc.reports') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                <a href="{{ route('university_org.reports') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('university_org.reports') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
                     <span>Reports</span>
                 </a>
-                <a href="{{ route('usc.setup') }}" class="block px-4 py-2 rounded-md transition
-                    {{ request()->routeIs('usc.setup') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                <a href="{{ route('university_org.setup') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('university_org.setup') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
                     <span>Setup</span>
                 </a>
 
@@ -186,7 +186,7 @@
             </header>
 
             <!-- PAGE CONTENT -->
-            <main class="flex-1 p-8 mt-16">
+            <main class="flex-1 p-8 mt-10">
                 @yield('content')
             </main>
         </div>
