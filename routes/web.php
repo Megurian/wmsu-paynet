@@ -25,19 +25,27 @@ Route::middleware('auth')->get('/dashboard', function () {
     };
 })->name('dashboard');
 
-
 Route::middleware(['auth', 'role:osa'])->group(function () {
-    Route::get('/osa/dashboard', function () {
-        return view('osa.dashboard');
-    })->name('osa.dashboard');
-
-    //OSA SETUP PAGE ROUTES
     Route::get('/osa/setup', function () {
         return view('osa.setup');
     })->name('osa.setup'); 
     Route::get('/osa/setup', [OSASetupController::class, 'edit'])->name('osa.setup');
     Route::post('/osa/setup', [OSASetupController::class, 'store'])->name('osa.setup.store');
     Route::post('/osa/setup/{id}/add-semester', [OSASetupController::class, 'addSemester'])->name('osa.setup.addSemester');
+});
+
+Route::middleware(['auth', 'role:osa', 'check.active.sy'])->group(function () {
+    Route::get('/osa/dashboard', function () {
+        return view('osa.dashboard');
+    })->name('osa.dashboard');
+
+    //OSA SETUP PAGE ROUTES
+    // Route::get('/osa/setup', function () {
+    //     return view('osa.setup');
+    // })->name('osa.setup'); 
+    // Route::get('/osa/setup', [OSASetupController::class, 'edit'])->name('osa.setup');
+    // Route::post('/osa/setup', [OSASetupController::class, 'store'])->name('osa.setup.store');
+    // Route::post('/osa/setup/{id}/add-semester', [OSASetupController::class, 'addSemester'])->name('osa.setup.addSemester');
     //
     //OSA COLLEGE PAGE ROUTES
     Route::get('/osa/college', [OSACollegeController::class, 'index'])->name('osa.college');
