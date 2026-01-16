@@ -68,12 +68,17 @@
                         {{ $currentCollege->name }}
                     </h2>
                     <p class="text-xs opacity-80 text-center">College Admin</p>
+                @elseif(Auth::user()->role === 'osa')
+                    <h2 class="mt-3 text-lg font-bold text-center leading-snug break-words max-w-[12rem] mx-auto">
+                        Office of the Student Affairs
+                    </h2>
                 @else
                     <h2 class="mt-3 text-lg font-bold text-center max-w-[12rem] mx-auto break-words">
                         WMSU PayNet
                     </h2>
                     <p class="text-xs opacity-80 text-center">{{ strtoupper(Auth::user()->role) }} Panel</p>
                 @endif
+                
 
             </div>
 
@@ -96,7 +101,7 @@
                 </a>
                 <a href="{{ route('osa.setup') }}" class="block px-4 py-2 rounded-md transition
                     {{ request()->routeIs('osa.setup') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-                    <span>Setup</span>
+                    <span>Academic Year Setup</span>
                 </a>
 
                 @elseif($role === 'university_org')
@@ -130,9 +135,9 @@
                     {{ request()->routeIs('college.students') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
                     <span>Student Directory</span>
                 </a>
-                <a href="#" class="block px-4 py-2 rounded-md transition
-                    {{ request()->routeIs('college.requests') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-                    <span>Placeholder</span>
+                <a href="{{ route('college.history') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('college.history') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span>History</span>
                 </a>
                 @endif
             </nav>

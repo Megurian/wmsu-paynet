@@ -29,16 +29,7 @@
 
             {{-- Search --}}
             <div class="relative col-span-1 sm:col-span-2">
-                <input
-                    type="text"
-                    x-model="search"
-                    placeholder="Search by name or Student ID"
-                    class="w-full rounded-lg border border-gray-300 px-4 py-2.5 pr-10 text-sm
-                        placeholder-gray-400 focus:border-blue-500 focus:ring-2
-                        focus:ring-blue-100 transition"
-                >
-
-                <!-- Clear (X) button -->
+                <input type="text" x-model="search" placeholder="Search by name or Student ID" class="w-full rounded-lg border border-gray-300 px-4 py-2.5 pr-10 text-sm     placeholder-gray-400 focus:border-blue-500 focus:ring-2     focus:ring-blue-100 transition">
                 <button
                     type="button"
                     x-show="search"
@@ -140,14 +131,11 @@
                         <td class="px-5 py-3 text-gray-600" x-text="student.email || '-'"></td> --}}
 
                         <td class="px-5 py-3 text-center">
-                            <form :action="`/college/students/${student.id}`"
-                                method="POST"
-                                onsubmit="return confirm('Are you sure?')">
+                            <form :action="`/college/students/${student.id}/unvalidate`" method="POST" onsubmit="return confirm( 'This will remove the student from the current semester . Continue?' )" >
                                 @csrf
                                 @method('DELETE')
-                                <button
-                                    class="text-red-600 hover:text-red-800 font-medium transition">
-                                    Delete
+                                <button class="text-red-600 hover:text-red-800 font-medium transition" title="Remove from current semester">
+                                    Remove
                                 </button>
                             </form>
                         </td>

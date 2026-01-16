@@ -120,5 +120,20 @@ class CollegeStudentController extends Controller
         return back()->with('success', 'Student removed successfully.');
     }
 
-    
+    public function unvalidate($studentId)
+    {
+        $collegeId = Auth::user()->college_id;
+
+        $activeSY = SchoolYear::where('is_active', true)->firstOrFail();
+        $activeSem = Semester::where('is_active', true)->firstOrFail();
+
+        StudentEnrollment::where('student_id', $studentId)
+            ->where('college_id', $collegeId)
+            ->where('school_year_id', $activeSY->id)
+            ->where('semester_id', $activeSem->id)
+            ->delete();
+
+        return back()->with('success', 'Student removed from current semester.');
+    }
+
 }

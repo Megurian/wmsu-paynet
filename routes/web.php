@@ -5,7 +5,9 @@ use App\Http\Controllers\OSASetupController;
 use App\Http\Controllers\OSACollegeController;
 use App\Http\Controllers\CollegeAcademicController;
 use App\Http\Controllers\CollegeStudentController;
+use App\Http\Controllers\CollegeHistoryController;
 use App\Http\Controllers\ValidateStudentsController;
+use App\Http\Middleware\CheckActiveSchoolYear;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 
@@ -25,20 +27,28 @@ Route::middleware('auth')->get('/dashboard', function () {
     };
 })->name('dashboard');
 
-
 Route::middleware(['auth', 'role:osa'])->group(function () {
-    Route::get('/osa/dashboard', function () {
-        return view('osa.dashboard');
-    })->name('osa.dashboard');
-
-    //OSA SETUP PAGE ROUTES
     Route::get('/osa/setup', function () {
         return view('osa.setup');
     })->name('osa.setup'); 
     Route::get('/osa/setup', [OSASetupController::class, 'edit'])->name('osa.setup');
     Route::post('/osa/setup', [OSASetupController::class, 'store'])->name('osa.setup.store');
     Route::post('/osa/setup/{id}/add-semester', [OSASetupController::class, 'addSemester'])->name('osa.setup.addSemester');
-    //
+});
+
+Route::middleware(['auth', 'role:osa', CheckActiveSchoolYear::class])->group(function () {
+    Route::get('/osa/dashboard', function () {
+        return view('osa.dashboard');
+    })->name('osa.dashboard');
+
+    // //OSA SETUP PAGE ROUTES
+    // Route::get('/osa/setup', function () {
+    //     return view('osa.setup');
+    // })->name('osa.setup'); 
+    // Route::get('/osa/setup', [OSASetupController::class, 'edit'])->name('osa.setup');
+    // Route::post('/osa/setup', [OSASetupController::class, 'store'])->name('osa.setup.store');
+    // Route::post('/osa/setup/{id}/add-semester', [OSASetupController::class, 'addSemester'])->name('osa.setup.addSemester');
+    
     //OSA COLLEGE PAGE ROUTES
     Route::get('/osa/college', [OSACollegeController::class, 'index'])->name('osa.college');
     Route::get('/osa/college/create', [OSACollegeController::class, 'create'])->name('osa.college.create');
@@ -46,28 +56,6 @@ Route::middleware(['auth', 'role:osa'])->group(function () {
     Route::get('/osa/college/{id}', [OSACollegeController::class, 'show'])->name('osa.college.details');
     Route::delete('/osa/college/{id}', [OSACollegeController::class, 'destroy'])->name('osa.college.destroy');
 });
-
-// Route::middleware(['auth', 'role:usc'])->group(function () {
-//     Route::get('/usc/dashboard', function () {
-//         return view('usc.dashboard');
-//     })->name('usc.dashboard');
-
-//     Route::get('/usc/fees', function () {
-//         return view('usc.fees');
-//     })->name('usc.fees');
-
-//     Route::get('/usc/remittance', function () {
-//         return view('usc.remittance');
-//     })->name('usc.remittance');
-
-//     Route::get('/usc/reports', function () {
-//         return view('usc.reports');
-//     })->name('usc.reports');
-
-//     Route::get('/usc/setup', function () {
-//         return view('usc.setup');
-//     })->name('usc.setup');
-// });
 
 Route::middleware(['auth', 'role:university_org'])->group(function () {
     Route::get('/university_org/dashboard', function () {
@@ -100,6 +88,10 @@ Route::middleware(['auth', 'role:college'])->group(function () {
         return view('college.students');
     })->name('college.students');
 
+    Route::get('/college/history', function () {
+        return view('college.history');
+    })->name('college.history');
+
     // Academic Structure Management
     Route::get('/college/academics', [CollegeAcademicController::class, 'index'])
         ->name('college.academics');
@@ -127,6 +119,11 @@ Route::middleware(['auth', 'role:college'])->group(function () {
     Route::post('students/validate/{student}', [ValidateStudentsController::class, 'store'])->name('college.students.validate.store');
     Route::post('/college/students/validate/bulk', [ValidateStudentsController::class, 'bulkValidate'])
         ->name('college.students.validate.bulk');
+
+    Route::delete('/college/students/{student}/unvalidate', [CollegeStudentController::class, 'unvalidate']
+    )  ->name('college.students.unvalidate');
+
+    Route::get('/college/history', [CollegeHistoryController::class, 'history'])->name('college.history');
 
 });
 

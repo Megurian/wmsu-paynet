@@ -7,48 +7,38 @@
 @section('page-title', 'OSA Academic Setup')
 
 @section('content')
-<div class="mb-8 ">
+<div class="mb-8">
     <h2 class="text-3xl font-bold text-gray-800">OSA Academic Setup</h2>
     <p class="text-sm text-gray-500 mt-1">
         Manage school years and semester timelines for the Office of Student Affairs.
     </p>
 </div>
 
-
 @if(session('status'))
 <div class="mb-6 flex items-start gap-3 p-4 rounded-lg border border-green-200 bg-green-50 text-green-800">
-    
     <div class="text-sm font-medium">
         {{ session('status') }}
     </div>
 </div>
 @endif
 
-{{-- Currently Active S.Y and Semester
-@if($latestSchoolYear)
-<div class="mt-10 bg-green-50 border border-green-200 rounded-xl p-6">
-    <h4 class="font-semibold text-green-800 mb-2">
-         Currently Active Academic Period
-    </h4>
-    <p class="text-sm text-green-700">
-        <strong>School Year:</strong>
-        {{ $latestSchoolYear->sy_start }} – {{ $latestSchoolYear->sy_end }}
-    </p>
-    <p class="text-sm text-green-700 mt-1">
-        <strong>Semester:</strong>
-        {{ $latestSchoolYear->activeSemester?->name ?? 'Not set' }}
-    </p>
+@if($errors->any())
+<div class="mb-6 p-4 rounded-lg border border-red-200 bg-red-50 text-red-800">
+    <ul class="text-sm list-disc pl-5">
+        @foreach($errors->all() as $error)
+            <li>{{ $error }}</li>
+        @endforeach
+    </ul>
 </div>
-@endif --}}
+@endif
 
-{{-- Add School Year --}}
 <div class="bg-white rounded-xl shadow-md border border-gray-200 p-6 mb-10">
     <h3 class="text-lg font-semibold text-gray-800 mb-1">Add New School Year</h3>
     <p class="text-sm text-gray-500 mb-6">
         Define the official academic year duration.
     </p>
 
-    <form method="POST" action="{{ route('osa.setup.store') }}">
+    <form method="POST" action="{{ route('osa.setup.store') }}" onsubmit="return confirmNewSchoolYear()">
         @csrf
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
             <div>
@@ -77,9 +67,11 @@
     </form>
 </div>
 
-
-{{-- List of S.Y and Semester --}}
 <h3 class="text-xl font-semibold text-gray-800 mb-4">School Year Records</h3>
+
+@if($schoolYears->isEmpty())
+<p class="text-gray-500 italic mb-6">No school years found. Add a new school year to get started.</p>
+@endif
 
 <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
 @foreach($schoolYears as $sy)
@@ -91,7 +83,6 @@
 <div class="bg-white rounded-2xl border shadow-sm
             {{ $isActive ? 'border-green-400 ring-2 ring-green-200' : 'border-gray-200' }}">
 
-    {{-- Card Header --}}
     <div class="p-5 border-b flex justify-between items-start">
         <div>
             <h4 class="text-2xl font-bold text-gray-800 leading-tight">
@@ -102,7 +93,7 @@
             </p>
             <p class="text-sm text-gray-400 mt-2">
                 {{ Carbon::parse($sy->sy_start)->format('F d, Y') }}
-                –
+                – 
                 {{ Carbon::parse($sy->sy_end)->format('F d, Y') }}
             </p>
         </div>
@@ -114,10 +105,8 @@
         @endif
     </div>
 
-    
     <div class="p-5 space-y-4">
 
-        {{-- Semester History --}}
         <div>
             <p class="text-sm font-medium text-gray-600 mb-2">
                 Semester History
@@ -127,9 +116,7 @@
             <div class="flex flex-wrap gap-2">
                 @foreach($sy->semesters as $semester)
                 <span class="px-3 py-1 rounded-full text-xs font-medium
-                    {{ $semester->is_active
-                        ? 'bg-red-100 text-red-700'
-                        : 'bg-gray-100 text-gray-700' }}">
+                    {{ $semester->is_active ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700' }}">
                     {{ ucfirst($semester->name) }}
                 </span>
                 @endforeach
@@ -141,7 +128,6 @@
             @endif
         </div>
 
-        {{-- Current Semester --}}
         <div class="text-sm">
             <span class="text-gray-500">Current Semester:</span>
             <span class="{{ $activeSemester ? 'text-green-700 font-semibold' : 'text-gray-400' }}">
@@ -150,7 +136,6 @@
         </div>
     </div>
 
-    {{-- Card Footer --}}
     <div class="px-5 py-4 border-t bg-gray-50 flex justify-end">
         @if($isActive)
         <button onclick="openModal({{ $sy->id }})"
@@ -167,26 +152,17 @@
 @endforeach
 </div>
 
-
-
-{{-- Modal --}}
-<div id="semesterModal"
-     class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
-
+<div id="semesterModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
     <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6 relative">
         <button onclick="closeModal()"
-                class="absolute top-3 right-3 text-gray-400 hover:text-gray-600">
-            ✕
-        </button>
+                class="absolute top-3 right-3 text-gray-400 hover:text-gray-600">✕</button>
 
-        <h3 class="text-lg font-semibold text-gray-800 mb-1">
-            Add New Semester
-        </h3>
+        <h3 class="text-lg font-semibold text-gray-800 mb-1">Add New Semester</h3>
         <p class="text-sm text-yellow-700 mb-4">
-            Note: This will end the currently active semester.
+            Warning: Adding a new semester will deactivate the currently active semester.
         </p>
 
-        <form id="modalForm" method="POST">
+        <form id="modalForm" method="POST" onsubmit="return confirmNewSemester()">
             @csrf
             <label class="block text-sm font-medium text-gray-700 mb-1">
                 Semester
@@ -218,9 +194,6 @@
     </div>
 </div>
 
-
-{{-- JS for modal --}}
-
 <script>
     function openModal(id) {
         document.getElementById('semesterModal').classList.remove('hidden');
@@ -231,6 +204,31 @@
         document.getElementById('semesterModal').classList.add('hidden');
     }
 
-</script>
+    function confirmNewSchoolYear() {
+        const start = document.querySelector('input[name="sy_start"]').value;
+        const end = document.querySelector('input[name="sy_end"]').value;
 
+        if (!start || !end) {
+            alert('Please select both start and end dates.');
+            return false;
+        }
+
+        if (start > end) {
+            alert('Start date cannot be after the end date.');
+            return false;
+        }
+
+        return confirm('Are you sure you want to add this new school year? This will deactivate any currently active school year.');
+    }
+
+    function confirmNewSemester() {
+        const select = document.querySelector('select[name="semester"]');
+        if (!select.value) {
+            alert('Please select a semester.');
+            return false;
+        }
+
+        return confirm('Are you sure you want to add this semester? This will deactivate the currently active semester.');
+    }
+</script>
 @endsection

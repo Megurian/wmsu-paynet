@@ -28,6 +28,20 @@ class OSASetupController extends Controller
             'sy_end'   => 'required|date|after_or_equal:sy_start',
         ]);
 
+        $exists = SchoolYear::where(function ($q) use ($request) {
+            $q->whereBetween('sy_start', [$request->sy_start, $request->sy_end])
+            ->orWhereBetween('sy_end', [$request->sy_start, $request->sy_end])
+            ->orWhere(function ($q2) use ($request) {
+                $q2->where('sy_start', '<=', $request->sy_start)
+                    ->where('sy_end', '>=', $request->sy_end);
+            });
+        })->exists();
+
+        if ($exists) {
+            return back()->withErrors([
+                'sy_start' => 'The school year overlaps with an existing school year.',
+            ])->withInput();
+        }
         // Deactivate all previous school years and their semesters
         SchoolYear::where('is_active', true)->update(['is_active' => false]);
         Semester::where('is_active', true)->update(['is_active' => false]);
