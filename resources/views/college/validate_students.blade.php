@@ -4,168 +4,143 @@
 @section('page-title', 'Validate Students')
 
 @section('content')
-<h2 class="text-2xl font-bold mb-4">Validate Students</h2>
-<div>
+<div class="flex flex-col md:flex-row items-center justify-between mb-6 gap-4">
+    <h2 class="text-2xl font-bold text-gray-800">Validate Students</h2>
     <a href="{{ route('college.students') }}" 
-       class="inline-block mb-2 px-4 py-2 bg-red-800 text-white rounded-lg shadow hover:bg-red-700 transition">
+       class="px-4 py-2 bg-red-700 text-white rounded-lg shadow hover:bg-red-600 transition">
         &larr; Back
     </a>
 </div>
 
-{{-- FILTER FORM (GET) --}}
-<form method="GET" class="mb-4">
-    <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
-        <input
-            type="text"
-            name="search"
-            value="{{ request('search') }}"
-            placeholder="Search name or Student ID"
-            class="rounded border px-3 py-2 text-sm"
-        >
-
-        <select name="course" class="rounded border px-3 py-2 text-sm" onchange="this.form.submit()">
+<div class="bg-white shadow rounded-lg p-4 mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+    <form method="GET" class="flex flex-wrap gap-3 flex-1 items-center">
+        <input type="text" name="search" value="{{ request('search') }}" placeholder="Search by name or Student ID" class="flex-1 min-w-[150px] px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none" >
+        <select name="course" class="rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition" onchange="this.form.submit()">
             <option value="">All Courses</option>
             @foreach($courses as $course)
-                <option value="{{ $course->id }}" @selected(request('course') == $course->id)>
-                    {{ $course->name }}
-                </option>
+                <option value="{{ $course->id }}" @selected(request('course') == $course->id)>{{ $course->name }}</option>
             @endforeach
         </select>
 
-        <select name="year" class="rounded border px-3 py-2 text-sm" onchange="this.form.submit()">
+        <select name="year" class="rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition" onchange="this.form.submit()">
             <option value="">All Years</option>
             @foreach($years as $year)
-                <option value="{{ $year->id }}" @selected(request('year') == $year->id)>
-                    {{ $year->name }}
-                </option>
+                <option value="{{ $year->id }}" @selected(request('year') == $year->id)>{{ $year->name }}</option>
             @endforeach
         </select>
 
-        <select name="section" class="rounded border px-3 py-2 text-sm" onchange="this.form.submit()">
+        <select name="section" class="rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition" onchange="this.form.submit()">
             <option value="">All Sections</option>
             @foreach($sections as $section)
-                <option value="{{ $section->id }}" @selected(request('section') == $section->id)>
-                    {{ $section->name }}
-                </option>
+                <option value="{{ $section->id }}" @selected(request('section') == $section->id)>{{ $section->name }}</option>
             @endforeach
         </select>
-    </div>
-</form>
+    </form>
 
-<form method="POST" action="{{ route('college.students.validate.bulk') }}" x-data="studentSelection()" x-init="init()">
+</div>
+
+<form method="POST" action="{{ route('college.students.validate.bulk') }}" x-data="studentSelection()" x-init="init()" class="space-y-4">
     @csrf
-    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-500 mb-4">
-        Validate Selected
-    </button>
-    <table class="min-w-full text-sm text-gray-800">
-        <thead class="bg-gray-50">
-            <tr class="uppercase text-xs font-semibold text-gray-600">
-                <th>
-                    <input type="checkbox" @click="toggleAll($event)"> 
-                </th>
-                <th>Student ID</th>
-                <th>Name</th>
-                <th class="text-left">Last Semester Info</th>
-                <th>Course</th>
-                <th>Year</th>
-                <th>Section</th>
-                <th>Action</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach($students as $student)
-            @php
-                $enrollment = $student->enrollments->first(); 
-                $validated = $enrollment ? true : false;
-                $prev = $student->lastEnrollment; 
-            @endphp
-            <tr class="{{ $validated ? 'bg-green-100' : '' }}">
-                <td>
-                    @if(!$validated)
-                    <input type="checkbox" name="selected_students[]" 
-                           value="{{ $student->id }}" 
-                           @click="toggleOne($event, '{{ $student->id }}')">
-                    @endif
-                </td>
 
-                <td>{{ $student->student_id }}</td>
-                <td>{{ strtoupper($student->last_name) }}, {{ strtoupper($student->first_name) }} {{ strtoupper($student->middle_name ?? '') }} {{ $student->suffix ?? '' }}</td>
-                <td class="text-xs text-gray-700">
-                    @if($prev)
-                        <div class="font-semibold">
-                            {{ $prev->course->name ?? '—' }}
-                        </div>
-                        <div>
-                            {{ $prev->yearLevel->name ?? '—' }} {{ $prev->section->name ?? '—' }}
-                        </div>
-                    @else
-                        <span class="italic text-gray-400">No previous record</span>
-                    @endif
-                </td>
-                <td>
-                    <select name="course_id[{{ $student->id }}]" required {{ $validated ? 'disabled' : '' }}>
-                        @foreach($courses as $course)
-                        <option value="{{ $course->id }}"
-                            @if($validated && $course->id == $enrollment->course_id)
-                                selected
-                            @elseif(!$validated && $prev && $course->id == $prev->course_id)
-                                selected
-                            @endif
-                        >
-                            {{ $course->name }}
-                        </option>
-                        @endforeach
-                    </select>
-                </td>
+    <div class="flex flex-col md:flex-row items-center justify-between mt-4 gap-2">
+        <div>
+            <button type="submit" class="px-4 py-2 bg-red-800 text-white rounded-md hover:bg-red-700 shadow transition">
+                Validate Selected Students
+            </button>
+        </div>
+        <div class="mt-2 md:mt-0">
+            {{ $students->links() }}
+        </div>
+    </div>
+   
 
-                <td>
-                    <select name="year_level_id[{{ $student->id }}]" required {{ $validated ? 'disabled' : '' }}>
-                        @foreach($years as $year)
-                        <option value="{{ $year->id }}"
-                            @if($validated && $year->id == $enrollment->year_level_id)
-                                selected
-                            @elseif(!$validated && $prev && $year->id == $prev->year_level_id)
-                                selected
-                            @endif
-                        >
-                            {{ $year->name }}
-                        </option>
-                        @endforeach
-                    </select>
-                </td>
+    <div class="bg-white shadow-sm border border-gray-200 rounded-xl overflow-hidden">
+        <table class="min-w-full text-sm text-gray-80000">
+            <thead class="bg-gray-50 border-b border-gray-200">
+                <tr class="text-left text-[11px] font-semibold uppercase tracking-wide text-gray-600">
+                   <th class="px-3 py-2">
+                        <input type="checkbox" 
+                            @click="toggleAll($event)" 
+                            class="w-4 h-4 border-gray-400 rounded-sm focus:ring-2 focus:ring-blue-400 cursor-pointer">
+                    </th>
+                    <th class="px-5 py-3 cursor-pointer select-none">Student ID</th>
+                    <th class="px-5 py-3 cursor-pointer select-none">Name</th>
+                    <th class="px-5 py-3 cursor-pointer select-none">Last Semester Info</th>
+                    <th class="px-5 py-3 cursor-pointer select-none">Course</th>
+                    <th class="px-5 py-3 cursor-pointer select-none">Year</th>
+                    <th class="px-5 py-3 cursor-pointer select-none">Section</th>
+                    <th class="px-5 py-3 cursor-pointer select-none">Action</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                @foreach($students as $student)
+                @php
+                    $enrollment = $student->enrollments->first(); 
+                    $validated = $enrollment ? true : false;
+                    $prev = $student->lastEnrollment; 
+                @endphp
+                <tr class="{{ $validated ? 'bg-green-50' : 'hover:bg-gray-50' }}">
+                    <td class="px-3 py-2">
+                        @if(!$validated)
+                        <input type="checkbox" name="selected_students[]"  class="w-4 h-4 border-gray-400 rounded-sm focus:ring-2 focus:ring-blue-400 cursor-pointer" value="{{ $student->id }}" @click="toggleOne($event, '{{ $student->id }}')">
+                        @endif
+                    </td>
+                    <td class="px-3 py-2 font-medium">{{ $student->student_id }}</td>
+                    <td class="px-3 py-2 font-medium">{{ strtoupper($student->last_name) }}, {{ strtoupper($student->first_name) }} {{ strtoupper($student->middle_name ?? '') }} {{ $student->suffix ?? '' }}</td>
+                    <td class="px-3 py-2 text-sm text-gray-700">
+                        @if($prev)
+                            <div class="font-semibold">{{ $prev->course->name ?? '—' }}</div>
+                            <div>{{ $prev->yearLevel->name ?? '—' }} {{ $prev->section->name ?? '—' }}</div>
+                        @else
+                            <span class="italic text-gray-400">No previous record</span>
+                        @endif
+                    </td>
+                    <td class="px-3 py-2">
+                        <select name="course_id[{{ $student->id }}]" class="rounded-lg border border-gray-300 px-6 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition" required {{ $validated ? 'disabled' : '' }}>
+                            @foreach($courses as $course)
+                                <option value="{{ $course->id }}"
+                                    @if($validated && $course->id == $enrollment->course_id) selected
+                                    @elseif(!$validated && $prev && $course->id == $prev->course_id) selected
+                                    @endif
+                                >{{ $course->name }}</option>
+                            @endforeach
+                        </select>
+                    </td>
+                    <td class="px-3 py-2">
+                        <select name="year_level_id[{{ $student->id }}]" class="rounded-lg border border-gray-300 px-6 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition" required {{ $validated ? 'disabled' : '' }}>
+                            @foreach($years as $year)
+                                <option value="{{ $year->id }}"
+                                    @if($validated && $year->id == $enrollment->year_level_id) selected
+                                    @elseif(!$validated && $prev && $year->id == $prev->year_level_id) selected
+                                    @endif
+                                >{{ $year->name }}</option>
+                            @endforeach
+                        </select>
+                    </td>
+                    <td class="px-3 py-2">
+                        <select name="section_id[{{ $student->id }}]" class="rounded-lg border border-gray-300 px-6 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition" required {{ $validated ? 'disabled' : '' }}>
+                            @foreach($sections as $section)
+                                <option value="{{ $section->id }}"
+                                    @if($validated && $section->id == $enrollment->section_id) selected
+                                    @elseif(!$validated && $prev && $section->id == $prev->section_id) selected
+                                    @endif
+                                >{{ $section->name }}</option>
+                            @endforeach
+                        </select>
+                    </td>
+                    <td class="px-3 py-2">
+                        @if(!$validated)
+                        <button formaction="{{ route('college.students.validate.store', $student->id) }}" formmethod="POST" class="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-500 transition">Validate</button>
+                        @else
+                        <span class="text-green-800 font-semibold">Validated</span>
+                        @endif
+                    </td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
 
-                <td>
-                    <select name="section_id[{{ $student->id }}]" required {{ $validated ? 'disabled' : '' }}>
-                        @foreach($sections as $section)
-                        <option value="{{ $section->id }}"
-                            @if($validated && $section->id == $enrollment->section_id)
-                                selected
-                            @elseif(!$validated && $prev && $section->id == $prev->section_id)
-                                selected
-                            @endif
-                        >
-                            {{ $section->name }}
-                        </option>
-                        @endforeach
-                    </select>
-                </td>
-
-                <td>
-                    @if(!$validated)
-                    <button formaction="{{ route('college.students.validate.store', $student->id) }}"
-                            formmethod="POST"
-                            class="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-500">
-                        Validate
-                    </button>
-                    @else
-                    <span class="text-green-800 font-semibold">Validated</span>
-                    @endif
-                </td>
-            </tr>
-            @endforeach
-        </tbody>
-    </table>
-    <div class="mt-4"> {{ $students->links() }} </div> 
 </form>
 
 <script>

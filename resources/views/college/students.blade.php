@@ -29,16 +29,7 @@
 
             {{-- Search --}}
             <div class="relative col-span-1 sm:col-span-2">
-                <input
-                    type="text"
-                    x-model="search"
-                    placeholder="Search by name or Student ID"
-                    class="w-full rounded-lg border border-gray-300 px-4 py-2.5 pr-10 text-sm
-                        placeholder-gray-400 focus:border-blue-500 focus:ring-2
-                        focus:ring-blue-100 transition"
-                >
-
-                <!-- Clear (X) button -->
+                <input type="text" x-model="search" placeholder="Search by name or Student ID" class="w-full rounded-lg border border-gray-300 px-4 py-2.5 pr-10 text-sm     placeholder-gray-400 focus:border-blue-500 focus:ring-2     focus:ring-blue-100 transition">
                 <button
                     type="button"
                     x-show="search"
