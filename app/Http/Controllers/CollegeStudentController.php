@@ -136,6 +136,4 @@ class CollegeStudentController extends Controller
         return back()->with('success', 'Student removed from current semester.');
     }
 
-
-    
 }
