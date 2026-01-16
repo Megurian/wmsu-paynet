@@ -130,11 +130,18 @@
                         </select>
                     </td>
                     <td class="px-3 py-2">
-                        @if(!$validated)
-                        <button formaction="{{ route('college.students.validate.store', $student->id) }}" formmethod="POST" class="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-500 transition">Validate</button>
-                        @else
-                        <span class="text-green-800 font-semibold">Validated</span>
-                        @endif
+                       @if(!$validated)
+                            <button 
+                                formaction="{{ route('college.students.validate.store', $student->id) }}" 
+                                formmethod="POST" 
+                                class="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-500 transition"
+                                onclick="return confirm('Are you sure you want to validate this student?');"
+                            >
+                                Validate
+                            </button>
+                            @else
+                            <span class="text-green-800 font-semibold">Validated</span>
+                            @endif
                     </td>
                 </tr>
                 @endforeach
@@ -163,6 +170,7 @@ function studentSelection() {
             else this.selected = this.selected.filter(id => id != studentId);
         },
         init() {
+            
             window.addEventListener('beforeunload', (e) => {
                 if (!this.submitting && this.selected.length > 0) {
                     e.preventDefault();
@@ -170,9 +178,20 @@ function studentSelection() {
                 }
             });
 
-            const form = this.$el; 
-            form.addEventListener('submit', () => {
-                this.submitting = true;
+            const form = this.$el;
+
+            
+            form.addEventListener('submit', (e) => {
+                if (!this.submitting) {
+                    if (this.selected.length > 0) {
+                        const confirmed = confirm(`Are you sure you want to validate ${this.selected.length} student(s)?`);
+                        if (!confirmed) {
+                            e.preventDefault(); 
+                            return;
+                        }
+                    }
+                    this.submitting = true;
+                }
             });
         }
     }
