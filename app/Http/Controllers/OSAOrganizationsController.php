@@ -62,4 +62,23 @@ class OSAOrganizationsController extends Controller
             return back()->withErrors('Failed to create organization: ' . $e->getMessage());
         }
     }
+
+    public function show($id)
+    {
+        $organization = Organization::with('college', 'admin')->findOrFail($id);
+
+        return view('osa.organization-details', compact('organization'));
+    }
+
+    public function destroy($id)
+    {
+        $organization = Organization::findOrFail($id);
+
+        $organization->admin?->delete();
+
+        $organization->delete();
+
+        return redirect()->route('osa.organizations')->with('status', 'Organization deleted successfully!');
+    }
+
 }
