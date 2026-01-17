@@ -27,8 +27,7 @@ class CollegeAcademicController extends Controller
             'college_id' => Auth::user()->college_id,
             'name' => $request->name,
         ]);
-
-        return back();
+       return back()->with('status', 'Course added successfully.');
     }
 
     public function storeYear(Request $request)
@@ -38,7 +37,7 @@ class CollegeAcademicController extends Controller
             'name' => $request->name,
         ]);
 
-        return back();
+       return back()->with('status', 'Year Level added successfully.');
     }
 
     public function storeSection(Request $request)
@@ -48,25 +47,25 @@ class CollegeAcademicController extends Controller
             'name' => $request->name,
         ]);
 
-        return back();
+        return back()->with('status', 'Section added successfully.');
     }
 
     public function destroyCourse($id)
     {
         Course::findOrFail($id)->delete();
-        return back();
+       return back()->with('status', 'Course removed successfully.');
     }
 
     public function destroyYear($id)
     {
         YearLevel::findOrFail($id)->delete();
-        return back();
+        return back()->with('status', 'Year Level removed successfully.');
     }
 
     public function destroySection($id)
     {
         Section::findOrFail($id)->delete();
-        return back();
+        return back()->with('status', 'Section removed successfully.');
     }
 
 }

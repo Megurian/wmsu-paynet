@@ -14,13 +14,23 @@
     </p>
 </div>
 
-@if(session('status'))
-<div class="mb-6 flex items-start gap-3 p-4 rounded-lg border border-green-200 bg-green-50 text-green-800">
-    <div class="text-sm font-medium">
-        {{ session('status') }}
+{{-- @if(session('status'))
+<div  id="successModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-sm p-6 text-center relative animate-fade-in">
+        <div class="mx-auto mb-3 flex items-center justify-center w-12 h-12 rounded-full bg-green-100">
+            <svg class="w-6 h-6 text-green-700" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+        </div>
+        <h3 class="text-lg font-semibold text-gray-800 mb-1"> Success </h3>
+        <p class="text-sm text-gray-600 mb-4"> {{ session('status') }} </p>
+
+        <button onclick="closeSuccessModal()" class="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-lg text-sm font-medium transition"> OK </button>
+        <button onclick="closeSuccessModal()" class="absolute top-3 right-3 text-gray-400 hover:text-gray-600"> ✕ </button>
     </div>
 </div>
-@endif
+@endif --}}
+
 
 @if($errors->any())
 <div class="mb-6 p-4 rounded-lg border border-red-200 bg-red-50 text-red-800">
@@ -203,6 +213,15 @@
     function closeModal() {
         document.getElementById('semesterModal').classList.add('hidden');
     }
+
+    // function closeSuccessModal() {
+    //     const modal = document.getElementById('successModal');
+    //     if (modal) modal.remove();
+    // }
+
+    // setTimeout(() => {
+    //     closeSuccessModal();
+    // }, 3000);
 
     function confirmNewSchoolYear() {
         const start = document.querySelector('input[name="sy_start"]').value;

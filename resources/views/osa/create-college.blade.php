@@ -75,7 +75,10 @@
 
             <div class="flex justify-between">
                 <button type="button" class="bg-gray-400 text-white px-6 py-2 rounded hover:bg-gray-500 transition" onclick="prevStep(2)">Back</button>
-                <button type="submit" class="bg-red-700 text-white px-6 py-2 rounded hover:bg-red-800 transition">Create College</button>
+                <button type="submit" onclick="return confirm('Create this college and admin account?')" class="bg-red-700 text-white px-6 py-2 rounded hover:bg-red-800">
+                    Create College
+                </button>
+
             </div>
         </div>
     </form>

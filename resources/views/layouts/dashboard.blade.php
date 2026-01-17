@@ -35,6 +35,13 @@
         #sidebar.collapsed p {
             display: none;
         }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .animate-fade-in {
+            animation: fadeIn .2s ease-out;
+        }
 
     </style>
 </head>
@@ -192,6 +199,48 @@
 
             <!-- PAGE CONTENT -->
             <main class="flex-1 p-8 mt-10">
+                @if(session('status'))
+                    <div id="successModal"
+                        class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+                        <div class="bg-white rounded-xl shadow-lg max-w-sm w-full p-6 text-center animate-fade-in">
+                            <div class="mx-auto mb-3 w-12 h-12 flex items-center justify-center rounded-full bg-green-100">
+                                <svg class="w-6 h-6 text-green-700" fill="none" stroke="currentColor" stroke-width="2"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M5 13l4 4L19 7"/>
+                                </svg>
+                            </div>
+
+                            <h3 class="text-lg font-semibold mb-1">Success</h3>
+                            <p class="text-sm text-gray-600 mb-4">{{ session('status') }}</p>
+
+                            <button onclick="closeSuccessModal()"
+                                    class="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-lg">
+                                OK
+                            </button>
+                        </div>
+                    </div>
+                    @endif
+                    @if($errors->any())
+                    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+                        <div class="bg-white rounded-xl shadow-lg max-w-md w-full p-6 animate-fade-in">
+                            <h3 class="text-lg font-semibold text-red-700 mb-3">Something went wrong</h3>
+
+                            <ul class="text-sm text-gray-700 list-disc pl-5 space-y-1">
+                                @foreach($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+
+                            <div class="text-right mt-4">
+                                <button onclick="this.closest('.fixed').remove()"
+                                        class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded">
+                                    Close
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    @endif
                 @yield('content')
             </main>
         </div>
@@ -215,6 +264,12 @@
                 }
             }
 
+            function closeSuccessModal() {
+                const modal = document.getElementById('successModal');
+                if (modal) modal.remove();
+            }
+
+            setTimeout(() => closeSuccessModal(), 3000);
         </script>
 
     </div>
