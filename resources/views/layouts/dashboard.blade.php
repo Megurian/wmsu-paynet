@@ -199,6 +199,24 @@
 
             <!-- PAGE CONTENT -->
             <main class="flex-1 p-8 mt-10">
+                @php
+                    use App\Models\Announcement;
+                    $announcement = Announcement::active()->latest()->first();
+                @endphp
+
+                @if($announcement && auth()->user()->role !== 'osa')
+                <div id="announcementBanner" class="mb-6 rounded-xl border border-yellow-300 bg-yellow-50 p-4 animate-fade-in flex justify-between items-start">
+                    <div>
+                        <h4 class="font-semibold text-yellow-800">
+                            {{ $announcement->title }}
+                        </h4>
+                        <p class="text-sm text-yellow-700 mt-1">
+                            {{ $announcement->message }}
+                        </p>
+                    </div>
+                    <button id="closeAnnouncement" class="ml-4 text-yellow-800 font-bold hover:text-yellow-900">&times;</button>
+                </div>
+                @endif
                 @if(session('status'))
                     <div id="successModal"
                         class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
@@ -270,6 +288,17 @@
             }
 
             setTimeout(() => closeSuccessModal(), 3000);
+
+            
+            const announcementId = "{{ $announcement->id }}";
+            if (localStorage.getItem('announcementClosed_' + announcementId)) {
+                document.getElementById('announcementBanner').style.display = 'none';
+            }
+
+            document.getElementById('closeAnnouncement').addEventListener('click', function() {
+                document.getElementById('announcementBanner').style.display = 'none';
+                localStorage.setItem('announcementClosed_' + announcementId, 'true');
+            });
         </script>
 
     </div>
