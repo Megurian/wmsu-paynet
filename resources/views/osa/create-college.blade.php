@@ -75,10 +75,7 @@
 
             <div class="flex justify-between">
                 <button type="button" class="bg-gray-400 text-white px-6 py-2 rounded hover:bg-gray-500 transition" onclick="prevStep(2)">Back</button>
-                <button type="submit" onclick="return confirm('Create this college and admin account?')" class="bg-red-700 text-white px-6 py-2 rounded hover:bg-red-800">
-                    Create College
-                </button>
-
+                <button type="submit" class="bg-red-700 text-white px-6 py-2 rounded hover:bg-red-800 transition">Create College</button>
             </div>
         </div>
     </form>
@@ -90,16 +87,16 @@
 
     function updateProgress() {
         if (currentStep === 1) {
-            document.getElementById('dot-1').classList.add('bg-blue-600');
+            document.getElementById('dot-1').classList.add('bg-red-800');
             document.getElementById('dot-1').classList.remove('bg-gray-300');
-            document.getElementById('line-1').classList.remove('bg-blue-600');
+            document.getElementById('line-1').classList.remove('bg-red-800');
             document.getElementById('line-1').classList.add('bg-gray-300');
             document.getElementById('dot-2').classList.add('bg-gray-300');
-            document.getElementById('dot-2').classList.remove('bg-blue-600');
+            document.getElementById('dot-2').classList.remove('bg-red-800');
         } else if (currentStep === 2) {
-            document.getElementById('dot-1').classList.add('bg-blue-600');
-            document.getElementById('line-1').classList.add('bg-blue-600');
-            document.getElementById('dot-2').classList.add('bg-blue-600');
+            document.getElementById('dot-1').classList.add('bg-red-800');
+            document.getElementById('line-1').classList.add('bg-red-800');
+            document.getElementById('dot-2').classList.add('bg-red-800');
             document.getElementById('dot-2').classList.remove('bg-gray-300');
         }
     }

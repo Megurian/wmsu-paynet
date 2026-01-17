@@ -8,7 +8,7 @@
 
 <a href="{{ route('osa.organizations.create') }}" 
    class="px-4 py-2 bg-red-700 text-white rounded mb-6 inline-block hover:bg-red-800 transition">
-   + Add Organization
+   New Organization
 </a>
 
 @if($organizations->count())
@@ -32,7 +32,7 @@
 
         <p class="text-sm text-gray-600">Type: {{ $org->role === 'university_org' ? 'University-wide' : 'College-based' }}</p>
         @if($org->college)
-            <p class="text-sm text-gray-600">College: {{ $org->college->name }}</p>
+            <p class="text-sm text-gray-600"> {{ $org->college->name }}</p>
         @endif
 
         <div class="absolute top-2 right-2">

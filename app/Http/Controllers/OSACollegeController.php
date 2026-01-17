@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\College;
 use App\Models\User;
+use App\Models\Organization;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 
@@ -27,12 +28,13 @@ class OSACollegeController extends Controller
             $query->where('role', 'college');
         }])->findOrFail($id);
 
-
-        // Placeholder for organizations, etc.
-        $organizations = [];
+        $organizations = Organization::where('college_id', $college->id)
+                                    ->with('admin')
+                                    ->get();
 
         return view('osa.college-details', compact('college', 'organizations'));
     }
+
 
 
     public function store(Request $request)

@@ -45,13 +45,28 @@
 
 <!-- Organizations Section -->
 <div class="bg-white rounded shadow p-6">
-    <h3 class="text-xl font-semibold mb-4">Organizations</h3>
-    @if(count($organizations))
+    <h3 class="text-xl font-semibold mb-4">Organizations under {{ $college->name }}</h3>
+    @if($organizations->count())
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             @foreach($organizations as $org)
             <div class="border rounded p-4 flex flex-col space-y-1">
-                <p class="font-semibold">{{ $org->name }}</p>
-                <p class="text-gray-600 text-sm">{{ $org->description }}</p>
+                <div class="flex items-center space-x-3 mb-2">
+                    <div class="w-12 h-12 flex-shrink-0">
+                        @if($org->logo)
+                            <img src="{{ asset('storage/'.$org->logo) }}" alt="{{ $org->name }} Logo" class="w-full h-full object-cover rounded-full border">
+                        @else
+                            <div class="w-full h-full bg-gray-100 flex items-center justify-center rounded-full text-gray-400 italic border">
+                                No Logo
+                            </div>
+                        @endif
+                    </div>
+                    <div>
+                        <p class="font-semibold">{{ $org->name }}</p>
+                        <p class="text-gray-600 text-sm">{{ $org->org_code }}</p>
+                    </div>
+                </div>
+                <p class="text-sm text-gray-600">Type: {{ $org->role === 'university_org' ? 'University-wide' : 'College-based' }}</p>
+                <p class="text-sm text-gray-500">Admin: {{ $org->admin?->name ?? 'N/A' }}</p>
             </div>
             @endforeach
         </div>
@@ -59,5 +74,6 @@
         <p class="text-gray-500 italic">No organizations found for this college yet.</p>
     @endif
 </div>
+
 
 @endsection

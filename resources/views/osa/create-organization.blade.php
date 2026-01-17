@@ -9,11 +9,10 @@
         @csrf
         <input type="hidden" name="current_step" id="current_step" value="{{ old('current_step', 1) }}">
 
-        <!-- Progress Dots -->
         <div class="flex items-center justify-center mb-8">
             <div class="flex items-center">
                 <div id="dot-1" class="w-6 h-6 rounded-full flex items-center justify-center text-white font-bold">1</div>
-                <div id="line-1" class="w-24 h-1"></div>
+                <div id="line-1" class="w-24 h-1 "></div>
             </div>
             <div class="flex items-center">
                 <div id="dot-2" class="w-6 h-6 rounded-full flex items-center justify-center text-white font-bold">2</div>
@@ -24,7 +23,7 @@
             </div>
         </div>
 
-        <!-- Step 1: Organization Type -->
+        <!-- Organization Type -->
         <div class="form-step" id="step-1">
             <h3 class="text-xl font-bold mb-6 text-center">Organization Type</h3>
 
@@ -52,7 +51,7 @@
             </div>
         </div>
 
-        <!-- Step 2: Organization Details -->
+        <!--  Organization Details -->
         <div class="form-step hidden" id="step-2">
             <h3 class="text-xl font-bold mb-6 text-center">Organization Details</h3>
 
@@ -83,7 +82,7 @@
             </div>
         </div>
 
-        <!-- Step 3: Admin Account -->
+        <!--  Admin Account -->
         <div class="form-step hidden" id="step-3">
             <h3 class="text-xl font-bold mb-6 text-center">Create Admin Account</h3>
 
@@ -120,11 +119,11 @@ let currentStep = parseInt(document.getElementById('current_step').value);
 
 function updateProgress() {
     ['dot-1','dot-2','dot-3','line-1','line-2'].forEach(id => document.getElementById(id).classList.remove('bg-blue-600','bg-gray-300'));
-    document.getElementById('dot-1').classList.add(currentStep>=1?'bg-blue-600':'bg-gray-300');
-    document.getElementById('dot-2').classList.add(currentStep>=2?'bg-blue-600':'bg-gray-300');
-    document.getElementById('dot-3').classList.add(currentStep>=3?'bg-blue-600':'bg-gray-300');
-    document.getElementById('line-1').classList.add(currentStep>=2?'bg-blue-600':'bg-gray-300');
-    document.getElementById('line-2').classList.add(currentStep>=3?'bg-blue-600':'bg-gray-300');
+    document.getElementById('dot-1').classList.add(currentStep>=1?'bg-red-800':'bg-gray-300');
+    document.getElementById('dot-2').classList.add(currentStep>=2?'bg-red-800':'bg-gray-300');
+    document.getElementById('dot-3').classList.add(currentStep>=3?'bg-red-800':'bg-gray-300');
+    document.getElementById('line-1').classList.add(currentStep>=2?'bg-red-800':'bg-gray-300');
+    document.getElementById('line-2').classList.add(currentStep>=3?'bg-red-800':'bg-gray-300');
 }
 
 function showStep(step){
@@ -134,26 +133,41 @@ function showStep(step){
     currentStep = step;
     updateProgress();
 
-    // Show college select if needed
     if(step===1){
         const role = document.getElementById('org-role').value;
         document.getElementById('college-select').classList.toggle('hidden', role!=='college_org');
     }
 }
 
-function nextStep(step){ showStep(step+1); }
+function nextStep(step) {
+    if (step === 1) {
+        const role = document.getElementById('org-role').value;
+        const collegeSelect = document.querySelector('[name="college_id"]');
+
+        if (!role) {
+            alert('Please select organization type.');
+            return;
+        }
+
+        if (role === 'college_org' && !collegeSelect.value) {
+            alert('Please select a college.');
+            return;
+        }
+    }
+
+    showStep(step + 1);
+}
+
 function prevStep(step){ showStep(step-1); }
 
 document.addEventListener('DOMContentLoaded', function(){
     showStep(currentStep);
 
-    // College select for old values
     @if(old('college_id'))
         document.querySelector('[name="college_id"]').value = "{{ old('college_id') }}";
     @endif
 });
 
-// Logo upload preview
 const logoInput = document.getElementById('logoInput');
 const logoPreview = document.getElementById('logoPreview');
 const logoPlus = document.getElementById('logoPlus');
@@ -180,6 +194,18 @@ removeLogo.addEventListener('click', function(){
     logoPlus.classList.remove('hidden');
     removeLogo.classList.add('hidden');
 });
+
+const roleSelect = document.getElementById('org-role');
+const collegeSelectWrapper = document.getElementById('college-select');
+
+roleSelect.addEventListener('change', function () {
+    if (this.value === 'college_org') {
+        collegeSelectWrapper.classList.remove('hidden');
+    } else {
+        collegeSelectWrapper.classList.add('hidden');
+    }
+});
+
 </script>
 
 <style>

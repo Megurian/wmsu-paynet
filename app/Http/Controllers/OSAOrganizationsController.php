@@ -29,7 +29,15 @@ class OSAOrganizationsController extends Controller
             'role' => 'required|in:university_org,college_org',
             'name' => 'required|string|max:255',
             'org_code' => 'required|string|max:50|unique:organizations,org_code',
-            'college_id' => 'nullable|exists:colleges,id',
+            'college_id' => [
+                'nullable',
+                'exists:colleges,id',
+                function ($attribute, $value, $fail) use ($request) {
+                    if ($request->role === 'college_org' && !$value) {
+                        $fail('College is required for college-based organizations.');
+                    }
+                },
+            ],
             'logo' => 'nullable|image|max:2048',
             'admin_name' => 'required|string|max:255',
             'admin_email' => 'required|email|unique:users,email',
