@@ -58,36 +58,60 @@
                 </svg>
             </button>
 
-            <!-- LOGO -->
-            <div class="flex flex-col items-center py-6 border-b border-red-700">
-                <div class="h-20 w-20 bg-white rounded-full flex items-center justify-center shadow overflow-hidden">
-                    @if($currentCollege && $currentCollege->logo)
-                    <img src="{{ asset('storage/' . $currentCollege->logo) }}" alt="College Logo" class="h-full w-full object-cover">
-                    @else
-                    {{-- Fallback (OSA / no college) --}}
-                    <span class="text-red-800 font-bold text-sm text-center">
-                        No<br>logo
-                    </span>
-                    @endif
-                </div>
-                @if(Auth::user()->role === 'college' && $currentCollege)
-                    <h2 class="mt-3 text-lg font-bold text-center leading-snug break-words max-w-[12rem] mx-auto">
-                        {{ $currentCollege->name }}
-                    </h2>
-                    <p class="text-xs opacity-80 text-center">College Admin</p>
-                @elseif(Auth::user()->role === 'osa')
-                    <h2 class="mt-3 text-lg font-bold text-center leading-snug break-words max-w-[12rem] mx-auto">
-                        Office of the Student Affairs
-                    </h2>
-                @else
-                    <h2 class="mt-3 text-lg font-bold text-center max-w-[12rem] mx-auto break-words">
-                        WMSU PayNet
-                    </h2>
-                    <p class="text-xs opacity-80 text-center">{{ strtoupper(Auth::user()->role) }} Panel</p>
-                @endif
-                
+        @php
+            $user = Auth::user();
+        @endphp
 
+        <div class="flex flex-col items-center py-6 border-b border-red-700">
+
+            {{-- Logo --}}
+            <div class="h-20 w-20 bg-white rounded-full flex items-center justify-center shadow overflow-hidden">
+                @if($user->role === 'college' && $currentCollege?->logo)
+                    <img src="{{ asset('storage/' . $currentCollege->logo) }}"
+                        alt="College Logo"
+                        class="h-full w-full object-cover">
+
+                @elseif(in_array($user->role, ['university_org', 'college_org']) && $organization?->logo)
+                    <img src="{{ asset('storage/' . $organization->logo) }}"
+                        alt="Organization Logo"
+                        class="h-full w-full object-cover">
+
+                @else
+                    <span class="text-red-800 font-bold text-sm text-center">
+                        No<br>Logo
+                    </span>
+                @endif
             </div>
+
+            {{-- Name + Role --}}
+            @if($user->role === 'college' && $currentCollege)
+                <h2 class="mt-3 text-lg font-bold text-center break-words max-w-[12rem]">
+                    {{ $currentCollege->name }}
+                </h2>
+                <p class="text-xs opacity-80">College Admin</p>
+
+            @elseif($user->role === 'osa')
+                <h2 class="mt-3 text-lg font-bold text-center max-w-[12rem]">
+                    Office of the Student Affairs
+                </h2>
+
+            @elseif(in_array($user->role, ['university_org', 'college_org']) && $organization)
+                <h2 class="mt-3 text-lg font-bold text-center break-words max-w-[12rem]">
+                    {{ $organization->name }}
+                </h2>
+                <p class="text-xs opacity-80 text-center">
+                    {{ $user->role === 'university_org' ? 'University Organization' : 'College Organization' }}
+                </p>
+
+            @else
+                <h2 class="mt-3 text-lg font-bold text-center">
+                    WMSU PayNet
+                </h2>
+                <p class="text-xs opacity-80 text-center">{{ strtoupper($user->role) }} Panel</p>
+            @endif
+
+        </div>
+
 
             <!-- NAVIGATION -->
             <nav class="flex-1 px-2 py-4 space-y-2">

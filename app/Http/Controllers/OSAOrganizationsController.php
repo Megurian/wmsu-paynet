@@ -74,7 +74,6 @@ class OSAOrganizationsController extends Controller
     public function show($id)
     {
         $organization = Organization::with('college', 'admin')->findOrFail($id);
-
         return view('osa.organization-details', compact('organization'));
     }
 

@@ -17,4 +17,5 @@ class Organization extends Model
     {
         return $this->hasOne(User::class)->whereIn('role', ['college_org', 'university_org']);
     }
+
 }
