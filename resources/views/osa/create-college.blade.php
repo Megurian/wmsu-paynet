@@ -87,16 +87,16 @@
 
     function updateProgress() {
         if (currentStep === 1) {
-            document.getElementById('dot-1').classList.add('bg-blue-600');
+            document.getElementById('dot-1').classList.add('bg-red-800');
             document.getElementById('dot-1').classList.remove('bg-gray-300');
-            document.getElementById('line-1').classList.remove('bg-blue-600');
+            document.getElementById('line-1').classList.remove('bg-red-800');
             document.getElementById('line-1').classList.add('bg-gray-300');
             document.getElementById('dot-2').classList.add('bg-gray-300');
-            document.getElementById('dot-2').classList.remove('bg-blue-600');
+            document.getElementById('dot-2').classList.remove('bg-red-800');
         } else if (currentStep === 2) {
-            document.getElementById('dot-1').classList.add('bg-blue-600');
-            document.getElementById('line-1').classList.add('bg-blue-600');
-            document.getElementById('dot-2').classList.add('bg-blue-600');
+            document.getElementById('dot-1').classList.add('bg-red-800');
+            document.getElementById('line-1').classList.add('bg-red-800');
+            document.getElementById('dot-2').classList.add('bg-red-800');
             document.getElementById('dot-2').classList.remove('bg-gray-300');
         }
     }

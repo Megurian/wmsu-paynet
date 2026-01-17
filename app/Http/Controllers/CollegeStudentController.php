@@ -111,13 +111,13 @@ class CollegeStudentController extends Controller
             ]);
         }
 
-        return back()->with('success', 'Student added successfully.');
+        return back()->with('status', 'Student added successfully.');
     }
 
     public function destroy($id)
     {
         Student::findOrFail($id)->delete();
-        return back()->with('success', 'Student removed successfully.');
+        return back()->with('status', 'Student removed successfully.');
     }
 
     public function unvalidate($studentId)
@@ -133,7 +133,7 @@ class CollegeStudentController extends Controller
             ->where('semester_id', $activeSem->id)
             ->delete();
 
-        return back()->with('success', 'Student removed from current semester.');
+        return back()->with('status', 'Student removed from current semester.');
     }
 
 }

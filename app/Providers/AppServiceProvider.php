@@ -1,10 +1,11 @@
 <?php
 
 namespace App\Providers;
+
 use Illuminate\Support\Facades\View;
-use App\Models\SchoolYear;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Auth;
+use App\Models\SchoolYear;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -19,7 +20,7 @@ class AppServiceProvider extends ServiceProvider
     /**
      * Bootstrap any application services.
      */
-    public function boot(): void
+   public function boot(): void
     {
         View::composer('*', function ($view) {
 
@@ -29,16 +30,25 @@ class AppServiceProvider extends ServiceProvider
                 ->first();
 
             $user = Auth::user();
-            $college = null;
+            $organization = null;
+            $currentCollege = null;
 
-            if ($user && $user->college_id) {
-                $college = $user->college; // uses relationship
+            if ($user) {
+                if (in_array($user->role, ['university_org', 'college_org'])) {
+                    $organization = $user->organization;
+                }
+
+                if ($user->role === 'college') {
+                    $currentCollege = $user->college;
+                }
             }
 
             $view->with([
                 'latestSchoolYear' => $latestSchoolYear,
-                'currentCollege' => $college,
+                'organization'     => $organization,
+                'currentCollege'   => $currentCollege,
             ]);
         });
     }
+
 }

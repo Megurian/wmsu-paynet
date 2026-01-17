@@ -157,7 +157,7 @@ class ValidateStudentsController extends Controller
             'validated_at' => now(),
         ]);
 
-        return back()->with('success', 'Student validated successfully.');
+        return back()->with('status', 'Student validated successfully.');
     }
 
    public function bulkValidate(Request $request)
@@ -197,7 +197,7 @@ class ValidateStudentsController extends Controller
         }
 
         return back()->with(
-            'success',
+            'status',
             count($request->selected_students) . ' students validated successfully.'
         );
     }

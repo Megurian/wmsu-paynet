@@ -35,6 +35,13 @@
         #sidebar.collapsed p {
             display: none;
         }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .animate-fade-in {
+            animation: fadeIn .2s ease-out;
+        }
 
     </style>
 </head>
@@ -51,36 +58,60 @@
                 </svg>
             </button>
 
-            <!-- LOGO -->
-            <div class="flex flex-col items-center py-6 border-b border-red-700">
-                <div class="h-20 w-20 bg-white rounded-full flex items-center justify-center shadow overflow-hidden">
-                    @if($currentCollege && $currentCollege->logo)
-                    <img src="{{ asset('storage/' . $currentCollege->logo) }}" alt="College Logo" class="h-full w-full object-cover">
-                    @else
-                    {{-- Fallback (OSA / no college) --}}
-                    <span class="text-red-800 font-bold text-sm text-center">
-                        No<br>logo
-                    </span>
-                    @endif
-                </div>
-                @if(Auth::user()->role === 'college' && $currentCollege)
-                    <h2 class="mt-3 text-lg font-bold text-center leading-snug break-words max-w-[12rem] mx-auto">
-                        {{ $currentCollege->name }}
-                    </h2>
-                    <p class="text-xs opacity-80 text-center">College Admin</p>
-                @elseif(Auth::user()->role === 'osa')
-                    <h2 class="mt-3 text-lg font-bold text-center leading-snug break-words max-w-[12rem] mx-auto">
-                        Office of the Student Affairs
-                    </h2>
-                @else
-                    <h2 class="mt-3 text-lg font-bold text-center max-w-[12rem] mx-auto break-words">
-                        WMSU PayNet
-                    </h2>
-                    <p class="text-xs opacity-80 text-center">{{ strtoupper(Auth::user()->role) }} Panel</p>
-                @endif
-                
+        @php
+            $user = Auth::user();
+        @endphp
 
+        <div class="flex flex-col items-center py-6 border-b border-red-700">
+
+            {{-- Logo --}}
+            <div class="h-20 w-20 bg-white rounded-full flex items-center justify-center shadow overflow-hidden">
+                @if($user->role === 'college' && $currentCollege?->logo)
+                    <img src="{{ asset('storage/' . $currentCollege->logo) }}"
+                        alt="College Logo"
+                        class="h-full w-full object-cover">
+
+                @elseif(in_array($user->role, ['university_org', 'college_org']) && $organization?->logo)
+                    <img src="{{ asset('storage/' . $organization->logo) }}"
+                        alt="Organization Logo"
+                        class="h-full w-full object-cover">
+
+                @else
+                    <span class="text-red-800 font-bold text-sm text-center">
+                        No<br>Logo
+                    </span>
+                @endif
             </div>
+
+            {{-- Name + Role --}}
+            @if($user->role === 'college' && $currentCollege)
+                <h2 class="mt-3 text-lg font-bold text-center break-words max-w-[12rem]">
+                    {{ $currentCollege->name }}
+                </h2>
+                <p class="text-xs opacity-80">College Admin</p>
+
+            @elseif($user->role === 'osa')
+                <h2 class="mt-3 text-lg font-bold text-center max-w-[12rem]">
+                    Office of the Student Affairs
+                </h2>
+
+            @elseif(in_array($user->role, ['university_org', 'college_org']) && $organization)
+                <h2 class="mt-3 text-lg font-bold text-center break-words max-w-[12rem]">
+                    {{ $organization->name }}
+                </h2>
+                <p class="text-xs opacity-80 text-center">
+                    {{ $user->role === 'university_org' ? 'University Organization' : 'College Organization' }}
+                </p>
+
+            @else
+                <h2 class="mt-3 text-lg font-bold text-center">
+                    WMSU PayNet
+                </h2>
+                <p class="text-xs opacity-80 text-center">{{ strtoupper($user->role) }} Panel</p>
+            @endif
+
+        </div>
+
 
             <!-- NAVIGATION -->
             <nav class="flex-1 px-2 py-4 space-y-2">
@@ -95,9 +126,9 @@
                         {{ request()->routeIs('osa.college') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
                     <span>College</span>
                 </a>
-                <a href="#" class="block px-4 py-2 rounded-md transition
-                    {{ request()->routeIs('osa.reports') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-                    <span>Reports</span>
+                <a href="{{ route('osa.organizations') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('osa.organizations') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span>Organizations</span>
                 </a>
                 <a href="{{ route('osa.setup') }}" class="block px-4 py-2 rounded-md transition
                     {{ request()->routeIs('osa.setup') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
@@ -138,6 +169,19 @@
                 <a href="{{ route('college.history') }}" class="block px-4 py-2 rounded-md transition
                     {{ request()->routeIs('college.history') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
                     <span>History</span>
+                </a>
+                @elseif($role === 'college_org')
+                <a href="{{ route('college_org.dashboard') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('college_org.dashboard') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span>Dashboard</span>
+                </a>
+                <a href="{{ route('college_org.payment') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('college_org.payment') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span>Payment</span>
+                </a>
+                <a href="{{ route('college_org.records') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('college_org.records') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span>Records</span>
                 </a>
                 @endif
             </nav>
@@ -192,6 +236,66 @@
 
             <!-- PAGE CONTENT -->
             <main class="flex-1 p-8 mt-10">
+                @php
+                    use App\Models\Announcement;
+                    $announcement = Announcement::active()->latest()->first();
+                @endphp
+
+                @if($announcement && auth()->user()->role !== 'osa')
+                <div id="announcementBanner" class="mb-6 rounded-xl border border-yellow-300 bg-yellow-50 p-4 animate-fade-in flex justify-between items-start">
+                    <div>
+                        <h4 class="font-semibold text-yellow-800">
+                            {{ $announcement->title }}
+                        </h4>
+                        <p class="text-sm text-yellow-700 mt-1">
+                            {{ $announcement->message }}
+                        </p>
+                    </div>
+                    <button id="closeAnnouncement" class="ml-4 text-yellow-800 font-bold hover:text-yellow-900">&times;</button>
+                </div>
+                @endif
+                @if(session('status'))
+                    <div id="successModal"
+                        class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+                        <div class="bg-white rounded-xl shadow-lg max-w-sm w-full p-6 text-center animate-fade-in">
+                            <div class="mx-auto mb-3 w-12 h-12 flex items-center justify-center rounded-full bg-green-100">
+                                <svg class="w-6 h-6 text-green-700" fill="none" stroke="currentColor" stroke-width="2"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M5 13l4 4L19 7"/>
+                                </svg>
+                            </div>
+
+                            <h3 class="text-lg font-semibold mb-1">Success</h3>
+                            <p class="text-sm text-gray-600 mb-4">{{ session('status') }}</p>
+
+                            <button onclick="closeSuccessModal()"
+                                    class="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-lg">
+                                OK
+                            </button>
+                        </div>
+                    </div>
+                    @endif
+                    @if($errors->any())
+                    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+                        <div class="bg-white rounded-xl shadow-lg max-w-md w-full p-6 animate-fade-in">
+                            <h3 class="text-lg font-semibold text-red-700 mb-3">Something went wrong</h3>
+
+                            <ul class="text-sm text-gray-700 list-disc pl-5 space-y-1">
+                                @foreach($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+
+                            <div class="text-right mt-4">
+                                <button onclick="this.closest('.fixed').remove()"
+                                        class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded">
+                                    Close
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    @endif
                 @yield('content')
             </main>
         </div>
@@ -215,6 +319,23 @@
                 }
             }
 
+            function closeSuccessModal() {
+                const modal = document.getElementById('successModal');
+                if (modal) modal.remove();
+            }
+
+            setTimeout(() => closeSuccessModal(), 3000);
+
+            
+            const announcementId = "{{ $announcement->id }}";
+            if (localStorage.getItem('announcementClosed_' + announcementId)) {
+                document.getElementById('announcementBanner').style.display = 'none';
+            }
+
+            document.getElementById('closeAnnouncement').addEventListener('click', function() {
+                document.getElementById('announcementBanner').style.display = 'none';
+                localStorage.setItem('announcementClosed_' + announcementId, 'true');
+            });
         </script>
 
     </div>

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\College;
 use App\Models\User;
+use App\Models\Organization;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 
@@ -27,17 +28,18 @@ class OSACollegeController extends Controller
             $query->where('role', 'college');
         }])->findOrFail($id);
 
-
-        // Placeholder for organizations, etc.
-        $organizations = [];
+        $organizations = Organization::where('college_id', $college->id)
+                                    ->with('admin')
+                                    ->get();
 
         return view('osa.college-details', compact('college', 'organizations'));
     }
 
 
+
     public function store(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'name' => 'required|string|max:255',
             'college_code' => 'required|string|max:20|unique:colleges,college_code',
             'logo' => 'nullable|image|max:2048',
@@ -46,30 +48,34 @@ class OSACollegeController extends Controller
             'admin_password' => 'required|string|min:8|confirmed',
         ]);
 
-        DB::transaction(function () use ($request) {
+        try {
+            DB::transaction(function () use ($request) {
+                $logoPath = $request->file('logo')
+                    ? $request->file('logo')->store('colleges', 'public')
+                    : null;
 
-           
-            $logoPath = $request->file('logo') ? $request->file('logo')->store('colleges', 'public') : null;
+                $college = College::create([
+                    'name' => $request->name,
+                    'college_code' => strtoupper($request->college_code),
+                    'logo' => $logoPath,
+                ]);
 
-         
-            $college = College::create([
-                'name' => $request->name,
-                'college_code' => strtoupper($request->college_code),
-                'logo' => $logoPath,
-            ]);
+                User::create([
+                    'name' => $request->admin_name,
+                    'email' => $request->admin_email,
+                    'password' => Hash::make($request->admin_password),
+                    'role' => 'college',
+                    'college_id' => $college->id,
+                ]);
+            });
 
-            // Create initial college admin
-            User::create([
-                'name' => $request->admin_name,
-                'email' => $request->admin_email,
-                'password' => Hash::make($request->admin_password),
-                'role' => 'college',
-                'college_id' => $college->id,
-            ]);
-        });
-
-        return redirect()->route('osa.college')->with('status', 'College and initial admin created successfully!');
+            return redirect()->route('osa.college')
+                ->with('status', 'College and initial admin created successfully!');
+        } catch (\Exception $e) {
+            return back()->withErrors('Failed to create college. Please try again.');
+        }
     }
+
 
     public function destroy($id)
     {

@@ -7,7 +7,7 @@
 <h2 class="text-2xl font-bold mb-4">OSA College Setup</h2>
 
 <a href="{{ route('osa.college.create') }}" class="px-4 py-2 bg-red-700 text-white rounded mb-6 inline-block hover:bg-red-800 transition">
-    Add New College
+ New College
 </a>
 
 @if($colleges->count())
