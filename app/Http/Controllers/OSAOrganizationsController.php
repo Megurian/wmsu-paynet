@@ -73,9 +73,17 @@ class OSAOrganizationsController extends Controller
 
     public function show($id)
     {
-        $organization = Organization::with('college', 'admin')->findOrFail($id);
-        return view('osa.organization-details', compact('organization'));
+        $organization = Organization::with('college', 'admin')->find($id);
+
+        if (!$organization) {
+            return redirect()->route('osa.organizations')
+                            ->withErrors('Organization not found.');
+        }
+
+        return view('osa.organization-details', ['orgDetail' => $organization]);
+
     }
+
 
     public function destroy($id)
     {
