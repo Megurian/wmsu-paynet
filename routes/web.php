@@ -3,6 +3,7 @@
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\OSASetupController;
 use App\Http\Controllers\OSACollegeController;
+use App\Http\Controllers\OSAOrganizationsController;
 use App\Http\Controllers\CollegeAcademicController;
 use App\Http\Controllers\CollegeStudentController;
 use App\Http\Controllers\CollegeHistoryController;
@@ -22,6 +23,7 @@ Route::middleware('auth')->get('/dashboard', function () {
     return match($role) {
         'osa' => redirect()->route('osa.dashboard'),
         'university_org' => redirect()->route('university_org.dashboard'),
+        'college_org' => redirect()->route('college_org.dashboard'),
         'college' => redirect()->route('college.dashboard'),
         default => abort(403), 
     };
@@ -40,7 +42,12 @@ Route::middleware(['auth', 'role:osa', CheckActiveSchoolYear::class])->group(fun
     Route::get('/osa/dashboard', function () {
         return view('osa.dashboard');
     })->name('osa.dashboard');
-
+    Route::get('/osa/organizations', function () {
+        return view('osa.organizations');
+    })->name('osa.organizations');
+    Route::get('/osa/organizations', [OSAOrganizationsController::class, 'index'])->name('osa.organizations');
+    Route::get('/osa/organizations/create', [OSAOrganizationsController::class, 'create'])->name('osa.organizations.create');
+    Route::post('/osa/organizations', [OSAOrganizationsController::class, 'store'])->name('osa.organizations.store');
     // //OSA SETUP PAGE ROUTES
     // Route::get('/osa/setup', function () {
     //     return view('osa.setup');
@@ -77,6 +84,13 @@ Route::middleware(['auth', 'role:university_org'])->group(function () {
     Route::get('/university_org/setup', function () {
         return view('university_org.setup');
     })->name('university_org.setup');
+});
+
+Route::middleware(['auth', 'role:college_org'])->group(function () {
+    Route::get('/college_org/dashboard', function () {
+        return view('college_org.dashboard');
+    })->name('college_org.dashboard');
+
 });
 
 Route::middleware(['auth', 'role:college'])->group(function () {

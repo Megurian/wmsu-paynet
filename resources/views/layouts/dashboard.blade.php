@@ -102,9 +102,9 @@
                         {{ request()->routeIs('osa.college') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
                     <span>College</span>
                 </a>
-                <a href="#" class="block px-4 py-2 rounded-md transition
-                    {{ request()->routeIs('osa.reports') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-                    <span>Reports</span>
+                <a href="{{ route('osa.organizations') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('osa.organizations') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span>Organizations</span>
                 </a>
                 <a href="{{ route('osa.setup') }}" class="block px-4 py-2 rounded-md transition
                     {{ request()->routeIs('osa.setup') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
@@ -145,6 +145,11 @@
                 <a href="{{ route('college.history') }}" class="block px-4 py-2 rounded-md transition
                     {{ request()->routeIs('college.history') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
                     <span>History</span>
+                </a>
+                @elseif($role === 'college_org')
+                <a href="{{ route('college.dashboard') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('college.dashboard') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span>Dashboard</span>
                 </a>
                 @endif
             </nav>

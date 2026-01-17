@@ -34,6 +34,7 @@ class AuthenticatedSessionController extends Controller
         return match ($user->role) {
             'osa' => redirect()->route('osa.dashboard'),
             'university_org' => redirect()->route('university_org.dashboard'),
+            'college_org' => redirect()->route('college_org.dashboard'),
             default => redirect()->route('college.dashboard'),
         };
     }
