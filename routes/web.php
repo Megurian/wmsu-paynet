@@ -92,6 +92,12 @@ Route::middleware(['auth', 'role:college_org'])->group(function () {
     Route::get('/college_org/dashboard', function () {
         return view('college_org.dashboard');
     })->name('college_org.dashboard');
+    Route::get('/college_org/payment', function () {
+        return view('college_org.payment');
+    })->name('college_org.payment');
+     Route::get('/college_org/records', function () {
+        return view('college_org.records');
+    })->name('college_org.records');
 
 });
 

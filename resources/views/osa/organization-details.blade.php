@@ -43,12 +43,10 @@
     @endif
 </div>
 
-<!-- Fees Section (Placeholder) -->
 <div class="bg-white rounded shadow p-6">
     <h3 class="text-xl font-semibold mb-4">Fees</h3>
     <p class="text-gray-500 italic">Fees information for this organization will appear here.</p>
 
-    <!-- Example placeholder table -->
     <table class="w-full text-left border-collapse mt-4">
         <thead>
             <tr class="bg-gray-100">

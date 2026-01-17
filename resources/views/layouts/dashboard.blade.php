@@ -175,6 +175,14 @@
                     {{ request()->routeIs('college_org.dashboard') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
                     <span>Dashboard</span>
                 </a>
+                <a href="{{ route('college_org.payment') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('college_org.payment') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span>Payment</span>
+                </a>
+                <a href="{{ route('college_org.records') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('college_org.records') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span>Records</span>
+                </a>
                 @endif
             </nav>
         </aside>
