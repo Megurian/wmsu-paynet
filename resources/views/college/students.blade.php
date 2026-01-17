@@ -196,7 +196,7 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
                     <label class="text-sm font-medium">
-                        Middle Name <span class="text-red-500">*</span>
+                        Middle Name <span class="text-red-500"></span>
                     </label>
                     <input type="text" name="middle_name" placeholder="Enter middle name" class="w-full border rounded px-3 py-2 text-sm">
                 </div>
