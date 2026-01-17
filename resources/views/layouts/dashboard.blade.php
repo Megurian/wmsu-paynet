@@ -147,8 +147,8 @@
                     <span>History</span>
                 </a>
                 @elseif($role === 'college_org')
-                <a href="{{ route('college.dashboard') }}" class="block px-4 py-2 rounded-md transition
-                    {{ request()->routeIs('college.dashboard') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                <a href="{{ route('college_org.dashboard') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('college_org.dashboard') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
                     <span>Dashboard</span>
                 </a>
                 @endif
