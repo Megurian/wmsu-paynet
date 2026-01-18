@@ -48,7 +48,7 @@
                     </div>
 
                     <div>
-                        <p class="text-gray-500">Year / Section</p>
+                        <p class="text-gray-500">Year & Section</p>
                         <p id="cardYearSection" class="font-medium"></p>
                     </div>
 
@@ -97,7 +97,7 @@
 
             <button
                 class="mt-4 w-full bg-red-700 hover:bg-red-800 text-white py-2 rounded-md text-sm font-medium transition">
-                Proceed Payment (Placeholder)
+                Proceed Payment
             </button>
         </div>
 
@@ -160,7 +160,7 @@ function renderStudentCard(student) {
     document.getElementById('cardName').textContent = student.name;
     document.getElementById('cardCourse').textContent = student.course ?? '—';
     document.getElementById('cardYearSection').textContent =
-        `${student.year ?? '—'} / ${student.section ?? '—'}`;
+        `${student.year ?? '—'} ${student.section ?? '—'}`;
     document.getElementById('cardEmail').textContent = student.email ?? '—';
 
     studentCard.classList.remove('hidden');
