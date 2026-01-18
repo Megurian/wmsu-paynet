@@ -36,6 +36,7 @@ Route::middleware(['auth', 'role:osa'])->group(function () {
     Route::get('/osa/setup', [OSASetupController::class, 'edit'])->name('osa.setup');
     Route::post('/osa/setup', [OSASetupController::class, 'store'])->name('osa.setup.store');
     Route::post('/osa/setup/{id}/add-semester', [OSASetupController::class, 'addSemester'])->name('osa.setup.addSemester');
+    Route::post('/osa/setup/{schoolYear}/end-semester', [OSASetupController::class, 'endSemester'])->name('osa.setup.end-semester');
 });
 
 Route::middleware(['auth', 'role:osa', CheckActiveSchoolYear::class])->group(function () {
