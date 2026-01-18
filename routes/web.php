@@ -8,6 +8,7 @@ use App\Http\Controllers\CollegeAcademicController;
 use App\Http\Controllers\CollegeStudentController;
 use App\Http\Controllers\CollegeHistoryController;
 use App\Http\Controllers\ValidateStudentsController;
+use App\Http\Controllers\OrganizationPaymentController;
 use App\Http\Middleware\CheckActiveSchoolYear;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
@@ -72,10 +73,6 @@ Route::middleware(['auth', 'role:university_org'])->group(function () {
         return view('university_org.dashboard');
     })->name('university_org.dashboard');
 
-    Route::get('/university_org/fees', function () {
-        return view('university_org.fees');
-    })->name('university_org.fees');
-
     Route::get('/university_org/remittance', function () {
         return view('university_org.remittance');
     })->name('university_org.remittance');
@@ -83,7 +80,7 @@ Route::middleware(['auth', 'role:university_org'])->group(function () {
     Route::get('/university_org/reports', function () {
         return view('university_org.reports');
     })->name('university_org.reports');
-
+    
     Route::get('/university_org/setup', function () {
         return view('university_org.setup');
     })->name('university_org.setup');
@@ -93,13 +90,17 @@ Route::middleware(['auth', 'role:college_org'])->group(function () {
     Route::get('/college_org/dashboard', function () {
         return view('college_org.dashboard');
     })->name('college_org.dashboard');
+    Route::get('/college_org/fees', function () {
+        return view('college_org.fees');
+    })->name('college_org.fees');
     Route::get('/college_org/payment', function () {
         return view('college_org.payment');
     })->name('college_org.payment');
      Route::get('/college_org/records', function () {
         return view('college_org.records');
     })->name('college_org.records');
-
+   Route::get('/college/students/search', [OrganizationPaymentController::class, 'searchStudents'])
+     ->name('college.students.search');
 });
 
 Route::middleware(['auth', 'role:college'])->group(function () {
