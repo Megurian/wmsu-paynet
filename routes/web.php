@@ -71,10 +71,6 @@ Route::middleware(['auth', 'role:university_org'])->group(function () {
         return view('university_org.dashboard');
     })->name('university_org.dashboard');
 
-    Route::get('/university_org/fees', function () {
-        return view('university_org.fees');
-    })->name('university_org.fees');
-
     Route::get('/university_org/remittance', function () {
         return view('university_org.remittance');
     })->name('university_org.remittance');
@@ -82,7 +78,7 @@ Route::middleware(['auth', 'role:university_org'])->group(function () {
     Route::get('/university_org/reports', function () {
         return view('university_org.reports');
     })->name('university_org.reports');
-
+    
     Route::get('/university_org/setup', function () {
         return view('university_org.setup');
     })->name('university_org.setup');
@@ -92,6 +88,9 @@ Route::middleware(['auth', 'role:college_org'])->group(function () {
     Route::get('/college_org/dashboard', function () {
         return view('college_org.dashboard');
     })->name('college_org.dashboard');
+    Route::get('/college_org/fees', function () {
+        return view('college_org.fees');
+    })->name('college_org.fees');
     Route::get('/college_org/payment', function () {
         return view('college_org.payment');
     })->name('college_org.payment');
