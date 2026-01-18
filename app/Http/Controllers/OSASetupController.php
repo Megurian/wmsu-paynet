@@ -63,20 +63,31 @@ class OSASetupController extends Controller
         ]);
 
         $schoolYear = SchoolYear::findOrFail($schoolYearId);
-
-        // Deactivate all previous semesters for this S.Y
         $schoolYear->semesters()->update(['is_active' => false]);
-
-        // Create new active semester
         Semester::create([
             'school_year_id' => $schoolYear->id,
             'name' => $request->semester,
             'is_active' => true,
         ]);
-
-        // Make sure the school year itself is active (if adding a semester activates the S.Y)
         $schoolYear->update(['is_active' => true]);
 
         return redirect()->back()->with('status', 'Semester added and activated successfully!');
     }
+
+    public function endSemester($schoolYearId)
+    {
+        $schoolYear = SchoolYear::with('semesters')->findOrFail($schoolYearId);
+        $activeSemester = $schoolYear->semesters()
+            ->where('is_active', true)
+            ->first();
+
+        if (!$activeSemester) {
+            return back()->withErrors('No active semester to end.');
+        }
+        $activeSemester->update([
+            'is_active' => false,
+        ]);
+        return back()->with('status', 'Semester ended successfully.');
+    }
+
 }

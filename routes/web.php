@@ -8,6 +8,7 @@ use App\Http\Controllers\CollegeAcademicController;
 use App\Http\Controllers\CollegeStudentController;
 use App\Http\Controllers\CollegeHistoryController;
 use App\Http\Controllers\ValidateStudentsController;
+use App\Http\Controllers\OrganizationPaymentController;
 use App\Http\Middleware\CheckActiveSchoolYear;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
@@ -36,6 +37,7 @@ Route::middleware(['auth', 'role:osa'])->group(function () {
     Route::get('/osa/setup', [OSASetupController::class, 'edit'])->name('osa.setup');
     Route::post('/osa/setup', [OSASetupController::class, 'store'])->name('osa.setup.store');
     Route::post('/osa/setup/{id}/add-semester', [OSASetupController::class, 'addSemester'])->name('osa.setup.addSemester');
+    Route::post('/osa/setup/{schoolYear}/end-semester', [OSASetupController::class, 'endSemester'])->name('osa.setup.end-semester');
 });
 
 Route::middleware(['auth', 'role:osa', CheckActiveSchoolYear::class])->group(function () {
@@ -97,7 +99,8 @@ Route::middleware(['auth', 'role:college_org'])->group(function () {
      Route::get('/college_org/records', function () {
         return view('college_org.records');
     })->name('college_org.records');
-
+   Route::get('/college/students/search', [OrganizationPaymentController::class, 'searchStudents'])
+     ->name('college.students.search');
 });
 
 Route::middleware(['auth', 'role:college'])->group(function () {

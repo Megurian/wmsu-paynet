@@ -146,18 +146,33 @@
         </div>
     </div>
 
-    <div class="px-5 py-4 border-t bg-gray-50 flex justify-end">
-        @if($isActive)
-        <button onclick="openModal({{ $sy->id }})"
-                class="bg-red-700 hover:bg-red-800 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
-            New Semester
-        </button>
+   <div class="px-5 py-4 border-t bg-gray-50 flex justify-end">
+    @if($isActive)
+        @if($activeSemester)
+            {{-- END SEMESTER --}}
+            <form method="POST"
+                  action="{{ route('osa.setup.end-semester', $sy->id) }}"
+                  onsubmit="return confirm('Are you sure you want to end the current semester?')">
+                @csrf
+                <button type="submit"
+                        class="bg-gray-700 hover:bg-gray-800 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+                    End Semester
+                </button>
+            </form>
         @else
+            {{-- NEW SEMESTER --}}
+            <button onclick="openModal({{ $sy->id }})"
+                    class="bg-red-700 hover:bg-red-800 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+                New Semester
+            </button>
+        @endif
+    @else
         <span class="text-sm text-gray-400 italic">
             Inactive School Year
         </span>
-        @endif
-    </div>
+    @endif
+</div>
+
 </div>
 @endforeach
 </div>
