@@ -112,9 +112,8 @@ const cashierPanel = document.getElementById('cashierPanel');
 
 const FEES = [
     { id: 1, name: 'Registration Fee', amount: 300 },
-    { id: 2, name: 'Library Fee', amount: 150 },
-    { id: 3, name: 'Laboratory Fee', amount: 500 },
-    { id: 4, name: 'Organization Fee', amount: 200 },
+    { id: 2, name: 'Membership Fee', amount: 150 },
+    { id: 3, name: 'Organization Fee', amount: 500 },
 ];
 
 const feesList = document.getElementById('feesList');
@@ -141,8 +140,8 @@ searchInput.addEventListener('input', function () {
 
             data.forEach(student => {
                 const li = document.createElement('li');
-                li.textContent = `${student.name} (${student.student_id})`;
-                li.className = 'px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm';
+                li.textContent = ` ${student.student_id} ${student.name}`;
+                li.className = 'px-3 py-2 hover:bg-gray-100 cursor-pointer text-md uppercase ';
                 li.addEventListener('click', () => {
                     searchInput.value = `${student.name} (${student.student_id})`;
                     resultsList.classList.add('hidden');
