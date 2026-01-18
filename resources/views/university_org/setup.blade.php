@@ -29,6 +29,13 @@
                            id="feeName" type="text" placeholder="Enter fee name">
                 </div>
                 <div>
+                    <label class="block text-gray-700 text-sm font-medium mb-2" for="amount">
+                        Amount
+                    </label>
+                    <input class="shadow appearance-none border-gray-300 rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" 
+                           id="amount" type="number" placeholder="Enter Amount">
+                </div>
+                <div>
                     <label class="block text-gray-700 text-sm font-medium mb-2" for="college">
                         College
                     </label>
@@ -48,6 +55,20 @@
                     </label>
                     <input class="shadow appearance-none border-gray-300 rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" 
                            id="account" type="text" placeholder="Create admin gmail">
+                </div>
+                <div>
+                    <label class="block text-gray-700 text-sm font-medium mb-2" for="password">
+                        Password
+                    </label>
+                    <input class="shadow appearance-none border-gray-300 rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" 
+                           id="account" type="password" placeholder="Create admin password">
+                </div>
+                <div>
+                    <label class="block text-gray-700 text-sm font-medium mb-2" for="Cpassword">
+                        Confirm Password
+                    </label>
+                    <input class="shadow appearance-none border-gray-300 rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" 
+                           id="account" type="password" placeholder="Confirm password">
                 </div>
             </div>
             <div class="flex justify-end">
@@ -72,7 +93,9 @@
                         <th class="py-2 px-4 border-b text-left">Code</th>
                         <th class="py-2 px-4 border-b text-left">College</th>
                         <th class="py-2 px-4 border-b text-left">Account</th>
-                        <th class="py-2 px-4 border-b text-left">Fee</th>
+                        <th class="py-2 px-4 border-b text-left">Password</th>
+                        <th class="py-2 px-4 border-b text-left">Fee Name</th>
+                        <th class="py-2 px-4 border-b text-left">Amount</th>
                         <th class="py-2 px-4 border-b text-left">Status</th>
                     </tr>
                 </thead>
@@ -81,7 +104,9 @@
                         <td class="py-2 px-4 border-b">CAS</td>
                         <td class="py-2 px-4 border-b">College of Arts and Sciences</td>
                         <td class="py-2 px-4 border-b">csc.cas.admin.gmail.com</td>
-                        <td class="py-2 px-4 border-b">CSC Fee</td>
+                        <td class="py-2 px-4 border-b">cas123</td>
+                        <td class="py-2 px-4 border-b">CSC</td>
+                        <td class="py-2 px-4 border-b">200</td>
                         <td class="py-2 px-4 border-b">
                             <span class="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">Inactive</span>
                         </td>
@@ -90,7 +115,9 @@
                         <td class="py-2 px-4 border-b">CIT</td>
                         <td class="py-2 px-4 border-b">College of Information Technology</td>
                         <td class="py-2 px-4 border-b">csc.cit.admin.gmail.com</td>
-                        <td class="py-2 px-4 border-b">CSC Fee</td>
+                        <td class="py-2 px-4 border-b">cit123</td>
+                        <td class="py-2 px-4 border-b">CSC</td>
+                        <td class="py-2 px-4 border-b">200</td>
                         <td class="py-2 px-4 border-b">
                             <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">Active</span>
                         </td>
@@ -99,16 +126,20 @@
                         <td class="py-2 px-4 border-b">CBM</td>
                         <td class="py-2 px-4 border-b">College of Business and Management</td>
                         <td class="py-2 px-4 border-b">csc.cbm.admin.gmail.com</td>
-                        <td class="py-2 px-4 border-b">CSC Fee</td>
+                        <td class="py-2 px-4 border-b">cbm123</td>
+                        <td class="py-2 px-4 border-b">CSC</td>
+                        <td class="py-2 px-4 border-b">200</td>
                         <td class="py-2 px-4 border-b">
-                            <span class="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">Pending</span>
+                            <span class="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">Break</span>
                         </td>
                     </tr>
                     <tr class="hover:bg-gray-50">
                         <td class="py-2 px-4 border-b">CCS</td>
                         <td class="py-2 px-4 border-b">College of Computing Studies</td>
-                        <td class="py-2 px-4 border-b">ccs.admin.gmail.com</td>
-                        <td class="py-2 px-4 border-b">CSC Fee</td>
+                        <td class="py-2 px-4 border-b">csc.ccs.admin.gmail.com</td>
+                        <td class="py-2 px-4 border-b">ccs123</td>
+                        <td class="py-2 px-4 border-b">CSC</td>
+                        <td class="py-2 px-4 border-b">200</td>
                         <td class="py-2 px-4 border-b">
                             <span class="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800">End</span>
                         </td>

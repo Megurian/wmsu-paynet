@@ -60,9 +60,9 @@
         </div>
     </div>
 
-    <!-- Colleges Section -->
+    <!-- Records Section -->
     <div class="mb-8 flex justify-between items-center">
-        <h2 class="text-2xl font-bold text-gray-800">Colleges</h2>
+        <h2 class="text-2xl font-bold text-gray-800">Records</h2>
         <div class="flex items-center space-x-4">
             <div class="flex items-center">
                 <label for="date-filter" class="block text-sm font-medium text-gray-700 mr-2">Filter by Date:</label>
