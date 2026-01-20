@@ -73,21 +73,18 @@
 
 <script>
 function toggleMenu(menuId) {
-    // Close all other menus
     document.querySelectorAll('[id^="menu-"]').forEach(menu => {
         if (menu.id !== menuId) {
             menu.classList.add('hidden');
         }
     });
     
-    // Toggle the clicked menu
     const menu = document.getElementById(menuId);
     if (menu) {
         menu.classList.toggle('hidden');
     }
 }
 
-// Close menu when clicking outside
 document.addEventListener('click', function(event) {
     if (!event.target.matches('button') && !event.target.closest('.relative')) {
         document.querySelectorAll('[id^="menu-"]').forEach(menu => {
@@ -98,7 +95,6 @@ document.addEventListener('click', function(event) {
 </script>
 
 <style>
-/* Add smooth transition for dropdown */
 [id^="menu-"] {
     transition: opacity 0.2s ease-in-out;
 }

@@ -13,21 +13,10 @@
 
 <!-- Main Content -->
 <div class="flex flex-col lg:flex-row gap-6">
-    <!-- Left Column - Fee Details -->
     <div class="w-full lg:w-1/2">
         <div class="bg-white rounded-lg shadow-md p-6">
             <div class="flex justify-between items-center mb-6">
                 <h3 class="text-xl font-semibold text-gray-800">Fee Details</h3>
-                <div class="flex space-x-3">
-                    <button id="rejectBtn" 
-                            class="px-4 py-2 border border-red-300 text-red-700 rounded-md hover:bg-red-50">
-                        Reject
-                    </button>
-                    <button onclick="approveFee()" 
-                            class="px-4 py-2 bg-red-700 text-white rounded-md hover:bg-red-800">
-                        Approve
-                    </button>
-                </div>
             </div>
 
             <!-- Organization Info -->
@@ -41,7 +30,7 @@
                         <div>
                             <h4 class="text-lg font-semibold">Supreme Student Government</h4>
                             <p class="text-sm text-gray-500">SSG-001</p>
-                            <p class="text-sm text-gray-500 mt-1">University Organization</p>
+                            <p class="text-sm text-gray-500 mt-1">College-Based</p>
                         </div>
                     </div>
                 </div>
@@ -52,13 +41,15 @@
                 <div>
                     <h4 class="font-medium text-gray-900 mb-3">Fee Information</h4>
                     <div class="space-y-4">
-                        <div>
-                            <p class="text-sm text-gray-500">Fee Name</p>
-                            <p class="font-medium">Student Activity Fee</p>
-                        </div>
-                        <div>
-                            <p class="text-sm text-gray-500">Amount</p>
-                            <p class="text-2xl font-bold text-red-700">₱500.00</p>
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <p class="text-sm text-gray-500">Fee Name</p>
+                                <p class="font-medium">Student Activity Fee</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-sm text-gray-500">Amount</p>
+                                <p class="text-2xl font-bold text-red-700">₱500.00</p>
+                            </div>
                         </div>
                         <div>
                             <p class="text-sm text-gray-500">Requested On</p>
@@ -70,11 +61,20 @@
                         </div>
                     </div>
                 </div>
+                <div class="flex justify-end space-x-3">
+                    <button id="rejectBtn" 
+                            class="px-4 py-2 border border-red-300 text-red-700 rounded-md hover:bg-red-50">
+                        Reject
+                    </button>
+                    <button onclick="approveFee()" 
+                            class="px-4 py-2 bg-red-700 text-white rounded-md hover:bg-red-800">
+                        Approve
+                    </button>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Right Column - Rejection Form (Initially hidden) -->
     <div id="rejectFormContainer" class="w-full lg:w-1/2 hidden">
         <div class="bg-white rounded-lg shadow-md p-6 h-full">
             <div class="flex justify-between items-center mb-6">
@@ -114,20 +114,16 @@
 </div>
 
 <script>
-// Show/hide rejection form
 function showRejectForm() {
     document.getElementById('rejectFormContainer').classList.remove('hidden');
-    // Add active class to reject button
     document.getElementById('rejectBtn').classList.add('bg-red-100', 'border-red-400');
 }
 
 function hideRejectForm() {
     document.getElementById('rejectFormContainer').classList.add('hidden');
-    // Remove active class from reject button
     document.getElementById('rejectBtn').classList.remove('bg-red-100', 'border-red-400');
 }
 
-// Toggle reject form when reject button is clicked
 document.getElementById('rejectBtn').addEventListener('click', function(e) {
     e.preventDefault();
     const formContainer = document.getElementById('rejectFormContainer');
@@ -138,11 +134,9 @@ document.getElementById('rejectBtn').addEventListener('click', function(e) {
     }
 });
 
-// Action handlers
 function approveFee() {
     if (confirm('Are you sure you want to approve this fee?')) {
         alert('Fee approved successfully!');
-        // Add any additional approval logic here
     }
 }
 
@@ -153,15 +147,12 @@ function submitRejection() {
         return;
     }
     
-    // Add your rejection submission logic here
     console.log('Rejection reason:', reason);
     alert('Fee has been rejected with the provided reason.');
-    // Reset form
     document.getElementById('rejectionReason').value = '';
     hideRejectForm();
 }
 
-// Close form when clicking outside
 document.addEventListener('click', function(event) {
     const rejectForm = document.getElementById('rejectFormContainer');
     const rejectBtn = document.getElementById('rejectBtn');
@@ -173,7 +164,6 @@ document.addEventListener('click', function(event) {
 </script>
 
 <style>
-/* Smooth transitions for the rejection form */
 #rejectFormContainer {
     transition: all 0.3s ease;
     animation: slideIn 0.3s ease-out;

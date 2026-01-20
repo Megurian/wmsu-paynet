@@ -94,23 +94,19 @@
 let currentStep = 1;
 
 function updateProgress() {
-    // Update step indicators
     for (let i = 1; i <= 2; i++) {
         const indicator = document.getElementById(`step-${i}-indicator`);
         const line = document.getElementById(`step-${i}-line`);
         
         if (i < currentStep) {
-            // Completed steps
             indicator.classList.remove('bg-gray-200');
             indicator.classList.add('bg-green-500', 'text-white');
             if (line) line.classList.add('bg-green-500');
         } else if (i === currentStep) {
-            // Current step
             indicator.classList.remove('bg-gray-200', 'bg-green-500');
             indicator.classList.add('bg-red-700', 'text-white');
             if (line) line.classList.remove('bg-green-500');
         } else {
-            // Upcoming steps
             indicator.classList.remove('bg-red-700', 'bg-green-500', 'text-white');
             indicator.classList.add('bg-gray-200');
             if (line) line.classList.remove('bg-green-500');
@@ -119,12 +115,10 @@ function updateProgress() {
 }
 
 function showStep(step) {
-    // Hide all steps
     document.querySelectorAll('.form-step').forEach(step => {
         step.classList.add('hidden');
     });
     
-    // Show current step
     const currentStepElement = document.getElementById(`step-${step}`);
     if (currentStepElement) {
         currentStepElement.classList.remove('hidden');
@@ -137,7 +131,6 @@ function nextStep() {
     if (currentStep < 2) {
         showStep(currentStep + 1);
     } else {
-        // On last step, submit the form
         document.getElementById('fee-form').submit();
     }
 }
@@ -148,11 +141,9 @@ function prevStep() {
     }
 }
 
-// Initialize
 document.addEventListener('DOMContentLoaded', function() {
     showStep(1);
     
-    // Update button behaviors
     document.querySelectorAll('[onclick^="nextStep"]').forEach(btn => {
         btn.onclick = nextStep;
         btn.type = 'button';
@@ -167,7 +158,6 @@ document.addEventListener('DOMContentLoaded', function() {
     if (form) {
         form.onsubmit = function(e) {
             e.preventDefault();
-            // You can add form validation here before submission
             alert('Fee submitted successfully!');
             form.reset();
             showStep(1);
