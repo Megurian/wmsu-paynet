@@ -10,7 +10,7 @@
 <div class="mb-8">
     <h2 class="text-3xl font-bold text-gray-800">OSA Academic Setup</h2>
     <p class="text-sm text-gray-500 mt-1">
-        Manage school years and semester timelines for the Office of Student Affairs.
+        Manage academic years and semester timelines for the Office of Student Affairs.
     </p>
 </div>
 
@@ -43,7 +43,7 @@
 @endif
 
 <div class="bg-white rounded-xl shadow-md border border-gray-200 p-6 mb-10">
-    <h3 class="text-lg font-semibold text-gray-800 mb-1">Add New School Year</h3>
+    <h3 class="text-lg font-semibold text-gray-800 mb-1">Add New Academic Year</h3>
     <p class="text-sm text-gray-500 mb-6">
         Define the official academic year duration.
     </p>
@@ -71,16 +71,16 @@
 
             <button type="submit"
                     class="bg-red-700 hover:bg-red-800 text-white px-6 py-2.5 rounded-lg font-medium transition">
-               New School Year
+               New Academic Year
             </button>
         </div>
     </form>
 </div>
 
-<h3 class="text-xl font-semibold text-gray-800 mb-4">School Year Records</h3>
+<h3 class="text-xl font-semibold text-gray-800 mb-4">Acedemic Year Records</h3>
 
 @if($schoolYears->isEmpty())
-<p class="text-gray-500 italic mb-6">No school years found. Add a new school year to get started.</p>
+<p class="text-gray-500 italic mb-6">No academic years found. Add a new academic year to get started.</p>
 @endif
 
 <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -99,7 +99,7 @@
                 {{ Carbon::parse($sy->sy_start)->year }}–{{ Carbon::parse($sy->sy_end)->year }}
             </h4>
             <p class="text-xs text-gray-500 uppercase tracking-wide mt-1">
-                School Year
+                academic year
             </p>
             <p class="text-sm text-gray-400 mt-2">
                 {{ Carbon::parse($sy->sy_start)->format('F d, Y') }}
@@ -148,6 +148,11 @@
 
    <div class="px-5 py-4 border-t bg-gray-50 flex justify-end">
     @if($isActive)
+        @php
+            $semNames = $sy->semesters->pluck('name')->toArray();
+            $hasAllSemesters = count(array_intersect(['1st','2nd','summer'], $semNames)) === 3;
+        @endphp
+
         @if($activeSemester)
             {{-- END SEMESTER --}}
             <form method="POST"
@@ -160,15 +165,24 @@
                 </button>
             </form>
         @else
-            {{-- NEW SEMESTER --}}
-            <button onclick="openModal({{ $sy->id }})"
-                    class="bg-red-700 hover:bg-red-800 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
-                New Semester
-            </button>
+            @if($hasAllSemesters)
+                {{-- ACADEMIC YEAR COMPLETED --}}
+                <button onclick="openCompletedModal()"
+                        class="bg-gray-400 hover:bg-gray-400 text-white px-4 py-2 rounded-lg text-sm font-medium transition opacity-80 cursor-pointer"
+                        aria-disabled="true">
+                    Academic Year Completed
+                </button>
+            @else
+                {{-- NEW SEMESTER --}}
+                <button onclick="openModal({{ $sy->id }})"
+                        class="bg-red-700 hover:bg-red-800 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+                    New Semester
+                </button>
+            @endif
         @endif
     @else
         <span class="text-sm text-gray-400 italic">
-            Inactive School Year
+            Inactive academic year
         </span>
     @endif
 </div>
@@ -219,6 +233,30 @@
     </div>
 </div>
 
+<!-- Completed Academic Year Modal -->
+<div id="completedModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-sm p-6 relative">
+        <button onclick="closeCompletedModal()"
+                class="absolute top-3 right-3 text-gray-400 hover:text-gray-600">✕</button>
+
+        <div class="mx-auto mb-3 flex items-center justify-center w-12 h-12 rounded-full bg-yellow-100">
+            <svg class="w-6 h-6 text-yellow-700" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m-1-4h6" />
+            </svg>
+        </div>
+
+        <h3 class="text-lg font-semibold text-gray-800 mb-1">Academic Year Ended</h3>
+        <p class="text-sm text-gray-600 mb-4">Academic Year ended. Please create a new Academic Year to continue.</p>
+
+        <div class="flex justify-end gap-3">
+            <button type="button" onclick="closeCompletedModal()"
+                    class="px-4 py-2 rounded-lg border text-gray-600 hover:bg-gray-100">
+                OK
+            </button>
+        </div>
+    </div>
+</div>
+
 <script>
     function openModal(id) {
         document.getElementById('semesterModal').classList.remove('hidden');
@@ -227,6 +265,14 @@
 
     function closeModal() {
         document.getElementById('semesterModal').classList.add('hidden');
+    }
+
+    function openCompletedModal() {
+        document.getElementById('completedModal').classList.remove('hidden');
+    }
+
+    function closeCompletedModal() {
+        document.getElementById('completedModal').classList.add('hidden');
     }
 
     // function closeSuccessModal() {
@@ -252,7 +298,7 @@
             return false;
         }
 
-        return confirm('Are you sure you want to add this new school year? This will deactivate any currently active school year.');
+        return confirm('Are you sure you want to add this new academic year? This will deactivate any currently active academic year.');
     }
 
     function confirmNewSemester() {
