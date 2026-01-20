@@ -15,7 +15,6 @@
 </div>
 
     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <!-- Sample Organization Card 1 -->
         <div class="bg-white rounded-lg shadow-md p-6 flex flex-col items-center text-center relative">
             <div class="w-28 h-28 mb-4 bg-gray-100 rounded-full flex items-center justify-center text-gray-400">
                 <span>Logo</span>
@@ -36,7 +35,6 @@
             </div>
         </div>
 
-        <!-- Sample Organization Card 2 -->
         <div class="bg-white rounded-lg shadow-md p-6 flex flex-col items-center text-center relative">
             <div class="w-28 h-28 mb-4 bg-gray-100 rounded-full flex items-center justify-center text-gray-400">
                 <span>Logo</span>
@@ -58,7 +56,6 @@
             </div>
         </div>
 
-        <!-- Sample Organization Card 3 -->
         <div class="bg-white rounded-lg shadow-md p-6 flex flex-col items-center text-center relative">
             <div class="w-28 h-28 mb-4 bg-gray-100 rounded-full flex items-center justify-center text-gray-400">
                 <span>Logo</span>
@@ -83,20 +80,17 @@
 
 <script>
     function toggleMenu(menuId) {
-        // Close all other menus
         document.querySelectorAll('[id^="menu-"]').forEach(menu => {
             if (menu.id !== menuId) {
                 menu.classList.add('hidden');
             }
         });
-        // Toggle the clicked menu
         const menu = document.getElementById(menuId);
         if (menu) {
             menu.classList.toggle('hidden');
         }
     }
 
-    // Close menu when clicking outside
     document.addEventListener('click', function(e) {
         if (!e.target.closest('[onclick^="toggleMenu"]')) {
             document.querySelectorAll('[id^="menu-"]').forEach(menu => {

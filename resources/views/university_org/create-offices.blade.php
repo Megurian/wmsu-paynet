@@ -131,19 +131,15 @@
 let currentStep = 1;
 
 function updateProgress() {
-    // Update step indicators
     document.querySelectorAll('.step-indicator').forEach((step, index) => {
         const stepNumber = index + 1;
         if (stepNumber < currentStep) {
-            // Completed steps
             step.classList.remove('bg-gray-200', 'bg-red-700');
             step.classList.add('bg-green-500', 'text-white');
         } else if (stepNumber === currentStep) {
-            // Current step
             step.classList.remove('bg-gray-200', 'bg-green-500');
             step.classList.add('bg-red-700', 'text-white');
         } else {
-            // Upcoming steps
             step.classList.remove('bg-red-700', 'bg-green-500', 'text-white');
             step.classList.add('bg-gray-200');
         }
@@ -151,22 +147,19 @@ function updateProgress() {
 }
 
 function showStep(step) {
-    // Hide all steps
     document.querySelectorAll('[id^="step-"]').forEach(step => {
         step.classList.add('hidden');
     });
     
-    // Show current step
     document.getElementById(`step-${step}`)?.classList.remove('hidden');
     currentStep = step;
     updateProgress();
 }
 
 function nextStep() {
-    if (currentStep < 3) { // Change 3 to your total number of steps
+    if (currentStep < 3) { 
         showStep(currentStep + 1);
     } else {
-        // On last step
         alert('Form submitted successfully!');
         document.getElementById('fee-form')?.reset();
         showStep(1);
@@ -179,11 +172,9 @@ function prevStep() {
     }
 }
 
-// Initialize
 document.addEventListener('DOMContentLoaded', function() {
     showStep(1);
     
-    // Update button behaviors
     document.querySelectorAll('[onclick^="nextStep"]').forEach(btn => {
         btn.onclick = nextStep;
         btn.type = 'button';
