@@ -11,9 +11,14 @@
         Welcome, {{ Auth::user()->name }}. Here you can manage the fees associated with different colleges within the university.
     </p>
     <br>
-    <button class="px-4 py-2 bg-red-700 text-white rounded hover:bg-red-800 transition">
+    @if(session('success'))
+        <div class="mb-4 p-4 bg-green-100 text-green-800 rounded">
+            {{ session('success') }}
+        </div>
+    @endif
+    <a href="{{ route('university_org.fees.create') }}" class="px-4 py-2 bg-red-700 text-white rounded hover:bg-red-800 transition inline-block">
             New Fee
-    </button>
+    </a>
 </div>
 
     <!-- Fees Section -->

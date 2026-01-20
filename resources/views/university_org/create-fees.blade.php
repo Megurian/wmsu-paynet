@@ -12,8 +12,17 @@
 </div>
 
 <div class="flex justify-center">
-    <form id="fee-form" method="POST" action="" enctype="multipart/form-data" class="w-full max-w-2xl bg-white p-8 rounded-lg shadow-lg">
+    <form id="fee-form" method="POST" action="{{ route('university_org.fees.store') }}" enctype="multipart/form-data" class="w-full max-w-2xl bg-white p-8 rounded-lg shadow-lg">
         @csrf
+        @if ($errors->any())
+            <div class="mb-4 bg-red-50 border border-red-200 text-red-700 p-3 rounded">
+                <ul class="list-disc pl-5">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
         <input type="hidden" name="current_step" id="current_step" value="1">
 
         <!-- Progress Bar -->
