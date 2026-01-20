@@ -44,6 +44,9 @@ Route::middleware(['auth', 'role:osa', CheckActiveSchoolYear::class])->group(fun
     Route::get('/osa/dashboard', function () {
         return view('osa.dashboard');
     })->name('osa.dashboard');
+    Route::get('/osa/fees', function () {
+        return view('osa.fees');
+    })->name('osa.fees');
     Route::get('/osa/organizations', function () {
         return view('osa.organizations');
     })->name('osa.organizations');
@@ -73,6 +76,14 @@ Route::middleware(['auth', 'role:university_org'])->group(function () {
         return view('university_org.dashboard');
     })->name('university_org.dashboard');
 
+    Route::get('/university_org/fees', function () {
+        return view('university_org.fees');
+    })->name('university_org.fees');
+
+    Route::get('/university_org/offices', function () {
+        return view('university_org.offices');
+    })->name('university_org.offices');
+
     Route::get('/university_org/remittance', function () {
         return view('university_org.remittance');
     })->name('university_org.remittance');
@@ -81,9 +92,6 @@ Route::middleware(['auth', 'role:university_org'])->group(function () {
         return view('university_org.reports');
     })->name('university_org.reports');
     
-    Route::get('/university_org/setup', function () {
-        return view('university_org.setup');
-    })->name('university_org.setup');
 });
 
 Route::middleware(['auth', 'role:college_org'])->group(function () {

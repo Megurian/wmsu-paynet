@@ -126,6 +126,10 @@
                         {{ request()->routeIs('osa.college') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
                     <span>College</span>
                 </a>
+                <a href="{{ route('osa.fees') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('osa.fees') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span>Fees</span>
+                </a>
                 <a href="{{ route('osa.organizations') }}" class="block px-4 py-2 rounded-md transition
                     {{ request()->routeIs('osa.organizations') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
                     <span>Organizations</span>
@@ -140,6 +144,14 @@
                     {{ request()->routeIs('university_org.dashboard') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
                     <span>Dashboard</span>
                 </a>
+                <a href="{{ route('university_org.fees') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('university_org.fees') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span>Fees</span>
+                </a>
+                <a href="{{ route('university_org.offices') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('university_org.offices') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span>Offices</span>
+                </a>
                 <a href="{{ route('university_org.remittance') }}" class="block px-4 py-2 rounded-md transition
                     {{ request()->routeIs('university_org.remittance') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
                     <span>Remittance</span>
@@ -147,10 +159,6 @@
                 <a href="{{ route('university_org.reports') }}" class="block px-4 py-2 rounded-md transition
                     {{ request()->routeIs('university_org.reports') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
                     <span>Reports</span>
-                </a>
-                <a href="{{ route('university_org.setup') }}" class="block px-4 py-2 rounded-md transition
-                    {{ request()->routeIs('university_org.setup') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-                    <span>Setup</span>
                 </a>
 
                 @elseif($role === 'college')

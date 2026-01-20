@@ -1,7 +1,7 @@
 @extends('layouts.dashboard')
 
 @section('title', 'Fees')
-@section('page-title', 'College Org Fees')
+@section('page-title', 'USC Fees')
 
 
 @section('content')
