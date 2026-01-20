@@ -22,7 +22,7 @@ class CollegeHistoryController extends Controller
         $activeSem = Semester::where('is_active', true)->first();
 
         $selectedSY = $request->school_year ?? $activeSY?->id;
-        $selectedSem = $request->semester ?? $activeSem?->id;
+       $selectedSem = $request->semester ?? '1st';
 
         $students = StudentEnrollment::with([
             'student', 'course', 'yearLevel', 'section', 'schoolYear', 'semester'

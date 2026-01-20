@@ -13,9 +13,12 @@
         <select name="school_year" class="rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition" onchange="this.form.submit()">
             <option value="">All School Years</option>
             @foreach($schoolYears as $sy)
-            <option value="{{ $sy->id }}" @selected($selectedSY==$sy->id)>
-                {{ $sy->sy_start }} - {{ $sy->sy_end }}
+            <option value="{{ $sy->id }}" @selected($selectedSY == $sy->id)>
+                {{ \Carbon\Carbon::parse($sy->sy_start)->year }}
+                –
+                {{ \Carbon\Carbon::parse($sy->sy_end)->year }}
             </option>
+
             @endforeach
         </select>
 
