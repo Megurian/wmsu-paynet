@@ -9,9 +9,9 @@
     <p class="text-sm text-gray-500 mt-1">
         Welcome, {{ Auth::user()->name }}. Here you can manage the Offices associated with different colleges within the university.
     </p> <br>
-    <button class="px-4 py-2 bg-red-700 text-white rounded hover:bg-red-800 transition">
+    <a class="px-4 py-2 bg-red-700 text-white rounded hover:bg-red-800 transition" href="{{ route('university_org.offices.create') }}">
             New Office
-    </button>
+    </a>
 </div>
 
     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-6">
