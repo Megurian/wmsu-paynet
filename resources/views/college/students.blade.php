@@ -274,7 +274,7 @@ function studentDirectory() {
         filterCourse: '',
         filterYear: '',
         filterSection: '',
-        sortKey: '',
+        sortKey: 'last_name',
         sortAsc: true,
         students: @json($students),
         get filteredStudents() {

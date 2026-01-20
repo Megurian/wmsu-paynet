@@ -32,9 +32,13 @@ class CollegeStudentController extends Controller
         }
 
        $students = StudentEnrollment::with(['student', 'course', 'yearLevel', 'section'])
-        ->where('college_id', $collegeId)
-        ->where('school_year_id', $activeSY->id)
-        ->where('semester_id', $activeSem->id)
+        ->join('students', 'student_enrollments.student_id', '=', 'students.id')
+        ->where('student_enrollments.college_id', $collegeId)
+        ->where('student_enrollments.school_year_id', $activeSY->id)
+        ->where('student_enrollments.semester_id', $activeSem->id)
+        ->orderBy('students.last_name')
+        ->orderBy('students.first_name')
+        ->select('student_enrollments.*')
         ->get()
         ->map(fn($s) => [
             'id' => $s->student->id,
