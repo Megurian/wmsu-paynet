@@ -1,6 +1,6 @@
 @extends('layouts.dashboard')
 
-@section('title', 'USC Reports')
+@section('title', 'Reports')
 @section('page-title', 'USC Reports')
 
 @section('content')

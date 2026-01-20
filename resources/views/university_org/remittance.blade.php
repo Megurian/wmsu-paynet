@@ -1,6 +1,6 @@
 @extends('layouts.dashboard')
 
-@section('title', 'USC Remittance')
+@section('title', 'Remittance')
 @section('page-title', 'USC Remittance')
 
 
