@@ -1,7 +1,7 @@
 @extends('layouts.dashboard')
 
 @section('title', 'Remittance')
-@section('page-title', 'USC Remittance')
+@section('page-title', ($organization?->org_code ?? 'Organization') . ' Remittances')
 
 
 @section('content')

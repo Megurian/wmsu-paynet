@@ -1,12 +1,12 @@
 @extends('layouts.dashboard')
 
 @section('title', 'Fees')
-@section('page-title', 'USC Fees')
+@section('page-title', ($organization?->org_code ?? 'Organization') . ' Fees')
 
 
 @section('content')
 <div class="mb-8">
-    <h2 class="text-3xl font-bold text-gray-800">{{ Auth::user()->name }} Setup of Fees</h2>
+    <h2 class="text-3xl font-bold text-gray-800">{{ $organization->org_code }}  Setup of Fees</h2>
     <p class="text-sm text-gray-500 mt-1">
         Welcome, {{ Auth::user()->name }}. Here you can manage the fees associated with different colleges within the university.
     </p>
