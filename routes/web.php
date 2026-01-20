@@ -9,6 +9,7 @@ use App\Http\Controllers\CollegeStudentController;
 use App\Http\Controllers\CollegeHistoryController;
 use App\Http\Controllers\ValidateStudentsController;
 use App\Http\Controllers\OrganizationPaymentController;
+use App\Http\Controllers\UniversityOrgFeesController;
 use App\Http\Middleware\CheckActiveSchoolYear;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
@@ -91,6 +92,10 @@ Route::middleware(['auth', 'role:university_org'])->group(function () {
     Route::get('/university_org/reports', function () {
         return view('university_org.reports');
     })->name('university_org.reports');
+
+    Route::get('/university-org/fees', [UniversityOrgFeesController::class, 'index'])->name('university_org.fees');
+    Route::get('/university-org/fees/create', [UniversityOrgFeesController::class, 'create'])->name('university_org.fees.create');
+    Route::post('/university-org/fees', [UniversityOrgFeesController::class, 'store'])->name('university_org.fees.store');
     
 });
 

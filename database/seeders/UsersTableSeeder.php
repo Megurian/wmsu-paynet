@@ -10,14 +10,14 @@ class UsersTableSeeder extends Seeder
 {
     public function run()
     {
-        User::updateOrCreate(
-            ['email' => 'college.admin@gmail.com'],
-            [
-                'name' => 'College Admin',
-                'role' => 'college',
-                'password' => Hash::make('password123')
-            ]
-        );
+        // User::updateOrCreate(
+        //     ['email' => 'college.admin@gmail.com'],
+        //     [
+        //         'name' => 'College Admin',
+        //         'role' => 'college',
+        //         'password' => Hash::make('password123')
+        //     ]
+        // );
 
         User::updateOrCreate(
             ['email' => 'osa.admin@gmail.com'],
@@ -28,13 +28,13 @@ class UsersTableSeeder extends Seeder
             ]
         );
 
-        User::updateOrCreate(
-            ['email' => 'usc.admin@gmail.com'],
-            [
-                'name' => 'USC Admin',
-                'role' => 'usc',
-                'password' => Hash::make('password123')
-            ]
-        );
+        // User::updateOrCreate(
+        //     ['email' => 'usc.admin@gmail.com'],
+        //     [
+        //         'name' => 'USC Admin',
+        //         'role' => 'usc',
+        //         'password' => Hash::make('password123')
+        //     ]
+        // );
     }
 }

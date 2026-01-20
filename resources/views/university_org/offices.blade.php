@@ -1,11 +1,11 @@
 @extends('layouts.dashboard')
 
 @section('title', 'Offices')
-@section('page-title', 'USC Office Setup')
+@section('page-title', ($organization?->org_code ?? 'Organization') . ' Offices Setup')
 
 @section('content')
 <div class="mb-8">
-    <h2 class="text-3xl font-bold text-gray-800"> USC Offices</h2>
+    <h2 class="text-3xl font-bold text-gray-800"> {{ ($organization?->org_code ?? 'Organization') . " Offices" }} </h2>
     <p class="text-sm text-gray-500 mt-1">
         Welcome, {{ Auth::user()->name }}. Here you can manage the Offices associated with different colleges within the university.
     </p> <br>
