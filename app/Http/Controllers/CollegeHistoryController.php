@@ -29,16 +29,21 @@ class CollegeHistoryController extends Controller
         $students = StudentEnrollment::with([
             'student', 'course', 'yearLevel', 'section', 'schoolYear', 'semester'
         ])
-        ->where('college_id', $collegeId)
+        ->join('students', 'student_enrollments.student_id', '=', 'students.id')
+        ->where('student_enrollments.college_id', $collegeId)
         ->when($selectedSY, fn ($q) =>
-            $q->where('school_year_id', $selectedSY)
+            $q->where('student_enrollments.school_year_id', $selectedSY)
         )
         ->when($selectedSem, fn ($q) =>
             $q->whereHas('semester', fn ($s) =>
                 $s->where('name', $selectedSem)
             )
         )
+        ->orderBy('students.last_name')
+        ->orderBy('students.first_name')
+        ->select('student_enrollments.*') 
         ->get();
+
 
         return view('college.history', compact(
             'students',
