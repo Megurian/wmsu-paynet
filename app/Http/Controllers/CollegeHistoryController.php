@@ -14,7 +14,6 @@ class CollegeHistoryController extends Controller
     {
         $collegeId = Auth::user()->college_id;
 
-       
         $schoolYears = SchoolYear::orderBy('sy_start', 'desc')->get();
         $semesters = Semester::orderBy('id')->get();
 
@@ -22,25 +21,34 @@ class CollegeHistoryController extends Controller
         $activeSem = Semester::where('is_active', true)->first();
 
         $selectedSY = $request->school_year ?? $activeSY?->id;
-       $selectedSem = $request->semester ?? '1st';
+        $selectedSem = $request->semester ?? '1st';
+
+        $selectedSchoolYear = SchoolYear::find($selectedSY);
+        $selectedSemester   = Semester::where('name', $selectedSem)->first();
 
         $students = StudentEnrollment::with([
             'student', 'course', 'yearLevel', 'section', 'schoolYear', 'semester'
         ])
         ->where('college_id', $collegeId)
-        ->when($selectedSY, fn($q) =>
+        ->when($selectedSY, fn ($q) =>
             $q->where('school_year_id', $selectedSY)
         )
-        ->when($selectedSem, fn($q) =>
-            $q->whereHas('semester', fn($s) =>
+        ->when($selectedSem, fn ($q) =>
+            $q->whereHas('semester', fn ($s) =>
                 $s->where('name', $selectedSem)
             )
         )
         ->get();
 
-
         return view('college.history', compact(
-            'students', 'schoolYears', 'semesters', 'selectedSY', 'selectedSem'
+            'students',
+            'schoolYears',
+            'semesters',
+            'selectedSY',
+            'selectedSem',
+            'selectedSchoolYear',
+            'selectedSemester'
         ));
     }
+
 }
