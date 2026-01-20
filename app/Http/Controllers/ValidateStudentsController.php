@@ -103,7 +103,9 @@ class ValidateStudentsController extends Controller
                 $q->where('school_year_id', $activeSY->id)
                 ->where('semester_id', $activeSem->id);
             }])
-            ->paginate(10)
+            ->orderBy('last_name')
+            ->orderBy('first_name')
+            ->paginate(40)
             ->withQueryString();
 
 
