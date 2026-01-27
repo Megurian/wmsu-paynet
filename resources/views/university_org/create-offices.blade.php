@@ -50,13 +50,16 @@
 
             <div id="college-select" class="mb-4">
                 <label class="block font-medium mb-1">Select College</label>
-                <select class="shadow border-gray-300 rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="college">
-                            <option value="" disabled selected>Select College</option>
-                            <option value="CAS">College of Arts and Sciences</option>
-                            <option value="CIT">College of Information Technology</option>
-                            <option value="CBM">College of Business and Management</option>
-                            <option value="CCS">College of Computing Studies</option>
-                        </select>
+                <select name="college_code" class="shadow border-gray-300 rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="college">
+                    <option value="" disabled {{ empty(old('college_code')) ? 'selected' : '' }}> Select College</option>
+                    @forelse($colleges as $college)
+                        <option value="{{ $college->college_code }}" {{ old('college_code') == $college->college_code ? 'selected' : '' }}>
+                            {{ $college->name }}
+                        </option>
+                    @empty
+                        <option value="" disabled>No colleges available</option>
+                    @endforelse
+                </select>
             </div>
 
             <div class="flex justify-end">

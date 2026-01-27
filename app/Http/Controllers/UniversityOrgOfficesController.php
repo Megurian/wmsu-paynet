@@ -14,7 +14,8 @@ class UniversityOrgOfficesController extends Controller
 
     public function create()
     {
-        return view('university_org.create-offices');
+        $colleges = \App\Models\College::orderBy('name')->get();
+        return view('university_org.create-offices', compact('colleges'));
     }
 
     public function store(Request $request)
