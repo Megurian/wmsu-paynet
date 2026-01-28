@@ -171,6 +171,15 @@ Route::middleware(['auth', 'role:college,student_coordinator,adviser'])->group(f
     Route::get('/college/users/create', [CollegeUserController::class, 'create'])->name('college.users.create');
     Route::post('/college/users', [CollegeUserController::class, 'store'])->name('college.users.store');
     Route::delete('/college/users/{user}', [CollegeUserController::class, 'destroy'])->name('college.users.destroy');
+
+    Route::get('/college/students/import/template', function () {
+        return response()->download(
+            storage_path('app/templates/student_import_template.xlsx'),
+            'student_import_template.xlsx'
+        );
+    })->name('college.students.import.template');
+    Route::post('college/students/import', [ValidateStudentsController::class, 'import'])->name('college.students.import');
+
 });
 
 

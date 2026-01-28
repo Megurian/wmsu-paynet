@@ -11,6 +11,9 @@ use App\Models\Semester;
 use App\Models\Course;
 use App\Models\YearLevel;
 use App\Models\Section;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\TemplateExport;
+use App\Imports\StudentsImport;
 
 class ValidateStudentsController extends Controller
 {
@@ -204,6 +207,27 @@ class ValidateStudentsController extends Controller
         );
     }
 
+    public function template()
+    {
+        $headers = ['#', 'student_id', 'Student Name', 'Course', 'Year Level', 'Section', 'Contact', 'Email'];
+        $filename = 'student_import_template.xlsx';
+
+        return Excel::download(new TemplateExport($headers), $filename);
+    }
+
+    public function import(Request $request)
+    {
+        $request->validate([
+            'student_file' => 'required|file|mimes:xlsx,csv',
+        ]);
+
+        try {
+            Excel::import(new StudentsImport, $request->file('student_file'));
+            return back()->with('success', 'Student list imported successfully. Students remain unvalidated.');
+        } catch (\Exception $e) {
+            return back()->withErrors(['student_file' => 'Error importing file: '.$e->getMessage()]);
+        }
+    }
 
 }
 
