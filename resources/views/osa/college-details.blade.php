@@ -43,6 +43,29 @@
     @endif
 </div>
 
+<!-- Courses Section -->
+<div class="bg-white rounded shadow p-6 mb-6">
+    <h3 class="text-xl font-semibold mb-4">
+        Courses under {{ $college->name }}
+    </h3>
+
+    @if($college->courses->count())
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            @foreach($college->courses as $course)
+                <div class="border rounded p-4">
+                    <p class="font-semibold text-gray-800">
+                        {{ $course->name }}
+                    </p>
+                </div>
+            @endforeach
+        </div>
+    @else
+        <p class="text-gray-500 italic">
+            No courses found for this college.
+        </p>
+    @endif
+</div>
+
 <!-- Organizations Section -->
 <div class="bg-white rounded shadow p-6">
     <h3 class="text-xl font-semibold mb-4">Organizations under {{ $college->name }}</h3>
