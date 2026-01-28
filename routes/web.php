@@ -121,7 +121,7 @@ Route::middleware(['auth', 'role:college_org'])->group(function () {
      ->name('college.students.search');
 });
 
-Route::middleware(['auth', 'role:college'])->group(function () {
+Route::middleware(['auth', 'role:college,student_coordinator,adviser'])->group(function () {
     Route::get('/college/dashboard', function () {
         return view('college.dashboard');
     })->name('college.dashboard');

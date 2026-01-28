@@ -83,7 +83,6 @@
                 @endif
             </div>
 
-            {{-- Name + Role --}}
             @if($user->role === 'college' && $currentCollege)
                 <h2 class="mt-3 text-lg font-bold text-center break-words max-w-[12rem]">
                     {{ $currentCollege->name }}
@@ -161,7 +160,7 @@
                     <span>Reports</span>
                 </a>
 
-                @elseif($role === 'college')
+                @elseif(in_array($role, ['college', 'student_coordinator', 'adviser']))
                 <a href="{{ route('college.dashboard') }}" class="block px-4 py-2 rounded-md transition
                     {{ request()->routeIs('college.dashboard') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
                     <span>Dashboard</span>
@@ -174,6 +173,7 @@
                     {{ request()->routeIs('college.history') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
                     <span>History</span>
                 </a>
+
                 @elseif($role === 'college_org')
                 <a href="{{ route('college_org.dashboard') }}" class="block px-4 py-2 rounded-md transition
                     {{ request()->routeIs('college_org.dashboard') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
