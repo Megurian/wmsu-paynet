@@ -8,6 +8,9 @@ use App\Models\User;
 use App\Models\Organization;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use App\Models\Course;
+use App\Models\YearLevel;
+use App\Models\Section;
 
 class OSACollegeController extends Controller
 {
@@ -50,24 +53,56 @@ class OSACollegeController extends Controller
 
         try {
             DB::transaction(function () use ($request) {
-                $logoPath = $request->file('logo')
-                    ? $request->file('logo')->store('colleges', 'public')
-                    : null;
 
-                $college = College::create([
-                    'name' => $request->name,
-                    'college_code' => strtoupper($request->college_code),
-                    'logo' => $logoPath,
-                ]);
+            $logoPath = $request->file('logo')
+                ? $request->file('logo')->store('colleges', 'public')
+                : null;
 
-                User::create([
-                    'name' => $request->admin_name,
-                    'email' => $request->admin_email,
-                    'password' => Hash::make($request->admin_password),
-                    'role' => 'college',
-                    'college_id' => $college->id,
-                ]);
-            });
+            $college = College::create([
+                'name' => $request->name,
+                'college_code' => strtoupper($request->college_code),
+                'logo' => $logoPath,
+            ]);
+
+            User::create([
+                'name' => $request->admin_name,
+                'email' => $request->admin_email,
+                'password' => Hash::make($request->admin_password),
+                'role' => 'college',
+                'college_id' => $college->id,
+            ]);
+
+            if ($request->has('courses')) {
+                foreach ($request->courses as $course) {
+                    if (!trim($course)) continue;
+                    Course::create([
+                        'college_id' => $college->id,
+                        'name' => trim($course),
+                    ]);
+                }
+            }
+
+            if ($request->has('years')) {
+                foreach ($request->years as $year) {
+                    if (!trim($year)) continue;
+                    YearLevel::create([
+                        'college_id' => $college->id,
+                        'name' => trim($year),
+                    ]);
+                }
+            }
+
+            if ($request->has('sections')) {
+                foreach ($request->sections as $section) {
+                    if (!trim($section)) continue;
+                    Section::create([
+                        'college_id' => $college->id,
+                        'name' => trim($section),
+                    ]);
+                }
+            }
+
+        });
 
             return redirect()->route('osa.college')
                 ->with('status', 'College and initial admin created successfully!');
