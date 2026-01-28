@@ -11,6 +11,7 @@ use App\Http\Controllers\ValidateStudentsController;
 use App\Http\Controllers\OrganizationPaymentController;
 use App\Http\Controllers\UniversityOrgFeesController;
 use App\Http\Controllers\UniversityOrgOfficesController;
+use App\Http\Controllers\CollegeUserController;
 use App\Http\Middleware\CheckActiveSchoolYear;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
@@ -120,7 +121,7 @@ Route::middleware(['auth', 'role:college_org'])->group(function () {
      ->name('college.students.search');
 });
 
-Route::middleware(['auth', 'role:college'])->group(function () {
+Route::middleware(['auth', 'role:college,student_coordinator,adviser'])->group(function () {
     Route::get('/college/dashboard', function () {
         return view('college.dashboard');
     })->name('college.dashboard');
@@ -165,6 +166,19 @@ Route::middleware(['auth', 'role:college'])->group(function () {
     )  ->name('college.students.unvalidate');
 
     Route::get('/college/history', [CollegeHistoryController::class, 'history'])->name('college.history');
+
+    Route::get('/college/users', [CollegeUserController::class, 'index'])->name('college.users.index');
+    Route::get('/college/users/create', [CollegeUserController::class, 'create'])->name('college.users.create');
+    Route::post('/college/users', [CollegeUserController::class, 'store'])->name('college.users.store');
+    Route::delete('/college/users/{user}', [CollegeUserController::class, 'destroy'])->name('college.users.destroy');
+
+    Route::get('/college/students/import/template', function () {
+        return response()->download(
+            storage_path('app/templates/student_import_template.xlsx'),
+            'student_import_template.xlsx'
+        );
+    })->name('college.students.import.template');
+    Route::post('college/students/import', [ValidateStudentsController::class, 'import'])->name('college.students.import');
 
 });
 

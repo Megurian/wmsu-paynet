@@ -66,16 +66,14 @@
 
             {{-- Logo --}}
             <div class="h-20 w-20 bg-white rounded-full flex items-center justify-center shadow overflow-hidden">
-                @if($user->role === 'college' && $currentCollege?->logo)
+                @if(in_array($user->role, ['college', 'student_coordinator', 'adviser']) && $currentCollege?->logo)
                     <img src="{{ asset('storage/' . $currentCollege->logo) }}"
                         alt="College Logo"
                         class="h-full w-full object-cover">
-
                 @elseif(in_array($user->role, ['university_org', 'college_org']) && $organization?->logo)
                     <img src="{{ asset('storage/' . $organization->logo) }}"
                         alt="Organization Logo"
                         class="h-full w-full object-cover">
-
                 @else
                     <span class="text-red-800 font-bold text-sm text-center">
                         No<br>Logo
@@ -83,12 +81,17 @@
                 @endif
             </div>
 
-            {{-- Name + Role --}}
-            @if($user->role === 'college' && $currentCollege)
+             @if(in_array($user->role, ['college', 'student_coordinator', 'adviser']) && $currentCollege)
                 <h2 class="mt-3 text-lg font-bold text-center break-words max-w-[12rem]">
                     {{ $currentCollege->name }}
                 </h2>
-                <p class="text-xs opacity-80">College Admin</p>
+                <p class="text-xs opacity-80 text-center">
+                    @switch($user->role)
+                        @case('college') College Dean @break
+                        @case('student_coordinator') Student Coordinator @break
+                        @case('adviser') Adviser @break
+                    @endswitch
+                </p>
 
             @elseif($user->role === 'osa')
                 <h2 class="mt-3 text-lg font-bold text-center max-w-[12rem]">
@@ -161,7 +164,7 @@
                     <span>Reports</span>
                 </a>
 
-                @elseif($role === 'college')
+                @elseif(in_array($role, ['college', 'student_coordinator', 'adviser']))
                 <a href="{{ route('college.dashboard') }}" class="block px-4 py-2 rounded-md transition
                     {{ request()->routeIs('college.dashboard') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
                     <span>Dashboard</span>
@@ -174,6 +177,11 @@
                     {{ request()->routeIs('college.history') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
                     <span>History</span>
                 </a>
+                <a href="{{ route('college.students.validate') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('college_org.records') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span>Enrollment Validation</span>
+                </a>
+
                 @elseif($role === 'college_org')
                 <a href="{{ route('college_org.dashboard') }}" class="block px-4 py-2 rounded-md transition
                     {{ request()->routeIs('college_org.dashboard') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
@@ -190,6 +198,13 @@
                 <a href="{{ route('college_org.records') }}" class="block px-4 py-2 rounded-md transition
                     {{ request()->routeIs('college_org.records') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
                     <span>Records</span>
+                </a>
+                @endif
+
+                 @if($role === 'college')
+                <a href="{{ route('college.users.index') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('college.users.*') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span>User Management</span>
                 </a>
                 @endif
             </nav>

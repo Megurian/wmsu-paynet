@@ -11,9 +11,9 @@
             <p class="text-gray-600 text-sm">Manage students under your college</p>
         </div>
         <div class="flex items-center gap-4">
-            <a href="{{ route('college.students.validate') }}" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-500">
+            {{-- <a href="{{ route('college.students.validate') }}" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-500">
                 Validate Students
-            </a>
+            </a> --}}
             <button @click="showModal = true" class="bg-red-800 text-white px-4 py-2 rounded hover:bg-red-700 transition">
                 New Student
             </button>
