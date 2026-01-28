@@ -11,6 +11,7 @@ use App\Http\Controllers\ValidateStudentsController;
 use App\Http\Controllers\OrganizationPaymentController;
 use App\Http\Controllers\UniversityOrgFeesController;
 use App\Http\Controllers\UniversityOrgOfficesController;
+use App\Http\Controllers\CollegeUserController;
 use App\Http\Middleware\CheckActiveSchoolYear;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
@@ -166,6 +167,10 @@ Route::middleware(['auth', 'role:college'])->group(function () {
 
     Route::get('/college/history', [CollegeHistoryController::class, 'history'])->name('college.history');
 
+    Route::get('/college/users', [CollegeUserController::class, 'index'])->name('college.users.index');
+    Route::get('/college/users/create', [CollegeUserController::class, 'create'])->name('college.users.create');
+    Route::post('/college/users', [CollegeUserController::class, 'store'])->name('college.users.store');
+    Route::delete('/college/users/{user}', [CollegeUserController::class, 'destroy'])->name('college.users.destroy');
 });
 
 
