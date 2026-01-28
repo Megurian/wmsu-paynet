@@ -6,10 +6,10 @@
 @section('content')
 <div class="flex flex-col md:flex-row items-center justify-between mb-6 gap-4">
     <h2 class="text-2xl font-bold text-gray-800">Validate Students</h2>
-    <a href="{{ route('college.students') }}" 
+    {{-- <a href="{{ route('college.students') }}" 
        class="px-4 py-2 bg-red-700 text-white rounded-lg shadow hover:bg-red-600 transition">
         &larr; Back
-    </a>
+    </a> --}}
 </div>
 
 <div class="bg-white shadow rounded-lg p-4 mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
