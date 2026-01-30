@@ -14,8 +14,12 @@ use App\Models\Section;
 
 class AdviserStudentUploadController extends Controller
 {
-    public function index()
+   public function index(Request $request)
     {
+        $search = request('search');
+        $courseId = request('course_id');
+        $yearLevelId = request('year_level_id');
+        $sectionId = request('section_id');
         $adviserId = Auth::id();
         $collegeId = Auth::user()->college_id;
 
@@ -25,6 +29,34 @@ class AdviserStudentUploadController extends Controller
         $students = Student::where('college_id', $collegeId)
             ->whereHas('enrollments', function ($q) use ($adviserId) {
                 $q->where('adviser_id', $adviserId);
+            })
+            ->where(function ($q) use ($request) {
+
+                if ($request->filled('search')) {
+                    $q->where(function ($s) use ($request) {
+                        $s->where('student_id', 'like', '%' . $request->search . '%')
+                        ->orWhere('last_name', 'like', '%' . $request->search . '%')
+                        ->orWhere('first_name', 'like', '%' . $request->search . '%');
+                    });
+                }
+
+                if ($request->filled('course_id')) {
+                    $q->whereHas('enrollments', function ($e) use ($request) {
+                        $e->where('course_id', $request->course_id);
+                    });
+                }
+
+                if ($request->filled('year_level_id')) {
+                    $q->whereHas('enrollments', function ($e) use ($request) {
+                        $e->where('year_level_id', $request->year_level_id);
+                    });
+                }
+
+                if ($request->filled('section_id')) {
+                    $q->whereHas('enrollments', function ($e) use ($request) {
+                        $e->where('section_id', $request->section_id);
+                    });
+                }
             })
             ->with(['enrollments' => function ($q) use ($activeSY, $activeSem) {
                 $q->where('school_year_id', $activeSY->id)
@@ -49,10 +81,35 @@ class AdviserStudentUploadController extends Controller
             ->orderBy('semester_id', 'desc')
             ->get()
             ->groupBy('student_id')
-            ->map(fn($rows) => $rows->first());
+            ->map(fn ($rows) => $rows->first());
 
-        return view('college.students.my-upload', compact('students', 'courses', 'years', 'sections', 'previousEnrollments', 'activeSY', 'activeSem'));
+        $alpineStudents = $students->map(function($s) use ($previousEnrollments) {
+            $enrollment = $s->enrollments->first();
+            $prev = $previousEnrollments[$s->id] ?? null;
+
+            return [
+                'id' => $s->id,
+                'student_id' => $s->student_id,
+                'last_name' => $s->last_name,
+                'first_name' => $s->first_name,
+                'middle_name' => $s->middle_name,
+                'course_id' => $enrollment->course_id ?? $prev->course_id ?? null,
+                'course' => $enrollment->course->name ?? $prev->course->name ?? null,
+                'year_level_id' => $enrollment->year_level_id ?? $prev->year_level_id ?? null,
+                'year_level' => $enrollment->yearLevel->name ?? $prev->yearLevel->name ?? null,
+                'section_id' => $enrollment->section_id ?? $prev->section_id ?? null,
+                'section' => $enrollment->section->name ?? $prev->section->name ?? null,
+                'status' => $enrollment->status ?? 'NOT ENROLLED',
+                 'isPaid' => $enrollment ? $enrollment->is_paid : false,
+            ];
+        });
+
+        return view(
+            'college.students.my-upload',
+            compact('students', 'courses', 'years', 'sections', 'previousEnrollments', 'activeSY', 'activeSem', 'alpineStudents')
+        );
     }
+
 
 
     public function store(Request $request)
