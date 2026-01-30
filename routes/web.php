@@ -202,6 +202,9 @@ Route::middleware(['auth','role:adviser'])->group(function(){
     Route::post('/college/students/{student}/readd', [AdviserStudentUploadController::class, 'reAddOldStudent'])
     ->name('college.students.readd');
 
+    Route::post('/college/students/readd/bulk', [AdviserStudentUploadController::class, 'reAddBulk'])->name('college.students.readd.bulk');
+
+
 });
 
 

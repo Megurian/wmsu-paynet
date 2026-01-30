@@ -1,5 +1,6 @@
 @extends('layouts.dashboard')
 
+@section('title', 'Students')
 @section('page-title', 'My Students Upload')
 
 @section('content')
@@ -77,6 +78,7 @@
 
     {{-- Action Buttons --}}
     <div class="flex justify-end gap-4 mt-4">
+
         <button @click="showModal = true"
             class="bg-red-800 text-white px-4 py-2 rounded hover:bg-red-700 transition">
             New Student
@@ -184,10 +186,37 @@
             </form>
         </div>
     </div>
+
+    <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center space-x-2">
+            <input type="checkbox" @click="toggleAll($event)" class="w-5 h-5 border-gray-400 rounded cursor-pointer">
+            <label class="font-medium text-gray-700 select-none">Select All</label>
+        </div>
+        <button @click="proceedToPayment()" 
+                x-show="selectedStudents.length > 0"
+                class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-500">
+            Proceed to Payment
+        </button>
+    </div>
+
     {{-- Students Table as Cards --}}
     <div class="space-y-4">
         <template x-for="student in filteredStudents" :key="student.id">
             <div class="bg-white shadow rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between space-y-3 md:space-y-0 md:space-x-4">
+               <div class="flex items-center md:w-1/3 space-x-2">
+            <template x-if="student.status === 'NOT ENROLLED'">
+                <!-- Bulk select checkbox -->
+<div class="flex items-center space-x-2 md:w-1/12">
+    <input type="checkbox" 
+           x-model="selectedStudents" 
+           :value="student.id" 
+           class="w-5 h-5 border-gray-400 rounded cursor-pointer">
+</div>
+
+            </template>
+            <div class="text-sm font-semibold" x-text="student.student_id"></div>
+            <div class="text-sm font-medium" x-text="student.last_name + ', ' + student.first_name"></div>
+        </div>
                 {{-- Student Info --}}
                 <div class="flex items-center space-x-4 md:w-1/3">
                     <div class="text-sm font-semibold" x-text="student.student_id"></div>
@@ -330,56 +359,81 @@
 
 
 <script>
-    function myStudentsUpload() {
-        return {
-            showModal: false
-            , showImportModal: false
-            , search: ''
-            , filterCourse: ''
-            , filterYear: ''
-            , filterSection: ''
-            , students: @json($alpineStudents),
+ function myStudentsUpload() {
+    return {
+        showModal: false,
+        showImportModal: false,
+        search: '',
+        filterCourse: '',
+        filterYear: '',
+        filterSection: '',
+        students: @json($alpineStudents),
 
-            get filteredStudents() {
-                let result = this.students;
+        selectedStudents: [], 
 
-                if (this.search) {
-                    const s = this.search.toLowerCase();
-                    result = result.filter(st =>
-                        st.student_id.toLowerCase().includes(s) ||
-                        st.first_name.toLowerCase().includes(s) ||
-                        st.last_name.toLowerCase().includes(s) ||
-                        (st.middle_name && st.middle_name.toLowerCase().includes(s))
-                    );
-                }
+        get filteredStudents() {
+            let result = this.students;
 
-                if (this.filterCourse) result = result.filter(st => st.course_id == Number(this.filterCourse));
-                if (this.filterYear) result = result.filter(st => st.year_level_id == Number(this.filterYear));
-                if (this.filterSection) result = result.filter(st => st.section_id == Number(this.filterSection));
-
-                return result;
-            },
-
-            updateStudent(studentId, field, value) {
-                fetch(`/college/students/${studentId}/update-field`, {
-                        method: 'POST'
-                        , headers: {
-                            'Content-Type': 'application/json'
-                            , 'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                        }
-                        , body: JSON.stringify({
-                            field
-                            , value
-                        })
-                    })
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data.success) console.log('Updated successfully');
-                    })
-                    .catch(err => console.error(err));
+            if (this.search) {
+                const s = this.search.toLowerCase();
+                result = result.filter(st =>
+                    st.student_id.toLowerCase().includes(s) ||
+                    st.first_name.toLowerCase().includes(s) ||
+                    st.last_name.toLowerCase().includes(s) ||
+                    (st.middle_name && st.middle_name.toLowerCase().includes(s))
+                );
             }
+
+            if (this.filterCourse) result = result.filter(st => st.course_id == Number(this.filterCourse));
+            if (this.filterYear) result = result.filter(st => st.year_level_id == Number(this.filterYear));
+            if (this.filterSection) result = result.filter(st => st.section_id == Number(this.filterSection));
+
+            return result;
+        },
+
+        toggleAll(event) {
+            const checked = event.target.checked;
+            if (checked) {
+                this.selectedStudents = this.filteredStudents.map(s => s.id);
+            } else {
+                this.selectedStudents = [];
+            }
+        },
+
+        proceedToPayment() {
+            if (this.selectedStudents.length === 0) return;
+
+            if (!confirm(`Proceed to payment for ${this.selectedStudents.length} student(s)?`)) return;
+
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '{{ route("college.students.readd.bulk") }}';
+            form.innerHTML = `
+                @csrf
+                ${this.selectedStudents.map(id => `<input type="hidden" name="students[]" value="${id}">`).join('')}
+            `;
+            document.body.appendChild(form);
+            form.submit();
+        },
+
+        updateStudent(studentId, field, value) {
+            fetch(`/college/students/${studentId}/update-field`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({ field, value })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) console.log('Updated successfully');
+            })
+            .catch(err => console.error(err));
         }
     }
+}
+
 
 </script>
 
