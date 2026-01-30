@@ -22,7 +22,7 @@ return new class extends Migration
     public function down(): void
     {
          Schema::table('student_enrollments', function (Blueprint $table) {
-            $table->dropColumn(['status', 'validated_at']);
+            $table->dropColumn(['status']);
         });
     }
 };

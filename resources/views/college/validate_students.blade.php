@@ -105,14 +105,13 @@
 
                 <tr class="{{ $isEnrolled ? 'bg-green-50' : 'hover:bg-gray-50' }}">
                     <td class="px-3 py-2">
-                       @if(!$isEnrolled)
+                       @if($isAdvised && $isPaid && !$isEnrolled)
                             <input type="checkbox"
                                 name="selected_students[]"
                                 class="w-4 h-4 border-gray-400 rounded-sm focus:ring-2 focus:ring-blue-400 cursor-pointer"
                                 value="{{ $student->id }}"
                                 @click="toggleOne($event, '{{ $student->id }}')">
                         @endif
-
                     </td>
                     <td class="px-3 py-2 font-medium">{{ $student->student_id }}</td>
                     <td class="px-3 py-2 font-medium">{{ strtoupper($student->last_name) }}, {{ strtoupper($student->first_name) }} {{ strtoupper($student->middle_name ?? '') }} {{ $student->suffix ?? '' }}</td>
@@ -232,10 +231,13 @@ function studentSelection() {
             const checked = event.target.checked;
             const checkboxes = document.querySelectorAll('input[name="selected_students[]"]');
             checkboxes.forEach(cb => {
-                cb.checked = checked;
-                if (checked && !this.selected.includes(cb.value)) this.selected.push(cb.value);
-                if (!checked) this.selected = this.selected.filter(id => id != cb.value);
+                // only select checkboxes that are not disabled
+                if (!cb.disabled) {
+                    cb.checked = checked;
+                    if (checked && !this.selected.includes(cb.value)) this.selected.push(cb.value);
+                }
             });
+            if (!checked) this.selected = [];
         },
         toggleOne(event, studentId) {
             if (event.target.checked) this.selected.push(studentId);
