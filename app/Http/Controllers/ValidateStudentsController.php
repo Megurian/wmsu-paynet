@@ -25,17 +25,11 @@ class ValidateStudentsController extends Controller
         $activeSY = SchoolYear::where('is_active', true)->first();
         $activeSem = Semester::where('is_active', true)->first();
 
-        $previousEnrollmentScope = function ($q) use ($activeSY, $activeSem) {
-            $q->where(function ($sub) use ($activeSY, $activeSem) {
-                $sub->where('school_year_id', '<', $activeSY->id)
-                    ->orWhere(function ($q2) use ($activeSY, $activeSem) {
-                        $q2->where('school_year_id', $activeSY->id)
-                        ->where('semester_id', '<', $activeSem->id);
-                    });
-            });
-        };
+        $latestEnrollmentSub = \DB::table('student_enrollments')
+            ->selectRaw('MAX(id) as latest_id')
+            ->groupBy('student_id');
 
-        $students = Student::where('college_id', $collegeId)
+        $studentsQuery = Student::where('college_id', $collegeId)
             ->when($request->search, function ($q) use ($request) {
                 $q->where(function ($sub) use ($request) {
                     $sub->where('student_id', 'like', "%{$request->search}%")
@@ -43,96 +37,69 @@ class ValidateStudentsController extends Controller
                         ->orWhere('last_name', 'like', "%{$request->search}%");
                 });
             })
+            ->with(['enrollments' => function ($q) {
+                $q->orderBy('school_year_id', 'desc')
+                ->orderBy('semester_id', 'desc')
+                ->orderBy('id', 'desc')
+                ->limit(1);
+            }]);
 
-            ->when($request->course, function ($q) use ($request, $activeSY, $activeSem) {
-                $q->whereHas('enrollments', function ($e) use ($request, $activeSY, $activeSem) {
-                    $e->where(function ($sub) use ($request) {
-                        $sub->where('course_id', $request->course);
-                    })
-                    ->where(function ($sub2) use ($activeSY, $activeSem) {
-                        $sub2->where('school_year_id', '<', $activeSY->id)
-                            ->orWhere(function ($q2) use ($activeSY, $activeSem) {
-                                $q2->where('school_year_id', $activeSY->id)
-                                    ->where('semester_id', '<', $activeSem->id);
-                            });
-                    })
-                    ->whereIn('id', function ($sq) {
-                        $sq->selectRaw('MAX(id)')
-                        ->from('student_enrollments')
-                        ->groupBy('student_id');
-                    });
-                });
-            })
-            ->when($request->year, function ($q) use ($request, $activeSY, $activeSem) {
-                $q->whereHas('enrollments', function ($e) use ($request, $activeSY, $activeSem) {
-                    $e->where(function ($sub) use ($request) {
-                        $sub->where('year_level_id', $request->year);
-                    })
-                    ->where(function ($sub2) use ($activeSY, $activeSem) {
-                        $sub2->where('school_year_id', '<', $activeSY->id)
-                            ->orWhere(function ($q2) use ($activeSY, $activeSem) {
-                                $q2->where('school_year_id', $activeSY->id)
-                                    ->where('semester_id', '<', $activeSem->id);
-                            });
-                    })
-                    ->whereIn('id', function ($sq) {
-                        $sq->selectRaw('MAX(id)')
-                        ->from('student_enrollments')
-                        ->groupBy('student_id');
-                    });
-                });
-            })
-            ->when($request->section, function ($q) use ($request, $activeSY, $activeSem) {
-                $q->whereHas('enrollments', function ($e) use ($request, $activeSY, $activeSem) {
-                    $e->where(function ($sub) use ($request) {
-                        $sub->where('section_id', $request->section);
-                    })
-                    ->where(function ($sub2) use ($activeSY, $activeSem) {
-                        $sub2->where('school_year_id', '<', $activeSY->id)
-                            ->orWhere(function ($q2) use ($activeSY, $activeSem) {
-                                $q2->where('school_year_id', $activeSY->id)
-                                    ->where('semester_id', '<', $activeSem->id);
-                            });
-                    })
-                    ->whereIn('id', function ($sq) {
-                        $sq->selectRaw('MAX(id)')
-                        ->from('student_enrollments')
-                        ->groupBy('student_id');
-                    });
-                });
-            })
+        $studentsQuery->whereHas('enrollments', function ($e) use ($request) {
+            $e->whereIn('id', function ($q) {
+                $q->selectRaw('MAX(id)')
+                ->from('student_enrollments')
+                ->groupBy('student_id');
+            });
 
-            ->with(['enrollments' => function ($q) use ($activeSY, $activeSem) {
-                $q->where('school_year_id', $activeSY->id)
-                ->where('semester_id', $activeSem->id);
-            }])
-            ->orderBy('last_name')
+            if ($request->course) {
+                $e->where('course_id', $request->course);
+            }
+            if ($request->year) {
+                $e->where('year_level_id', $request->year);
+            }
+            if ($request->section) {
+                $e->where('section_id', $request->section);
+            }
+        });
+
+        $students = $studentsQuery->orderBy('last_name')
             ->orderBy('first_name')
             ->paginate(40)
             ->withQueryString();
 
+        $activeEnrollments = StudentEnrollment::where('school_year_id', $activeSY->id)
+            ->where('semester_id', $activeSem->id)
+            ->get()
+            ->keyBy('student_id');
+
+        $previousEnrollments = StudentEnrollment::whereIn('student_id', $students->pluck('id'))
+            ->where(function ($q) use ($activeSY, $activeSem) {
+                $q->where('school_year_id', '<', $activeSY->id)
+                ->orWhere(function ($q2) use ($activeSY, $activeSem) {
+                    $q2->where('school_year_id', $activeSY->id)
+                        ->where('semester_id', '<', $activeSem->id);
+                });
+            })
+            ->orderBy('school_year_id', 'desc')
+            ->orderBy('semester_id', 'desc')
+            ->get()
+            ->groupBy('student_id')
+            ->map(fn($rows) => $rows->first());
 
         foreach ($students as $student) {
-            $lastEnrollment = StudentEnrollment::where('student_id', $student->id)
-                ->where(function($q) use ($activeSY, $activeSem) {
-                    $q->where('school_year_id', '<', $activeSY->id)
-                    ->orWhere(function($q2) use ($activeSY, $activeSem) {
-                        $q2->where('school_year_id', $activeSY->id)
-                            ->where('semester_id', '<', $activeSem->id);
-                    });
-                })
-                ->latest('id') // get most recent previous enrollment
-                ->first();
-
-            $student->lastEnrollment = $lastEnrollment;
+            $latest = $student->enrollments->first() ?? null;
+            $student->displayEnrollment = $latest ?? $previousEnrollments[$student->id] ?? null;
         }
 
         $courses = Course::where('college_id', $collegeId)->get();
         $years = YearLevel::where('college_id', $collegeId)->get();
         $sections = Section::where('college_id', $collegeId)->get();
 
-        return view('college.validate_students', compact('students', 'activeSY', 'activeSem', 'courses', 'years', 'sections'));
+        return view('college.validate_students', compact(
+            'students', 'activeSY', 'activeSem', 'courses', 'years', 'sections', 'activeEnrollments', 'previousEnrollments'
+        ));
     }
+
 
 
 
@@ -150,17 +117,23 @@ class ValidateStudentsController extends Controller
             "section_id.$studentId" => 'required|exists:sections,id',
         ]);
 
-        StudentEnrollment::create([
-            'student_id' => $student->id,
-            'college_id' => $collegeId,
-            'course_id' => $request->course_id[$student->id],
-            'year_level_id' => $request->year_level_id[$student->id],
-            'section_id' => $request->section_id[$student->id],
-            'school_year_id' => $activeSY->id,
-            'semester_id' => $activeSem->id,
-            'validated_by' => Auth::id(),
-            'validated_at' => now(),
-        ]);
+$enrollment = StudentEnrollment::updateOrCreate(
+    [
+        'student_id'     => $student->id,
+        'school_year_id' => $activeSY->id,
+        'semester_id'    => $activeSem->id,
+    ],
+    [
+        'college_id'    => $collegeId,
+        'course_id'     => $request->course_id[$student->id],
+        'year_level_id' => $request->year_level_id[$student->id],
+        'section_id'    => $request->section_id[$student->id],
+        'status'        => 'ENROLLED',
+        'validated_by'  => Auth::id(),
+        'validated_at'  => now(),
+    ]
+);
+
 
         return back()->with('status', 'Student validated successfully.');
     }
@@ -195,8 +168,9 @@ class ValidateStudentsController extends Controller
                     'course_id'      => $request->course_id[$studentId],
                     'year_level_id'  => $request->year_level_id[$studentId],
                     'section_id'     => $request->section_id[$studentId],
-                    'validated_by'   => Auth::id(),
-                    'validated_at'   => now(),
+                    'status' => 'ENROLLED',
+                    'validated_by' => Auth::id(),
+                    'validated_at' => now(),
                 ]
             );
         }

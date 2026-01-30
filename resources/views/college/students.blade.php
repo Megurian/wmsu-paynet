@@ -14,9 +14,9 @@
             {{-- <a href="{{ route('college.students.validate') }}" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-500">
                 Validate Students
             </a> --}}
-            <button @click="showModal = true" class="bg-red-800 text-white px-4 py-2 rounded hover:bg-red-700 transition">
+            {{-- <button @click="showModal = true" class="bg-red-800 text-white px-4 py-2 rounded hover:bg-red-700 transition">
                 New Student
-            </button>
+            </button> --}}
             <a href="{{ route('college.academics') }}" class="text-blue-600 hover:underline text-sm">
                 Manage Courses / Years / Sections
             </a>
