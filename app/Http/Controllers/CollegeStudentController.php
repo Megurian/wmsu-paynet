@@ -36,6 +36,7 @@ class CollegeStudentController extends Controller
         ->where('student_enrollments.college_id', $collegeId)
         ->where('student_enrollments.school_year_id', $activeSY->id)
         ->where('student_enrollments.semester_id', $activeSem->id)
+        ->where('status', 'ENROLLED')
         ->orderBy('students.last_name')
         ->orderBy('students.first_name')
         ->select('student_enrollments.*')
@@ -112,6 +113,7 @@ class CollegeStudentController extends Controller
                 'semester_id' => $activeSem->id,
                 'validated_by' => Auth::id(),
                 'validated_at' => now(),
+                
             ]);
         }
 
@@ -140,10 +142,6 @@ class CollegeStudentController extends Controller
         return back()->with('status', 'Student removed from current semester.');
     }
 
-
-
-
-
-
     
+
 }

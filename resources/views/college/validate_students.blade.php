@@ -108,21 +108,34 @@
                     <th class="px-5 py-3 cursor-pointer select-none">Course</th>
                     <th class="px-5 py-3 cursor-pointer select-none">Year</th>
                     <th class="px-5 py-3 cursor-pointer select-none">Section</th>
+                    <th class="px-5 py-3">Advising</th>
+                    <th class="px-5 py-3">Payment</th>
+                    <th class="px-5 py-3">Enrollment</th>
                     <th class="px-5 py-3 cursor-pointer select-none">Action</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-100">
                 @forelse($students as $student)
-                @php
-                    $enrollment = $student->enrollments->first(); 
-                    $validated = $enrollment ? true : false;
-                    $prev = $student->lastEnrollment; 
+               @php
+                    $currentEnrollment = $activeEnrollments[$student->id] ?? null;
+                    $prev = $previousEnrollments[$student->id] ?? null;
+
+                    $isAdvised = $currentEnrollment !== null;
+                   $isPaid = $currentEnrollment && $currentEnrollment->is_paid;
+                    $isEnrolled = $currentEnrollment && $currentEnrollment->status === 'ENROLLED';
                 @endphp
-                <tr class="{{ $validated ? 'bg-green-50' : 'hover:bg-gray-50' }}">
+
+
+                <tr class="{{ $isEnrolled ? 'bg-green-50' : 'hover:bg-gray-50' }}">
                     <td class="px-3 py-2">
-                        @if(!$validated)
-                        <input type="checkbox" name="selected_students[]"  class="w-4 h-4 border-gray-400 rounded-sm focus:ring-2 focus:ring-blue-400 cursor-pointer" value="{{ $student->id }}" @click="toggleOne($event, '{{ $student->id }}')">
+                       @if(!$isEnrolled)
+                            <input type="checkbox"
+                                name="selected_students[]"
+                                class="w-4 h-4 border-gray-400 rounded-sm focus:ring-2 focus:ring-blue-400 cursor-pointer"
+                                value="{{ $student->id }}"
+                                @click="toggleOne($event, '{{ $student->id }}')">
                         @endif
+
                     </td>
                     <td class="px-3 py-2 font-medium">{{ $student->student_id }}</td>
                     <td class="px-3 py-2 font-medium">{{ strtoupper($student->last_name) }}, {{ strtoupper($student->first_name) }} {{ strtoupper($student->middle_name ?? '') }} {{ $student->suffix ?? '' }}</td>
@@ -135,52 +148,96 @@
                         @endif
                     </td>
                     <td class="px-3 py-2">
-                        <select name="course_id[{{ $student->id }}]" class="rounded-lg border border-gray-300 px-6 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition" required {{ $validated ? 'disabled' : '' }}>
+                        <select name="course_id[{{ $student->id }}]" class="rounded-lg border border-gray-300 px-6 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition" required {{ $isEnrolled ? 'disabled' : '' }}>
                             @foreach($courses as $course)
                                 <option value="{{ $course->id }}"
-                                    @if($validated && $course->id == $enrollment->course_id) selected
-                                    @elseif(!$validated && $prev && $course->id == $prev->course_id) selected
+                                    @if($isEnrolled && $currentEnrollment && $course->id == $currentEnrollment->course_id) selected
+                                    @elseif(!$isEnrolled && $prev && $course->id == $prev->course_id) selected
                                     @endif
                                 >{{ $course->name }}</option>
                             @endforeach
                         </select>
                     </td>
                     <td class="px-3 py-2">
-                        <select name="year_level_id[{{ $student->id }}]" class="rounded-lg border border-gray-300 px-6 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition" required {{ $validated ? 'disabled' : '' }}>
+                        <select name="year_level_id[{{ $student->id }}]" class="rounded-lg border border-gray-300 px-6 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition" required {{ $isEnrolled ? 'disabled' : '' }}>
                             @foreach($years as $year)
                                 <option value="{{ $year->id }}"
-                                    @if($validated && $year->id == $enrollment->year_level_id) selected
-                                    @elseif(!$validated && $prev && $year->id == $prev->year_level_id) selected
+                                   @if($isEnrolled && $currentEnrollment && $year->id == $currentEnrollment->year_level_id)
+                                    @elseif(!$isEnrolled && $prev && $year->id == $prev->year_level_id)
                                     @endif
                                 >{{ $year->name }}</option>
                             @endforeach
                         </select>
                     </td>
                     <td class="px-3 py-2">
-                        <select name="section_id[{{ $student->id }}]" class="rounded-lg border border-gray-300 px-6 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition" required {{ $validated ? 'disabled' : '' }}>
+                        <select name="section_id[{{ $student->id }}]" class="rounded-lg border border-gray-300 px-6 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition" required {{ $isEnrolled ? 'disabled' : '' }}>
                             @foreach($sections as $section)
                                 <option value="{{ $section->id }}"
-                                    @if($validated && $section->id == $enrollment->section_id) selected
-                                    @elseif(!$validated && $prev && $section->id == $prev->section_id) selected
+                                    @if($isEnrolled && $currentEnrollment && $section->id == $currentEnrollment->section_id) selected
+                                    @elseif(!$isEnrolled && $prev && $section->id == $prev->section_id) selected
                                     @endif
                                 >{{ $section->name }}</option>
                             @endforeach
                         </select>
                     </td>
                     <td class="px-3 py-2">
-                       @if(!$validated)
+                        @if($isAdvised)
+                            <span class="px-2 py-1 text-xs rounded bg-blue-100 text-blue-800">
+                                Finished
+                            </span>
+                        @else
+                            <span class="px-2 py-1 text-xs rounded bg-gray-100 text-gray-600">
+                                Not Advised
+                            </span>
+                        @endif
+                    </td>
+                    <td class="px-3 py-2">
+                        @if($isPaid)
+                            <span class="px-2 py-1 text-xs rounded bg-green-100 text-green-800">
+                                Paid
+                            </span>
+                        @elseif($isAdvised)
+                            <span class="px-2 py-1 text-xs rounded bg-yellow-100 text-yellow-800">
+                                Pending
+                            </span>
+                        @else
+                            <span class="px-2 py-1 text-xs rounded bg-gray-100 text-gray-600">
+                                —
+                            </span>
+                        @endif
+                    </td>
+                    <td class="px-3 py-2">
+                        @if($isEnrolled)
+                            <span class="px-2 py-1 text-xs rounded bg-green-200 text-green-900">
+                                Enrolled
+                            </span>
+                        @else
+                            <span class="px-2 py-1 text-xs rounded bg-red-100 text-red-800">
+                                Not Enrolled
+                            </span>
+                        @endif
+                    </td>
+
+
+                    <td class="px-3 py-2">
+                        @if(!$isAdvised)
+                            <span class="text-gray-400 italic text-sm">Waiting for adviser</span>
+                        @elseif(!$isPaid)
+                            <span class="text-yellow-700 italic text-sm">Pending payment</span>
+                        @elseif(!$isEnrolled)
                             <button 
                                 formaction="{{ route('college.students.validate.store', $student->id) }}" 
-                                formmethod="POST" 
+                                formmethod="POST"
                                 class="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-500 transition"
-                                onclick="return confirm('Are you sure you want to validate this student?');"
+                                onclick="return confirm('Validate and enroll this student?');"
                             >
-                                Validate
+                                Enroll
                             </button>
-                            @else
-                            <span class="text-green-800 font-semibold">Validated</span>
-                            @endif
+                        @else
+                            <span class="text-green-800 font-semibold">Enrolled</span>
+                        @endif
                     </td>
+
                 </tr>
                 @empty
                 <tr>

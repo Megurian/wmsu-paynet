@@ -207,6 +207,16 @@
                     <span>User Management</span>
                 </a>
                 @endif
+
+                @if(Auth::user()->role === 'adviser')
+                    <a href="{{ route('college.students.my-upload') }}" class="block px-4 py-2 rounded-md transition
+                        {{ request()->routeIs('college.students.my-upload') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                        <span> Students Upload</span>
+                    </a>
+                    {{-- <a href="{{ route('college.students.my-upload') }}" class="block px-4 py-2 rounded-md hover:bg-red-700">
+                        <span>My Students Upload</span>
+                    </a> --}}
+                @endif
             </nav>
         </aside>
 
@@ -259,7 +269,7 @@
 
             <!-- PAGE CONTENT -->
             <main class="flex-1 p-8 mt-10">
-                @php
+                {{-- @php
                     use App\Models\Announcement;
                     $announcement = Announcement::active()->latest()->first();
                 @endphp
@@ -276,7 +286,7 @@
                     </div>
                     <button id="closeAnnouncement" class="ml-4 text-yellow-800 font-bold hover:text-yellow-900">&times;</button>
                 </div>
-                @endif
+                @endif --}}
                 @if(session('status'))
                     <div id="successModal"
                         class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
@@ -350,15 +360,7 @@
             setTimeout(() => closeSuccessModal(), 3000);
 
             
-            const announcementId = "{{ $announcement->id }}";
-            if (localStorage.getItem('announcementClosed_' + announcementId)) {
-                document.getElementById('announcementBanner').style.display = 'none';
-            }
 
-            document.getElementById('closeAnnouncement').addEventListener('click', function() {
-                document.getElementById('announcementBanner').style.display = 'none';
-                localStorage.setItem('announcementClosed_' + announcementId, 'true');
-            });
         </script>
 
     </div>

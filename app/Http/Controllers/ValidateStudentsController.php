@@ -111,6 +111,24 @@ class ValidateStudentsController extends Controller
             ->paginate(40)
             ->withQueryString();
 
+        $activeEnrollments = StudentEnrollment::where('school_year_id', $activeSY->id)
+            ->where('semester_id', $activeSem->id)
+            ->get()
+            ->keyBy('student_id');
+        
+        $previousEnrollments = StudentEnrollment::with(['course', 'yearLevel', 'section'])
+            ->whereIn('student_id', $students->pluck('id'))
+            ->where(function ($q) use ($activeSY, $activeSem) {
+                $q->where('school_year_id', '!=', $activeSY->id)
+                ->orWhere('semester_id', '!=', $activeSem->id);
+            })
+            ->orderBy('school_year_id', 'desc')
+            ->orderBy('semester_id', 'desc')
+            ->get()
+            ->groupBy('student_id')
+            ->map(fn ($rows) => $rows->first());
+
+
 
         foreach ($students as $student) {
             $lastEnrollment = StudentEnrollment::where('student_id', $student->id)
@@ -131,7 +149,7 @@ class ValidateStudentsController extends Controller
         $years = YearLevel::where('college_id', $collegeId)->get();
         $sections = Section::where('college_id', $collegeId)->get();
 
-        return view('college.validate_students', compact('students', 'activeSY', 'activeSem', 'courses', 'years', 'sections'));
+        return view('college.validate_students', compact('students', 'activeSY', 'activeSem', 'courses', 'years', 'sections', 'activeEnrollments', 'previousEnrollments'));
     }
 
 
@@ -150,17 +168,23 @@ class ValidateStudentsController extends Controller
             "section_id.$studentId" => 'required|exists:sections,id',
         ]);
 
-        StudentEnrollment::create([
-            'student_id' => $student->id,
-            'college_id' => $collegeId,
-            'course_id' => $request->course_id[$student->id],
-            'year_level_id' => $request->year_level_id[$student->id],
-            'section_id' => $request->section_id[$student->id],
-            'school_year_id' => $activeSY->id,
-            'semester_id' => $activeSem->id,
-            'validated_by' => Auth::id(),
-            'validated_at' => now(),
-        ]);
+$enrollment = StudentEnrollment::updateOrCreate(
+    [
+        'student_id'     => $student->id,
+        'school_year_id' => $activeSY->id,
+        'semester_id'    => $activeSem->id,
+    ],
+    [
+        'college_id'    => $collegeId,
+        'course_id'     => $request->course_id[$student->id],
+        'year_level_id' => $request->year_level_id[$student->id],
+        'section_id'    => $request->section_id[$student->id],
+        'status'        => 'ENROLLED',
+        'validated_by'  => Auth::id(),
+        'validated_at'  => now(),
+    ]
+);
+
 
         return back()->with('status', 'Student validated successfully.');
     }
@@ -195,8 +219,9 @@ class ValidateStudentsController extends Controller
                     'course_id'      => $request->course_id[$studentId],
                     'year_level_id'  => $request->year_level_id[$studentId],
                     'section_id'     => $request->section_id[$studentId],
-                    'validated_by'   => Auth::id(),
-                    'validated_at'   => now(),
+                    'status' => 'ENROLLED',
+                    'validated_by' => Auth::id(),
+                    'validated_at' => now(),
                 ]
             );
         }

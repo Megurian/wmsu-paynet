@@ -16,7 +16,6 @@ class StudentsImport implements ToCollection, WithHeadingRow
     {
         $collegeId = auth()->user()->college_id;
 
-        // Preload mappings to reduce queries
         $courses = Course::where('college_id', $collegeId)->pluck('id', 'name')->mapWithKeys(fn($id, $name) => [strtoupper($name) => $id]);
         $years = YearLevel::where('college_id', $collegeId)->pluck('id', 'name')->mapWithKeys(fn($id, $name) => [strtoupper($name) => $id]);
         $sections = Section::where('college_id', $collegeId)->pluck('id', 'name')->mapWithKeys(fn($id, $name) => [strtoupper($name) => $id]);

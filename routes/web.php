@@ -13,6 +13,7 @@ use App\Http\Controllers\UniversityOrgFeesController;
 use App\Http\Controllers\UniversityOrgOfficesController;
 use App\Http\Controllers\CollegeUserController;
 use App\Http\Middleware\CheckActiveSchoolYear;
+use App\Http\Controllers\AdviserStudentUploadController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 
@@ -181,6 +182,20 @@ Route::middleware(['auth', 'role:college,student_coordinator,adviser'])->group(f
     Route::post('college/students/import', [ValidateStudentsController::class, 'import'])->name('college.students.import');
 
 });
+
+Route::middleware(['auth','role:adviser'])->group(function(){
+    Route::get('/college/students/my-upload', [AdviserStudentUploadController::class, 'index'])
+        ->name('college.students.my-upload');
+
+    Route::post('/college/students/my-upload', [AdviserStudentUploadController::class, 'store'])
+        ->name('college.students.my-upload.store');
+
+    Route::post('/college/students/my-upload/{student}/re-add', [AdviserStudentUploadController::class, 'reAddOldStudent'])
+        ->name('college.students.my-upload.readd');
+});
+
+
+
 
 
 Route::middleware('auth')->group(function () {
