@@ -76,6 +76,10 @@ Route::middleware(['auth', 'role:osa', CheckActiveSchoolYear::class])->group(fun
     Route::post('/osa/college/check-code', [OSACollegeController::class, 'checkCode'])->name('osa.college.checkCode');
     Route::post('/osa/college/check-email', [OSACollegeController::class, 'checkEmail'])->name('osa.college.checkEmail');
 
+    // AJAX validation endpoints for organizations (live uniqueness checks)
+    Route::post('/osa/organizations/check-code', [OSAOrganizationsController::class, 'checkCode'])->name('osa.organizations.checkCode');
+    Route::post('/osa/organizations/check-email', [OSAOrganizationsController::class, 'checkEmail'])->name('osa.organizations.checkEmail');
+
     Route::get('/osa/college/{id}', [OSACollegeController::class, 'show'])->name('osa.college.details');
     Route::delete('/osa/college/{id}', [OSACollegeController::class, 'destroy'])->name('osa.college.destroy');
 });
