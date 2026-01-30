@@ -125,4 +125,33 @@ class OSACollegeController extends Controller
         return redirect()->route('osa.college')->with('status', 'College deleted successfully!');
     }
 
+    /**
+     * AJAX: Check if a college code is available.
+     */
+    public function checkCode(Request $request)
+    {
+        $request->validate([
+            'college_code' => 'required|string|max:20',
+        ]);
+
+        $code = strtoupper($request->input('college_code'));
+        $exists = College::where('college_code', $code)->exists();
+
+        return response()->json(['available' => !$exists]);
+    }
+
+    /**
+     * AJAX: Check if an admin email is available.
+     */
+    public function checkEmail(Request $request)
+    {
+        $request->validate([
+            'admin_email' => 'required|email|max:255',
+        ]);
+
+        $exists = User::where('email', $request->input('admin_email'))->exists();
+
+        return response()->json(['available' => !$exists]);
+    }
+
 }
