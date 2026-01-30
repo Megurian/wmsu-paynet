@@ -6,15 +6,7 @@
 
 <div x-data="myStudentsUpload()" x-init="">
     {{-- Top Actions --}}
-    <div class="flex items-center gap-4 mb-4">
-        <button @click="showModal = true" class="bg-red-800 text-white px-4 py-2 rounded hover:bg-red-700 transition">
-            New Student
-        </button>
 
-        <button @click="showImportModal = true" class="px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-500 transition">
-            Import Student List
-        </button>
-    </div>
 
     {{-- Import Modal --}}
     <div x-show="showImportModal" x-cloak class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
@@ -40,6 +32,64 @@
             </form>
         </div>
     </div>
+
+
+    {{-- Filters and Actions --}}
+<div class="bg-white border border-gray-200 rounded-xl p-4 mb-5 shadow-sm">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
+
+        {{-- Search --}}
+        <div class="relative col-span-1 sm:col-span-2">
+            <input type="text" x-model="search" placeholder="Search by name or Student ID"
+                class="w-full px-3 py-2 pr-10 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none">
+            <button type="button" x-show="search" @click="search=''"
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none transition">&times;</button>
+        </div>
+
+        {{-- Course --}}
+        <select x-model="filterCourse"
+            class="rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
+            <option value="">All Courses</option>
+            @foreach($courses as $course)
+            <option value="{{ $course->id }}">{{ $course->name }}</option>
+            @endforeach
+        </select>
+
+        {{-- Year --}}
+        <select x-model="filterYear"
+            class="rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
+            <option value="">All Year Levels</option>
+            @foreach($years as $year)
+            <option value="{{ $year->id }}">{{ $year->name }}</option>
+            @endforeach
+        </select>
+
+        {{-- Section --}}
+        <select x-model="filterSection"
+            class="rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
+            <option value="">All Sections</option>
+            @foreach($sections as $section)
+            <option value="{{ $section->id }}">{{ $section->name }}</option>
+            @endforeach
+        </select>
+
+    </div>
+
+    {{-- Action Buttons --}}
+    <div class="flex justify-end gap-4 mt-4">
+        <button @click="showModal = true"
+            class="bg-red-800 text-white px-4 py-2 rounded hover:bg-red-700 transition">
+            New Student
+        </button>
+
+        <button @click="showImportModal = true"
+            class="px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-500 transition">
+            Import Student List
+        </button>
+    </div>
+</div>
+
+
 
     {{-- New Student Modal --}}
     <div x-show="showModal" x-cloak class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -134,44 +184,6 @@
             </form>
         </div>
     </div>
-
-    {{-- Filters --}}
-    <div class="bg-white border border-gray-200 rounded-xl p-4 mb-5 shadow-sm">
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-
-            {{-- Search --}}
-            <div class="relative col-span-1 sm:col-span-2">
-                <input type="text" x-model="search" placeholder="Search by name or Student ID"  class="w-full px-3 py-2 pr-10 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none" >
-                <button type="button" x-show="search" @click="search=''" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none transition">&times;</button>
-            </div>
-
-            {{-- Course --}}
-            <select x-model="filterCourse" class="rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
-                <option value="">All Courses</option>
-                @foreach($courses as $course)
-                <option value="{{ $course->id }}">{{ $course->name }}</option>
-                @endforeach
-            </select>
-
-            {{-- Year --}}
-            <select x-model="filterYear" class="rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
-                <option value="">All Year Levels</option>
-                @foreach($years as $year)
-                <option value="{{ $year->id }}">{{ $year->name }}</option>
-                @endforeach
-            </select>
-
-            {{-- Section --}}
-            <select x-model="filterSection" class="rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
-                <option value="">All Sections</option>
-                @foreach($sections as $section)
-                <option value="{{ $section->id }}">{{ $section->name }}</option>
-                @endforeach
-            </select>
-
-        </div>
-    </div>
-
     {{-- Students Table as Cards --}}
     <div class="space-y-4">
         <template x-for="student in filteredStudents" :key="student.id">
@@ -300,6 +312,8 @@
 
 </div>
 
+
+
 <script>
     function myStudentsUpload() {
         return {
@@ -311,7 +325,7 @@
             , filterSection: ''
             , students: @json($alpineStudents),
 
-            get filteredStudents() { 
+            get filteredStudents() {
                 let result = this.students;
 
                 if (this.search) {
