@@ -188,66 +188,29 @@
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-100">
-            <template x-for="student in filteredStudents" :key="student.id">
-                <tr class="hover:bg-gray-50 transition">
-                    <td class="px-5 py-3" x-text="student.student_id"></td>
-                    <td class="px-5 py-3" x-text="student.last_name + ', ' + student.first_name + (student.middle_name ? ' ' + student.middle_name : '')"></td>
-                    <td class="px-5 py-3" x-text="student.status"></td>
-
-                    <!-- Course Dropdown -->
-                    <td class="px-5 py-3">
-                        <select x-model="student.course_id" @change="updateStudent(student.id, 'course_id', student.course_id)" class="w-full border rounded px-2 py-1 text-sm">
-                            <option value="">Select Course</option>
-                            @foreach($courses as $course)
-                                <option value="{{ $course->id }}">{{ $course->name }}</option>
-                            @endforeach
-                        </select>
-                    </td>
-
-                    <!-- Year Level Dropdown -->
-                    <td class="px-5 py-3">
-                        <select x-model="student.year_level_id" @change="updateStudent(student.id, 'year_level_id', student.year_level_id)" class="w-full border rounded px-2 py-1 text-sm">
-                            <option value="">Select Year Level</option>
-                            @foreach($years as $year)
-                                <option value="{{ $year->id }}">{{ $year->name }}</option>
-                            @endforeach
-                        </select>
-                    </td>
-
-                    <!-- Section Dropdown -->
-                    <td class="px-5 py-3">
-                        <select x-model="student.section_id" @change="updateStudent(student.id, 'section_id', student.section_id)" class="w-full border rounded px-2 py-1 text-sm">
-                            <option value="">Select Section</option>
-                            @foreach($sections as $section)
-                                <option value="{{ $section->id }}">{{ $section->name }}</option>
-                            @endforeach
-                        </select>
-                    </td>
-
-                    <!-- Action -->
-                    <td class="px-5 py-3">
-                        <template x-if="student.status === 'NOT ENROLLED'">
-                            <form :action="`{{ url('/college/students') }}/${student.id}/readd`" method="POST" class="flex gap-2 items-center">
+                <template x-for="student in filteredStudents" :key="student.id">
+                    <tr class="hover:bg-gray-50 transition">
+                        <td class="px-5 py-3" x-text="student.student_id"></td>
+                        <td class="px-5 py-3" x-text="student.last_name + ', ' + student.first_name + (student.middle_name ? ' ' + student.middle_name : '')"></td>
+                        <td class="px-5 py-3" x-text="student.status"></td>
+                        <td class="px-5 py-3" x-text="student.course || '-'"></td>
+                        <td class="px-5 py-3" x-text="student.year_level || '-'"></td>
+                        <td class="px-5 py-3" x-text="student.section || '-'"></td>
+                        <td class="px-5 py-3">
+                            <form :action="`/college/students/${student.id}/readd`" method="POST" class="flex gap-2 items-center">
                                 @csrf
-                                <input type="hidden" name="course_id" :value="student.course_id">
-                                <input type="hidden" name="year_level_id" :value="student.year_level_id">
-                                <input type="hidden" name="section_id" :value="student.section_id">
-                                <button type="submit" class="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-500">
-                                    Proceed to Payment
-                                </button>
+                                <button type="submit" class="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-500">Re-add</button>
                             </form>
-                        </template>
+                        </td>
+                    </tr>
+                </template>
+
+                <tr x-show="filteredStudents.length === 0">
+                    <td colspan="7" class="text-center py-6 text-gray-400 italic">
+                        No students found
                     </td>
                 </tr>
-            </template>
-
-            <tr x-show="filteredStudents.length === 0">
-                <td colspan="7" class="text-center py-6 text-gray-400 italic">
-                    No students found
-                </td>
-            </tr>
-        </tbody>
-
+            </tbody>
         </table>
     </div>
 </div>
@@ -263,7 +226,7 @@ function myStudentsUpload() {
         filterSection: '',
         students: @json($alpineStudents),
 
-        filteredStudents() {
+        get filteredStudents() {
             let result = this.students;
             if (this.search) {
                 const s = this.search.toLowerCase();
@@ -279,24 +242,6 @@ function myStudentsUpload() {
             if (this.filterSection) result = result.filter(st => st.section_id == Number(this.filterSection));
 
             return result;
-        },
-
-        updateStudent(studentId, field, value) {
-            fetch(`/college/students/${studentId}/update-field`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                },
-                body: JSON.stringify({ field, value })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    console.log('Updated successfully');
-                }
-            })
-            .catch(err => console.error(err));
         }
     }
 }
