@@ -100,6 +100,7 @@ class AdviserStudentUploadController extends Controller
                 'section_id' => $enrollment->section_id ?? $prev->section_id ?? null,
                 'section' => $enrollment->section->name ?? $prev->section->name ?? null,
                 'status' => $enrollment->status ?? 'NOT ENROLLED',
+                 'isPaid' => $enrollment ? $enrollment->is_paid : false,
             ];
         });
 

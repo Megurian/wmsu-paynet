@@ -284,17 +284,18 @@
 
                         <!-- Payment -->
                         <div class="flex items-center space-x-1">
-                            <div class="w-5 h-5 flex items-center justify-center rounded-full" :class="student.status === 'FOR_PAYMENT_VALIDATION' || student.status === 'ENROLLED' ? 'bg-green-600' : 'bg-gray-200'">
-                                <template x-if="student.status === 'FOR_PAYMENT_VALIDATION' || student.status === 'ENROLLED'">
+                            <div class="w-5 h-5 flex items-center justify-center rounded-full"
+                                :class="student.isPaid ? 'bg-green-600' : 'bg-gray-200'">
+                                <template x-if="student.isPaid">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
                                     </svg>
                                 </template>
-                                <template x-if="student.status !== 'FOR_PAYMENT_VALIDATION' && student.status !== 'ENROLLED'">
+                                <template x-if="!student.isPaid">
                                     <span class="text-[8px] font-semibold text-gray-500">P</span>
                                 </template>
                             </div>
-                            <span class="text-[10px]" :class="student.status === 'FOR_PAYMENT_VALIDATION' || student.status === 'ENROLLED' ? 'text-green-600 font-semibold' : 'text-gray-400'">Payment</span>
+                            <span class="text-[10px]" :class="student.isPaid ? 'text-green-600 font-semibold' : 'text-gray-400'">Payment</span>
                         </div>
 
                         <div class="flex-1 border-t-2 border-dashed" :class="student.status === 'FOR_PAYMENT_VALIDATION' || student.status === 'ENROLLED' ? 'border-green-300' : 'border-gray-300'"></div>
