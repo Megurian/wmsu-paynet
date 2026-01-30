@@ -46,29 +46,7 @@
 </div>
 
 
-<div id="importModal" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center hidden z-50">
-    <div class="bg-white rounded-xl shadow-lg w-full max-w-md p-6 relative">
-        <h3 class="text-lg font-semibold mb-4">Import Student List</h3>
-        <p class="text-sm text-gray-700 mb-4">
-            Download the template, fill in student details, and upload. Students remain unvalidated until manual validation.
-        </p>
 
-       <a href="{{ route('college.students.import.template') }}"
-        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition">
-            📥 Download Import Template
-        </a>
-
-
-        <form action="{{ route('college.students.import') }}" method="POST" enctype="multipart/form-data">
-            @csrf
-            <input type="file" name="student_file" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" class="mb-4">
-            <div class="flex justify-end gap-2">
-                <button type="button" onclick="document.getElementById('importModal').classList.add('hidden')" class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">Cancel</button>
-                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-500">Upload</button>
-            </div>
-        </form>
-    </div>
-</div>
 
 
 @if(session('success'))
