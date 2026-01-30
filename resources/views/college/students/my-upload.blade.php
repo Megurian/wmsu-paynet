@@ -139,13 +139,22 @@
         </thead>
         <tbody>
             @foreach($students as $enrollment)
-            <tr>
+            <tr @class([
+                'bg-green-100' => $enrollment->status === 'ENROLLED' && $enrollment->is_paid,
+                'bg-yellow-100' => $enrollment->status === 'ENROLLED' && !$enrollment->is_paid,
+                'bg-red-100' => $enrollment->status === 'FOR_PAYMENT_VALIDATION',
+            ])>
                 <td>{{ $enrollment->student->student_id }}</td>
                 <td>{{ $enrollment->student->last_name }}, {{ $enrollment->student->first_name }}</td>
                 <td>{{ $enrollment->course?->name }}</td>
                 <td>{{ $enrollment->yearLevel?->name }}</td>
                 <td>{{ $enrollment->section?->name }}</td>
-                <td>{{ $enrollment->status }}</td>
+                <td>
+                    {{ $enrollment->status }}
+                    @if($enrollment->is_paid)
+                        <span class="text-green-600 font-semibold">(PAID)</span>
+                    @endif
+                </td>
                 <td>
                     @if($enrollment->status !== 'ENROLLED')
                     <form method="POST" action="{{ route('college.students.my-upload.readd', $enrollment->student->id) }}">
@@ -159,6 +168,7 @@
             </tr>
             @endforeach
         </tbody>
+
     </table>
 </div>
 

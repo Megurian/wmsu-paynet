@@ -22,10 +22,8 @@ class AdviserStudentUploadController extends Controller
         $activeSY = SchoolYear::where('is_active', true)->first();
         $activeSem = Semester::where('is_active', true)->first();
 
-        // Adviser students for active SY/Sem
        $students = StudentEnrollment::with('student', 'course', 'yearLevel', 'section')
         ->where('adviser_id', $adviserId)
-        ->where('status', 'FOR_PAYMENT_VALIDATION') // optional if you want only new students
         ->when($activeSY, fn($q) => $q->where('school_year_id', $activeSY->id))
         ->when($activeSem, fn($q) => $q->where('semester_id', $activeSem->id))
         ->orderBy('id', 'desc')
