@@ -190,8 +190,9 @@ Route::middleware(['auth','role:adviser'])->group(function(){
     Route::post('/college/students/my-upload', [AdviserStudentUploadController::class, 'store'])
         ->name('college.students.my-upload.store');
 
-    Route::post('/college/students/my-upload/{student}/re-add', [AdviserStudentUploadController::class, 'reAddOldStudent'])
-        ->name('college.students.my-upload.readd');
+    Route::post('/college/students/{student}/readd', [AdviserStudentUploadController::class, 'reAddOldStudent'])
+    ->name('college.students.readd');
+
 });
 
 

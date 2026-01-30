@@ -10,7 +10,15 @@
 
 <div class="bg-white shadow rounded-lg p-4 mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
     <form method="GET" class="flex flex-wrap gap-3 flex-1 items-center">
-        <input type="text" name="search" value="{{ request('search') }}" placeholder="Search by name or Student ID" class="flex-1 min-w-[150px] px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none" >
+     
+        <div class="relative flex-1 min-w-[150px]">
+            <input type="text" name="search" value="{{ request('search') }}" placeholder="Search by name or Student ID" class="w-full px-3 py-2 pr-10 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none">
+            @if(request('search'))
+                <button type="button" onclick="this.closest('form').querySelector('input[name=search]').value=''; this.closest('form').submit();" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none transition" aria-label="Clear search">
+                    &times;
+                </button>
+            @endif
+        </div>
         <select name="course" class="rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition" onchange="this.form.submit()">
             <option value="">All Courses</option>
             @foreach($courses as $course)
@@ -260,5 +268,6 @@ function studentSelection() {
         }
     }
 }
+
 </script>
 @endsection
