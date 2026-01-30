@@ -94,7 +94,7 @@ Route::middleware(['auth', 'role:university_org'])->group(function () {
     })->name('university_org.fees');
 
     Route::get('/university_org/offices', function () {
-        return view('university_org.offices');
+        return redirect()->route('university_org.offices.index');
     })->name('university_org.offices');
 
     Route::get('/university_org/remittance', function () {
@@ -112,6 +112,10 @@ Route::middleware(['auth', 'role:university_org'])->group(function () {
     Route::get('/university-org/offices', [UniversityOrgOfficesController::class, 'index'])->name('university_org.offices.index');
     Route::get('/university-org/offices/create', [UniversityOrgOfficesController::class, 'create'])->name('university_org.offices.create');
     Route::post('/university-org/offices', [UniversityOrgOfficesController::class, 'store'])->name('university_org.offices.store');
+
+    // AJAX validation endpoints for organizations (live uniqueness checks)
+    Route::post('/university-org/organizations/check-code', [UniversityOrgOfficesController::class, 'checkCode'])->name('university_org.organizations.checkCode');
+    Route::post('/university-org/organizations/check-email', [UniversityOrgOfficesController::class, 'checkEmail'])->name('university_org.organizations.checkEmail');
 });
 
 Route::middleware(['auth', 'role:college_org'])->group(function () {

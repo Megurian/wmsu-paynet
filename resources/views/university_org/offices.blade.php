@@ -14,68 +14,42 @@
     </a>
 </div>
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div class="bg-white rounded-lg shadow-md p-6 flex flex-col items-center text-center relative">
-            <div class="w-28 h-28 mb-4 bg-gray-100 rounded-full flex items-center justify-center text-gray-400">
-                <span>Logo</span>
-            </div>
-            <h3 class="text-lg font-semibold">Student Council</h3>
-            <p class="text-gray-600 mb-2"><span class="font-medium">SC</span></p>
-            <p class="text-sm text-gray-600">Type: College-based</p>
-            
-            <div class="absolute top-2 right-2">
-                <button onclick="toggleMenu('menu-1')" 
-                    class="w-8 h-8 flex items-center justify-center border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100">
-                    ⋮
-                </button>
-                <div id="menu-1" class="hidden absolute right-0 mt-2 w-36 bg-white border border-gray-200 rounded shadow-lg z-10">
-                    <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">View Details</a>
-                    <button class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100">Delete</button>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-white rounded-lg shadow-md p-6 flex flex-col items-center text-center relative">
-            <div class="w-28 h-28 mb-4 bg-gray-100 rounded-full flex items-center justify-center text-gray-400">
-                <span>Logo</span>
-            </div>
-            <h3 class="text-lg font-semibold">Computer Society</h3>
-            <p class="text-gray-600 mb-2"><span class="font-medium">CS</span></p>
-            <p class="text-sm text-gray-600">Type: College-based</p>
-            <p class="text-sm text-gray-600">College of Computing Studies</p>
-            
-            <div class="absolute top-2 right-2">
-                <button onclick="toggleMenu('menu-2')" 
-                    class="w-8 h-8 flex items-center justify-center border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100">
-                    ⋮
-                </button>
-                <div id="menu-2" class="hidden absolute right-0 mt-2 w-36 bg-white border border-gray-200 rounded shadow-lg z-10">
-                    <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">View Details</a>
-                    <button class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100">Delete</button>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-white rounded-lg shadow-md p-6 flex flex-col items-center text-center relative">
-            <div class="w-28 h-28 mb-4 bg-gray-100 rounded-full flex items-center justify-center text-gray-400">
-                <span>Logo</span>
-            </div>
-            <h3 class="text-lg font-semibold">Math Club</h3>
-            <p class="text-gray-600 mb-2"><span class="font-medium">MATH</span></p>
-            <p class="text-sm text-gray-600">Type: College-based</p>
-            
-            <div class="absolute top-2 right-2">
-                <button onclick="toggleMenu('menu-3')" 
-                    class="w-8 h-8 flex items-center justify-center border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100">
-                    ⋮
-                </button>
-                <div id="menu-3" class="hidden absolute right-0 mt-2 w-36 bg-white border border-gray-200 rounded shadow-lg z-10">
-                    <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">View Details</a>
-                    <button class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100">Delete</button>
-                </div>
-            </div>
-        </div>
+@if($organizations->isEmpty())
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <p class="text-gray-600">No offices have been created yet.</p>
     </div>
+@else
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        @foreach($organizations as $org)
+            <div class="bg-white rounded-lg shadow-md p-6 flex flex-col items-center text-center relative">
+                <div class="w-28 h-28 mb-4 bg-gray-100 rounded-full flex items-center justify-center text-gray-400 overflow-hidden">
+                    @if($org->logo)
+                        <img src="{{ asset('storage/' . $org->logo) }}" alt="{{ $org->name }} logo" class="w-full h-full object-cover" />
+                    @else
+                        <span>Logo</span>
+                    @endif
+                </div>
+                <h3 class="text-lg font-semibold">{{ $org->name }}</h3>
+                <p class="text-gray-600 mb-2"><span class="font-medium">{{ $org->org_code }}</span></p>
+                <p class="text-sm text-gray-600">Type: {{ $org->role === 'college_org' ? 'College-based' : ucfirst($org->role) }}</p>
+                @if($org->college)
+                    <p class="text-sm text-gray-600">{{ $org->college->name }}</p>
+                @endif
+
+                <div class="absolute top-2 right-2">
+                    <button onclick="toggleMenu('menu-{{ $loop->iteration }}')" 
+                        class="w-8 h-8 flex items-center justify-center border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100">
+                        ⋮
+                    </button>
+                    <div id="menu-{{ $loop->iteration }}" class="hidden absolute right-0 mt-2 w-36 bg-white border border-gray-200 rounded shadow-lg z-10">
+                        <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">View Details</a>
+                        <button class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100">Delete</button>
+                    </div>
+                </div>
+            </div>
+        @endforeach
+    </div>
+@endif
 </div>
 
 <script>
