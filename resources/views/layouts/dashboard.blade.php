@@ -216,7 +216,7 @@
 
                 @if(Auth::user()->role === 'student_coordinator')
                     <a href="{{ route('college.students.validate') }}" class="block px-4 py-2 rounded-md transition
-                        {{ request()->routeIs('college_org.records') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                        {{ request()->routeIs('college.students.validate') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
                         <span>Enrollment Validation</span>
                     </a>
                 @endif
