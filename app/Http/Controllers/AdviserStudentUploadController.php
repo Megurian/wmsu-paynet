@@ -101,7 +101,10 @@ class AdviserStudentUploadController extends Controller
                 'section' => $enrollment->section->name ?? $prev->section->name ?? null,
                 'status' => $enrollment->status ?? 'NOT ENROLLED',
                  'isPaid' => $enrollment ? $enrollment->is_paid : false,
+                'selected' => false, 
             ];
+
+            
         });
 
         return view(
@@ -187,7 +190,21 @@ public function reAddOldStudent(Request $request, $studentId)
         ]
     );
 
-    return back()->with('status', 'Student re-added successfully.');
+    return back()->with('status', 'Student added successfully. Student may now proceed to payment');
+}
+
+public function reAddBulk(Request $request)
+{
+    $request->validate([
+        'students' => 'required|array',
+        'students.*' => 'exists:students,id',
+    ]);
+
+    foreach ($request->students as $studentId) {
+        $this->reAddOldStudent($request, $studentId); 
+    }
+
+    return back()->with('status', count($request->students) . ' student(s) added successfully. They may now proceed to payment.');
 }
 
 
