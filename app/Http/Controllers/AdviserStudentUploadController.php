@@ -187,7 +187,7 @@ public function reAddOldStudent(Request $request, $studentId)
         ]
     );
 
-    return back()->with('status', 'Student re-added successfully.');
+    return back()->with('status', 'Student added successfully. Student may now proceed to payment');
 }
 
 
