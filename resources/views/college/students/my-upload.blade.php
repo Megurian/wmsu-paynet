@@ -26,8 +26,7 @@
                 Download the template, fill in student details, and upload. Students remain unvalidated until manual validation.
             </p>
 
-            <a href="{{ route('college.students.import.template') }}"
-                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition">
+            <a href="{{ route('college.students.import.template') }}" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition">
                 Download Import Template
             </a>
 
@@ -93,7 +92,7 @@
                         <select name="course_id" required class="w-full border rounded px-3 py-2 text-sm">
                             <option value="">Select Course</option>
                             @foreach($courses as $course)
-                                <option value="{{ $course->id }}">{{ $course->name }}</option>
+                            <option value="{{ $course->id }}">{{ $course->name }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -102,7 +101,7 @@
                         <select name="year_level_id" required class="w-full border rounded px-3 py-2 text-sm">
                             <option value="">Select Year Level</option>
                             @foreach($years as $year)
-                                <option value="{{ $year->id }}">{{ $year->name }}</option>
+                            <option value="{{ $year->id }}">{{ $year->name }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -111,7 +110,7 @@
                         <select name="section_id" required class="w-full border rounded px-3 py-2 text-sm">
                             <option value="">Select Section</option>
                             @foreach($sections as $section)
-                                <option value="{{ $section->id }}">{{ $section->name }}</option>
+                            <option value="{{ $section->id }}">{{ $section->name }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -142,164 +141,217 @@
 
             {{-- Search --}}
             <div class="relative col-span-1 sm:col-span-2">
-                <input type="text" x-model="search" placeholder="Search by name or Student ID" class="w-full rounded-lg border px-4 py-2.5 pr-10 text-sm placeholder-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
+                <input type="text" x-model="search" placeholder="Search by name or Student ID"  class="w-full px-3 py-2 pr-10 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none" >
                 <button type="button" x-show="search" @click="search=''" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none transition">&times;</button>
             </div>
 
             {{-- Course --}}
-            <select x-model="filterCourse" class="w-full rounded-lg border px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
+            <select x-model="filterCourse" class="rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
                 <option value="">All Courses</option>
                 @foreach($courses as $course)
-                    <option value="{{ $course->id }}">{{ $course->name }}</option>
+                <option value="{{ $course->id }}">{{ $course->name }}</option>
                 @endforeach
             </select>
 
             {{-- Year --}}
-            <select x-model="filterYear" class="w-full rounded-lg border px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
+            <select x-model="filterYear" class="rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
                 <option value="">All Year Levels</option>
                 @foreach($years as $year)
-                    <option value="{{ $year->id }}">{{ $year->name }}</option>
+                <option value="{{ $year->id }}">{{ $year->name }}</option>
                 @endforeach
             </select>
 
             {{-- Section --}}
-            <select x-model="filterSection" class="w-full rounded-lg border px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
+            <select x-model="filterSection" class="rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
                 <option value="">All Sections</option>
                 @foreach($sections as $section)
-                    <option value="{{ $section->id }}">{{ $section->name }}</option>
+                <option value="{{ $section->id }}">{{ $section->name }}</option>
                 @endforeach
             </select>
 
         </div>
     </div>
 
-    {{-- Students Table --}}
-    <div class="bg-white shadow-sm border border-gray-200 rounded-xl overflow-hidden">
-        <table class="min-w-full text-sm text-gray-800">
-            <thead class="bg-gray-50 border-b border-gray-200">
-                <tr class="text-left text-[11px] font-semibold uppercase tracking-wide text-gray-600">
-                    <th class="px-5 py-3">Student ID</th>
-                    <th class="px-5 py-3">Name</th>
-                    <th class="px-5 py-3">Status</th>
-                    <th class="px-5 py-3">Course</th>
-                    <th class="px-5 py-3">Year</th>
-                    <th class="px-5 py-3">Section</th>
-                    <th class="px-5 py-3">Action</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-100">
-            <template x-for="student in filteredStudents" :key="student.id">
-                <tr class="hover:bg-gray-50 transition">
-                    <td class="px-5 py-3" x-text="student.student_id"></td>
-                    <td class="px-5 py-3" x-text="student.last_name + ', ' + student.first_name + (student.middle_name ? ' ' + student.middle_name : '')"></td>
-                    <td class="px-5 py-3" x-text="student.status"></td>
+    {{-- Students Table as Cards --}}
+    <div class="space-y-4">
+        <template x-for="student in filteredStudents" :key="student.id">
+            <div class="bg-white shadow rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between space-y-3 md:space-y-0 md:space-x-4">
+                {{-- Student Info --}}
+                <div class="flex items-center space-x-4 md:w-1/3">
+                    <div class="text-sm font-semibold" x-text="student.student_id"></div>
+                    <div class="text-sm font-medium" x-text="student.last_name + ', ' + student.first_name + (student.middle_name ? ' ' + student.middle_name : '')"></div>
+                </div>
 
-                    <!-- Course Dropdown -->
-                    <td class="px-5 py-3">
-                        <select x-model="student.course_id" @change="updateStudent(student.id, 'course_id', student.course_id)" class="w-full border rounded px-2 py-1 text-sm">
-                            <option value="">Select Course</option>
-                            @foreach($courses as $course)
+                {{-- Course / Year / Section --}}
+                <div class="md:w-1/3 text-sm text-gray-700">
+                    <div class="grid grid-cols-3 gap-2 items-center">
+                        {{-- Course --}}
+                        <div>
+                            <select x-model="student.course_id" @change="updateStudent(student.id, 'course_id', student.course_id)" class="w-full border rounded px-2 py-1 text-xs">
+                                <option value="">Select Course</option>
+                                @foreach($courses as $course)
                                 <option value="{{ $course->id }}">{{ $course->name }}</option>
-                            @endforeach
-                        </select>
-                    </td>
-
-                    <!-- Year Level Dropdown -->
-                    <td class="px-5 py-3">
-                        <select x-model="student.year_level_id" @change="updateStudent(student.id, 'year_level_id', student.year_level_id)" class="w-full border rounded px-2 py-1 text-sm">
-                            <option value="">Select Year Level</option>
-                            @foreach($years as $year)
+                                @endforeach
+                            </select>
+                        </div>
+                        {{-- Year --}}
+                        <div>
+                            <select x-model="student.year_level_id" @change="updateStudent(student.id, 'year_level_id', student.year_level_id)" class="w-full border rounded px-2 py-1 text-xs">
+                                <option value="">Select Year</option>
+                                @foreach($years as $year)
                                 <option value="{{ $year->id }}">{{ $year->name }}</option>
-                            @endforeach
-                        </select>
-                    </td>
-
-                    <!-- Section Dropdown -->
-                    <td class="px-5 py-3">
-                        <select x-model="student.section_id" @change="updateStudent(student.id, 'section_id', student.section_id)" class="w-full border rounded px-2 py-1 text-sm">
-                            <option value="">Select Section</option>
-                            @foreach($sections as $section)
+                                @endforeach
+                            </select>
+                        </div>
+                        {{-- Section --}}
+                        <div>
+                            <select x-model="student.section_id" @change="updateStudent(student.id, 'section_id', student.section_id)" class="w-full border rounded px-2 py-1 text-xs">
+                                <option value="">Select Section</option>
+                                @foreach($sections as $section)
                                 <option value="{{ $section->id }}">{{ $section->name }}</option>
-                            @endforeach
-                        </select>
-                    </td>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                </div>
 
-                    <!-- Action -->
-                    <td class="px-5 py-3">
+                {{-- Status / Actions --}}
+                <div class="flex flex-col items-end md:w-1/3 space-y-2">
+                    <div>
                         <template x-if="student.status === 'NOT ENROLLED'">
                             <form :action="`{{ url('/college/students') }}/${student.id}/readd`" method="POST" class="flex gap-2 items-center">
                                 @csrf
                                 <input type="hidden" name="course_id" :value="student.course_id">
                                 <input type="hidden" name="year_level_id" :value="student.year_level_id">
                                 <input type="hidden" name="section_id" :value="student.section_id">
-                                <button type="submit" class="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-500">
+                                <button type="submit" class="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-500 text-xs">
                                     Proceed to Payment
                                 </button>
                             </form>
                         </template>
-                    </td>
-                </tr>
-            </template>
+                        <template x-if="student.status === 'FOR_PAYMENT_VALIDATION'">
+                            <span class="text-yellow-700 italic text-sm">Pending payment</span>
+                        </template>
+                        <template x-if="student.status === 'ENROLLED'">
+                            <span class="text-green-800 font-semibold text-sm">Enrolled</span>
+                        </template>
+                    </div>
 
-            <tr x-show="filteredStudents.length === 0">
-                <td colspan="7" class="text-center py-6 text-gray-400 italic">
-                    No students found
-                </td>
-            </tr>
-        </tbody>
+                    {{-- Progress Steps --}}
+                    <div class="flex items-center space-x-3 mt-2 w-full">
+                        <!-- Advising -->
+                        <div class="flex items-center space-x-1">
+                            <div class="w-5 h-5 flex items-center justify-center rounded-full" :class="student.status !== 'NOT ENROLLED' ? 'bg-blue-600' : 'bg-gray-200'">
+                                <template x-if="student.status !== 'NOT ENROLLED'">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                </template>
+                                <template x-if="student.status === 'NOT ENROLLED'">
+                                    <span class="text-[8px] font-semibold text-gray-500">A</span>
+                                </template>
+                            </div>
+                            <span class="text-[10px]" :class="student.status !== 'NOT ENROLLED' ? 'text-blue-600 font-semibold' : 'text-gray-400'">Advising</span>
+                        </div>
 
-        </table>
+                        <div class="flex-1 border-t-2 border-dashed" :class="student.status !== 'NOT ENROLLED' ? 'border-blue-300' : 'border-gray-300'"></div>
+
+                        <!-- Payment -->
+                        <div class="flex items-center space-x-1">
+                            <div class="w-5 h-5 flex items-center justify-center rounded-full" :class="student.status === 'FOR_PAYMENT_VALIDATION' || student.status === 'ENROLLED' ? 'bg-green-600' : 'bg-gray-200'">
+                                <template x-if="student.status === 'FOR_PAYMENT_VALIDATION' || student.status === 'ENROLLED'">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                </template>
+                                <template x-if="student.status !== 'FOR_PAYMENT_VALIDATION' && student.status !== 'ENROLLED'">
+                                    <span class="text-[8px] font-semibold text-gray-500">P</span>
+                                </template>
+                            </div>
+                            <span class="text-[10px]" :class="student.status === 'FOR_PAYMENT_VALIDATION' || student.status === 'ENROLLED' ? 'text-green-600 font-semibold' : 'text-gray-400'">Payment</span>
+                        </div>
+
+                        <div class="flex-1 border-t-2 border-dashed" :class="student.status === 'FOR_PAYMENT_VALIDATION' || student.status === 'ENROLLED' ? 'border-green-300' : 'border-gray-300'"></div>
+
+                        <!-- Enrollment -->
+                        <div class="flex items-center space-x-1">
+                            <div class="w-5 h-5 flex items-center justify-center rounded-full" :class="student.status === 'ENROLLED' ? 'bg-indigo-600' : 'bg-gray-200'">
+                                <template x-if="student.status === 'ENROLLED'">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                </template>
+                                <template x-if="student.status !== 'ENROLLED'">
+                                    <span class="text-[8px] font-semibold text-gray-500">E</span>
+                                </template>
+                            </div>
+                            <span class="text-[10px]" :class="student.status === 'ENROLLED' ? 'text-indigo-600 font-semibold' : 'text-gray-400'">Enrollment</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </template>
+
+        <div x-show="filteredStudents.length === 0" class="text-center text-gray-500 py-6 italic">
+            No students found.
+        </div>
     </div>
+
+
 </div>
 
 <script>
-function myStudentsUpload() {
-    return {
-        showModal: false,
-        showImportModal: false,
-        search: '',
-        filterCourse: '',
-        filterYear: '',
-        filterSection: '',
-        students: @json($alpineStudents),
+    function myStudentsUpload() {
+        return {
+            showModal: false
+            , showImportModal: false
+            , search: ''
+            , filterCourse: ''
+            , filterYear: ''
+            , filterSection: ''
+            , students: @json($alpineStudents),
 
-        filteredStudents() {
-            let result = this.students;
-            if (this.search) {
-                const s = this.search.toLowerCase();
-                result = result.filter(st =>
-                    st.student_id.toLowerCase().includes(s) ||
-                    st.first_name.toLowerCase().includes(s) ||
-                    st.last_name.toLowerCase().includes(s) ||
-                    (st.middle_name && st.middle_name.toLowerCase().includes(s))
-                );
-            }
-            if (this.filterCourse) result = result.filter(st => st.course_id == Number(this.filterCourse));
-            if (this.filterYear) result = result.filter(st => st.year_level_id == Number(this.filterYear));
-            if (this.filterSection) result = result.filter(st => st.section_id == Number(this.filterSection));
+            get filteredStudents() { 
+                let result = this.students;
 
-            return result;
-        },
-
-        updateStudent(studentId, field, value) {
-            fetch(`/college/students/${studentId}/update-field`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                },
-                body: JSON.stringify({ field, value })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    console.log('Updated successfully');
+                if (this.search) {
+                    const s = this.search.toLowerCase();
+                    result = result.filter(st =>
+                        st.student_id.toLowerCase().includes(s) ||
+                        st.first_name.toLowerCase().includes(s) ||
+                        st.last_name.toLowerCase().includes(s) ||
+                        (st.middle_name && st.middle_name.toLowerCase().includes(s))
+                    );
                 }
-            })
-            .catch(err => console.error(err));
+
+                if (this.filterCourse) result = result.filter(st => st.course_id == Number(this.filterCourse));
+                if (this.filterYear) result = result.filter(st => st.year_level_id == Number(this.filterYear));
+                if (this.filterSection) result = result.filter(st => st.section_id == Number(this.filterSection));
+
+                return result;
+            },
+
+            updateStudent(studentId, field, value) {
+                fetch(`/college/students/${studentId}/update-field`, {
+                        method: 'POST'
+                        , headers: {
+                            'Content-Type': 'application/json'
+                            , 'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        }
+                        , body: JSON.stringify({
+                            field
+                            , value
+                        })
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) console.log('Updated successfully');
+                    })
+                    .catch(err => console.error(err));
+            }
         }
     }
-}
+
 </script>
 
 
