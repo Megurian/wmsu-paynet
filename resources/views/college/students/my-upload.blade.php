@@ -199,25 +199,39 @@
                     <div class="grid grid-cols-3 gap-2 items-center">
                         {{-- Course --}}
                         <div>
-                            <select x-model="student.course_id" @change="updateStudent(student.id, 'course_id', student.course_id)" class="w-full border rounded px-2 py-1 text-xs">
+                            <select 
+                                x-model="student.course_id" 
+                                @change="updateStudent(student.id, 'course_id', student.course_id)" 
+                                class="w-full border rounded px-2 py-1 text-xs"
+                                :disabled="student.status === 'ENROLLED' || student.status === 'FOR_PAYMENT_VALIDATION'">
                                 <option value="">Select Course</option>
                                 @foreach($courses as $course)
                                 <option value="{{ $course->id }}">{{ $course->name }}</option>
                                 @endforeach
                             </select>
                         </div>
+
                         {{-- Year --}}
                         <div>
-                            <select x-model="student.year_level_id" @change="updateStudent(student.id, 'year_level_id', student.year_level_id)" class="w-full border rounded px-2 py-1 text-xs">
+                            <select 
+                                x-model="student.year_level_id" 
+                                @change="updateStudent(student.id, 'year_level_id', student.year_level_id)" 
+                                class="w-full border rounded px-2 py-1 text-xs"
+                                :disabled="student.status === 'ENROLLED' || student.status === 'FOR_PAYMENT_VALIDATION'">
                                 <option value="">Select Year</option>
                                 @foreach($years as $year)
                                 <option value="{{ $year->id }}">{{ $year->name }}</option>
                                 @endforeach
                             </select>
                         </div>
+
                         {{-- Section --}}
                         <div>
-                            <select x-model="student.section_id" @change="updateStudent(student.id, 'section_id', student.section_id)" class="w-full border rounded px-2 py-1 text-xs">
+                            <select 
+                                x-model="student.section_id" 
+                                @change="updateStudent(student.id, 'section_id', student.section_id)" 
+                                class="w-full border rounded px-2 py-1 text-xs"
+                                :disabled="student.status === 'ENROLLED' || student.status === 'FOR_PAYMENT_VALIDATION'">
                                 <option value="">Select Section</option>
                                 @foreach($sections as $section)
                                 <option value="{{ $section->id }}">{{ $section->name }}</option>
@@ -226,7 +240,7 @@
                         </div>
                     </div>
                 </div>
-
+                
                 {{-- Status / Actions --}}
                 <div class="flex flex-col items-end md:w-1/3 space-y-2">
                     <div>
