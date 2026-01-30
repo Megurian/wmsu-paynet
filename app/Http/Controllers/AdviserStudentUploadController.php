@@ -22,20 +22,38 @@ class AdviserStudentUploadController extends Controller
         $activeSY = SchoolYear::where('is_active', true)->first();
         $activeSem = Semester::where('is_active', true)->first();
 
-       $students = StudentEnrollment::with('student', 'course', 'yearLevel', 'section')
-        ->where('adviser_id', $adviserId)
-        ->when($activeSY, fn($q) => $q->where('school_year_id', $activeSY->id))
-        ->when($activeSem, fn($q) => $q->where('semester_id', $activeSem->id))
-        ->orderBy('id', 'desc')
-        ->get();
+        $students = Student::where('college_id', $collegeId)
+            ->whereHas('enrollments', function ($q) use ($adviserId) {
+                $q->where('adviser_id', $adviserId);
+            })
+            ->with(['enrollments' => function ($q) use ($activeSY, $activeSem) {
+                $q->where('school_year_id', $activeSY->id)
+                ->where('semester_id', $activeSem->id);
+            }])
+            ->get();
 
-        // Load courses, years, sections for dropdowns
         $courses = Course::where('college_id', $collegeId)->get();
         $years = YearLevel::where('college_id', $collegeId)->get();
         $sections = Section::where('college_id', $collegeId)->get();
 
-        return view('college.students.my-upload', compact('students', 'courses', 'years', 'sections'));
+        $previousEnrollments = StudentEnrollment::with(['course', 'yearLevel', 'section'])
+            ->whereIn('student_id', $students->pluck('id'))
+            ->where(function($q) use ($activeSY, $activeSem) {
+                $q->where('school_year_id', '<', $activeSY->id)
+                ->orWhere(function($q2) use ($activeSY, $activeSem) {
+                    $q2->where('school_year_id', $activeSY->id)
+                        ->where('semester_id', '<', $activeSem->id);
+                });
+            })
+            ->orderBy('school_year_id', 'desc')
+            ->orderBy('semester_id', 'desc')
+            ->get()
+            ->groupBy('student_id')
+            ->map(fn($rows) => $rows->first());
+
+        return view('college.students.my-upload', compact('students', 'courses', 'years', 'sections', 'previousEnrollments', 'activeSY', 'activeSem'));
     }
+
 
     public function store(Request $request)
     {
@@ -77,27 +95,44 @@ class AdviserStudentUploadController extends Controller
         return back()->with('status', 'Student uploaded successfully.');
     }
 
-    public function reAddOldStudent($studentId)
-    {
-        $adviserId = Auth::id();
-        $collegeId = Auth::user()->college_id;
+public function reAddOldStudent(Request $request, $studentId)
+{
+    $adviserId = Auth::id();
+    $collegeId = Auth::user()->college_id;
 
-        $activeSY = SchoolYear::where('is_active', true)->first();
-        $activeSem = Semester::where('is_active', true)->first();
+    $activeSY = SchoolYear::where('is_active', true)->first();
+    $activeSem = Semester::where('is_active', true)->first();
 
-        StudentEnrollment::updateOrCreate(
-            [
-                'student_id' => $studentId,
-                'school_year_id' => $activeSY->id,
-                'semester_id' => $activeSem->id,
-            ],
-            [
-                'college_id' => $collegeId,
-                'adviser_id' => $adviserId,
-                'status' => 'FOR_PAYMENT_VALIDATION',
-            ]
-        );
+    $prev = StudentEnrollment::where('student_id', $studentId)
+        ->where(function($q) use ($activeSY, $activeSem) {
+            $q->where('school_year_id', '<', $activeSY->id)
+              ->orWhere(function($q2) use ($activeSY, $activeSem) {
+                  $q2->where('school_year_id', $activeSY->id)
+                     ->where('semester_id', '<', $activeSem->id);
+              });
+        })
+        ->latest('id')
+        ->first();
 
-        return back()->with('status', 'Student re-added successfully.');
-    }
+    StudentEnrollment::updateOrCreate(
+        [
+            'student_id' => $studentId,
+            'school_year_id' => $activeSY->id,
+            'semester_id' => $activeSem->id,
+        ],
+        [
+            'college_id' => $collegeId,
+            'adviser_id' => $adviserId,
+            'status' => 'FOR_PAYMENT_VALIDATION',
+            'course_id' => $request->course_id ?? $prev?->course_id,
+            'year_level_id' => $request->year_level_id ?? $prev?->year_level_id,
+            'section_id' => $request->section_id ?? $prev?->section_id,
+        ]
+    );
+
+    return back()->with('status', 'Student re-added successfully.');
+}
+
+
+
 }

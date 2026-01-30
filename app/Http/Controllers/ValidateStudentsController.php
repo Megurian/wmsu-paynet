@@ -115,22 +115,33 @@ class ValidateStudentsController extends Controller
             ->where('semester_id', $activeSem->id)
             ->get()
             ->keyBy('student_id');
-        
+
+        $latestEnrollments = StudentEnrollment::whereIn('student_id', $students->pluck('id'))
+            ->where('school_year_id', $activeSY->id)
+            ->where('semester_id', $activeSem->id)
+            ->latest('id')
+            ->get()
+            ->keyBy('student_id');
+
         $previousEnrollments = StudentEnrollment::with(['course', 'yearLevel', 'section'])
             ->whereIn('student_id', $students->pluck('id'))
             ->where(function ($q) use ($activeSY, $activeSem) {
-                $q->where('school_year_id', '!=', $activeSY->id)
-                ->orWhere('semester_id', '!=', $activeSem->id);
+                $q->where('school_year_id', '<', $activeSY->id)
+                ->orWhere(function($q2) use ($activeSY, $activeSem) {
+                    $q2->where('school_year_id', $activeSY->id)
+                        ->where('semester_id', '<', $activeSem->id);
+                });
             })
             ->orderBy('school_year_id', 'desc')
             ->orderBy('semester_id', 'desc')
             ->get()
             ->groupBy('student_id')
-            ->map(fn ($rows) => $rows->first());
+            ->map(fn($rows) => $rows->first());
 
 
 
         foreach ($students as $student) {
+              $currentEnrollment = $latestEnrollments[$student->id] ?? null; 
             $lastEnrollment = StudentEnrollment::where('student_id', $student->id)
                 ->where(function($q) use ($activeSY, $activeSem) {
                     $q->where('school_year_id', '<', $activeSY->id)
@@ -141,6 +152,8 @@ class ValidateStudentsController extends Controller
                 })
                 ->latest('id') // get most recent previous enrollment
                 ->first();
+
+                 $student->displayEnrollment = $currentEnrollment ?? $previousEnrollments[$student->id] ?? null;
 
             $student->lastEnrollment = $lastEnrollment;
         }

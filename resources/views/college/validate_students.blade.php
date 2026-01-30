@@ -91,7 +91,6 @@
             {{ $students->links() }}
         </div>
     </div>
-   
 
     <div class="bg-white shadow-sm border border-gray-200 rounded-xl overflow-hidden">
         <table class="min-w-full text-sm text-gray-80000">
@@ -119,7 +118,7 @@
                @php
                     $currentEnrollment = $activeEnrollments[$student->id] ?? null;
                     $prev = $previousEnrollments[$student->id] ?? null;
-
+                   $displayEnrollment = $student->displayEnrollment;
                     $isAdvised = $currentEnrollment !== null;
                    $isPaid = $currentEnrollment && $currentEnrollment->is_paid;
                     $isEnrolled = $currentEnrollment && $currentEnrollment->status === 'ENROLLED';
@@ -148,34 +147,28 @@
                         @endif
                     </td>
                     <td class="px-3 py-2">
-                        <select name="course_id[{{ $student->id }}]" class="rounded-lg border border-gray-300 px-6 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition" required {{ $isEnrolled ? 'disabled' : '' }}>
+                        <select name="course_id[{{ $student->id }}]" class="..." required {{ $isEnrolled ? 'disabled' : '' }}>
                             @foreach($courses as $course)
                                 <option value="{{ $course->id }}"
-                                    @if($isEnrolled && $currentEnrollment && $course->id == $currentEnrollment->course_id) selected
-                                    @elseif(!$isEnrolled && $prev && $course->id == $prev->course_id) selected
-                                    @endif
+                                    @if($displayEnrollment && $course->id == $displayEnrollment->course_id) selected @endif
                                 >{{ $course->name }}</option>
                             @endforeach
                         </select>
                     </td>
                     <td class="px-3 py-2">
-                        <select name="year_level_id[{{ $student->id }}]" class="rounded-lg border border-gray-300 px-6 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition" required {{ $isEnrolled ? 'disabled' : '' }}>
+                        <select name="year_level_id[{{ $student->id }}]" class="..." required {{ $isEnrolled ? 'disabled' : '' }}>
                             @foreach($years as $year)
                                 <option value="{{ $year->id }}"
-                                   @if($isEnrolled && $currentEnrollment && $year->id == $currentEnrollment->year_level_id)
-                                    @elseif(!$isEnrolled && $prev && $year->id == $prev->year_level_id)
-                                    @endif
+                                    @if($displayEnrollment && $year->id == $displayEnrollment->year_level_id) selected @endif
                                 >{{ $year->name }}</option>
                             @endforeach
                         </select>
                     </td>
                     <td class="px-3 py-2">
-                        <select name="section_id[{{ $student->id }}]" class="rounded-lg border border-gray-300 px-6 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition" required {{ $isEnrolled ? 'disabled' : '' }}>
+                        <select name="section_id[{{ $student->id }}]" class="..." required {{ $isEnrolled ? 'disabled' : '' }}>
                             @foreach($sections as $section)
                                 <option value="{{ $section->id }}"
-                                    @if($isEnrolled && $currentEnrollment && $section->id == $currentEnrollment->section_id) selected
-                                    @elseif(!$isEnrolled && $prev && $section->id == $prev->section_id) selected
-                                    @endif
+                                    @if($displayEnrollment && $section->id == $displayEnrollment->section_id) selected @endif
                                 >{{ $section->name }}</option>
                             @endforeach
                         </select>

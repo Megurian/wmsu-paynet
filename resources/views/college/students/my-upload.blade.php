@@ -126,50 +126,86 @@
     </div>
 
 <table class="min-w-full table-auto mt-4">
-        <thead>
+    <thead>
+        <tr>
+            <th>Student ID</th>
+            <th>Name</th>
+             <th>Status</th>
+            <th>Course</th>
+            <th>Year</th>
+            <th>Section</th>
+            <th>Action</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach($students as $student)
+            @php
+                $enrollment = $student->enrollments->first(); // current SY/sem enrollment
+                $prev = $previousEnrollments[$student->id] ?? null; // latest previous enrollment
+            @endphp
             <tr>
-                <th>Student ID</th>
-                <th>Name</th>
-                <th>Course</th>
-                <th>Year</th>
-                <th>Section</th>
-                <th>Status</th>
-                <th>Action</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach($students as $enrollment)
-            <tr @class([
-                'bg-green-100' => $enrollment->status === 'ENROLLED' && $enrollment->is_paid,
-                'bg-yellow-100' => $enrollment->status === 'ENROLLED' && !$enrollment->is_paid,
-                'bg-red-100' => $enrollment->status === 'FOR_PAYMENT_VALIDATION',
-            ])>
-                <td>{{ $enrollment->student->student_id }}</td>
-                <td>{{ $enrollment->student->last_name }}, {{ $enrollment->student->first_name }}</td>
-                <td>{{ $enrollment->course?->name }}</td>
-                <td>{{ $enrollment->yearLevel?->name }}</td>
-                <td>{{ $enrollment->section?->name }}</td>
-                <td>
-                    {{ $enrollment->status }}
-                    @if($enrollment->is_paid)
-                        <span class="text-green-600 font-semibold">(PAID)</span>
-                    @endif
-                </td>
-                <td>
-                    @if($enrollment->status !== 'ENROLLED')
-                    <form method="POST" action="{{ route('college.students.my-upload.readd', $enrollment->student->id) }}">
+                <td>{{ $student->student_id }}</td>
+                <td>{{ $student->last_name }}, {{ $student->first_name }}</td>
+                <td>{{ $enrollment?->status ?? 'NOT ENROLLED' }}</td>
+
+                <td colspan="3">
+                    <form method="POST" action="{{ route('college.students.my-upload.readd', $student->id) }}" class="flex gap-2 items-center">
                         @csrf
+
+                        {{-- Course --}}
+                        <select name="course_id" class="border rounded px-2 py-1 text-sm" required {{ $enrollment ? 'disabled' : '' }}>
+                            <option value="">Select Course</option>
+                            @foreach($courses as $course)
+                                <option value="{{ $course->id }}"
+                                    @if($enrollment && $course->id == $enrollment->course_id) selected
+                                    @elseif(!$enrollment && $prev && $course->id == $prev->course_id) selected
+                                    @endif
+                                >
+                                    {{ $course->name }}
+                                </option>
+                            @endforeach
+                        </select>
+
+                        {{-- Year --}}
+                        <select name="year_level_id" class="border rounded px-2 py-1 text-sm" required {{ $enrollment ? 'disabled' : '' }}>
+                            <option value="">Select Year</option>
+                            @foreach($years as $year)
+                                <option value="{{ $year->id }}"
+                                    @if($enrollment && $year->id == $enrollment->year_level_id) selected
+                                    @elseif(!$enrollment && $prev && $year->id == $prev->year_level_id) selected
+                                    @endif
+                                >
+                                    {{ $year->name }}
+                                </option>
+                            @endforeach
+                        </select>
+
+                        {{-- Section --}}
+                        <select name="section_id" class="border rounded px-2 py-1 text-sm" required {{ $enrollment ? 'disabled' : '' }}>
+                            <option value="">Select Section</option>
+                            @foreach($sections as $section)
+                                <option value="{{ $section->id }}"
+                                    @if($enrollment && $section->id == $enrollment->section_id) selected
+                                    @elseif(!$enrollment && $prev && $section->id == $prev->section_id) selected
+                                    @endif
+                                >
+                                    {{ $section->name }}
+                                </option>
+                            @endforeach
+                        </select>
+
                         <button type="submit" class="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-500">
                             Re-add
                         </button>
                     </form>
-                    @endif
                 </td>
-            </tr>
-            @endforeach
-        </tbody>
 
-    </table>
+                
+            </tr>
+        @endforeach
+    </tbody>
+</table>
+
 </div>
 
 @endsection
