@@ -89,6 +89,7 @@ class CollegeStudentController extends Controller
             'contact' => 'nullable|string|max:50',
             'email' => 'nullable|email|max:255',
             'suffix' => 'nullable|string|max:255',
+             'religion' => 'nullable|string|max:255',
         ], [
             'student_id.unique' => 'This Student ID already exists in your college.',
         ]);

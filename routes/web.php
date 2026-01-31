@@ -59,13 +59,6 @@ Route::middleware(['auth', 'role:osa', CheckActiveSchoolYear::class])->group(fun
     Route::post('/osa/organizations', [OSAOrganizationsController::class, 'store'])->name('osa.organizations.store');
     Route::get('/osa/organizations/{id}', [OSAOrganizationsController::class, 'show'])->name('osa.organizations.show');
     Route::delete('/osa/organizations/{id}', [OSAOrganizationsController::class, 'destroy'])->name('osa.organizations.destroy');
-    // //OSA SETUP PAGE ROUTES
-    // Route::get('/osa/setup', function () {
-    //     return view('osa.setup');
-    // })->name('osa.setup'); 
-    // Route::get('/osa/setup', [OSASetupController::class, 'edit'])->name('osa.setup');
-    // Route::post('/osa/setup', [OSASetupController::class, 'store'])->name('osa.setup.store');
-    // Route::post('/osa/setup/{id}/add-semester', [OSASetupController::class, 'addSemester'])->name('osa.setup.addSemester');
     
     //OSA COLLEGE PAGE ROUTES
     Route::get('/osa/college', [OSACollegeController::class, 'index'])->name('osa.college');
@@ -131,7 +124,7 @@ Route::middleware(['auth', 'role:college_org'])->group(function () {
      ->name('college.students.search');
 });
 
-Route::middleware(['auth', 'role:college,student_coordinator,adviser'])->group(function () {
+Route::middleware(['auth', 'role:college,student_coordinator,adviser,assessor'])->group(function () {
     Route::get('/college/dashboard', function () {
         return view('college.dashboard');
     })->name('college.dashboard');
@@ -167,10 +160,6 @@ Route::middleware(['auth', 'role:college,student_coordinator,adviser'])->group(f
     Route::post('/college/students', [CollegeStudentController::class, 'store'])->name('college.students.store');
     Route::delete('/college/students/{id}', [CollegeStudentController::class, 'destroy'])->name('college.students.destroy');
 
-    Route::get('students/validate', [ValidateStudentsController::class, 'index'])->name('college.students.validate');
-    Route::post('students/validate/{student}', [ValidateStudentsController::class, 'store'])->name('college.students.validate.store');
-    Route::post('/college/students/validate/bulk', [ValidateStudentsController::class, 'bulkValidate'])
-        ->name('college.students.validate.bulk');
 
     Route::delete('/college/students/{student}/unvalidate', [CollegeStudentController::class, 'unvalidate']
     )  ->name('college.students.unvalidate');
@@ -203,9 +192,24 @@ Route::middleware(['auth','role:adviser'])->group(function(){
     ->name('college.students.readd');
 
     Route::post('/college/students/readd/bulk', [AdviserStudentUploadController::class, 'reAddBulk'])->name('college.students.readd.bulk');
-
-
 });
+
+Route::middleware(['auth','role:assessor,student_coordinator'])->group(function(){
+    Route::get('students/validate', [ValidateStudentsController::class, 'index'])->name('college.students.validate');
+    Route::post('students/validate/{student}', [ValidateStudentsController::class, 'store'])->name('college.students.validate.store');
+    Route::post('/college/students/validate/bulk', [ValidateStudentsController::class, 'bulkValidate'])
+        ->name('college.students.validate.bulk');
+});
+
+Route::middleware(['auth','role:student_coordinator'])->group(function(){
+    Route::post(
+        '/college/students/{student}/mark-paid',
+        [ValidateStudentsController::class, 'markPaid']
+    )->name('college.students.markPaid');
+});
+
+
+
 
 
 

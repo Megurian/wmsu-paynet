@@ -73,7 +73,7 @@
             </div>
             <div x-show="selected.length > 0" x-transition class="transition duration-200">
                 <button type="submit" class="px-4 py-2 bg-red-800 text-white rounded-md hover:bg-red-700 shadow transition">
-                    Validate Selected Students
+                    Enroll Selected Students
                 </button>
             </div>
         </div>
@@ -148,23 +148,45 @@
 
             <div class="flex flex-col items-end md:w-1/3 space-y-2">
                 <div>
-                    @if(!$isAdvised)
+                    @if($isEnrolled)
+                        <span class="text-indigo-600 font-semibold text-sm">Enrolled</span>
+
+                    @elseif(!$isAdvised)
                         <span class="text-gray-400 italic text-sm">Waiting for adviser</span>
+
                     @elseif(!$isPaid)
-                        <span class="text-yellow-700 italic text-sm">Pending payment</span>
-                    @elseif(!$isEnrolled)
-                        <button 
-                            formaction="{{ route('college.students.validate.store', $student->id) }}" 
-                            formmethod="POST"
-                            class="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-500 transition text-xs"
-                            onclick="return confirm('Validate and enroll this student?');"
-                        >
-                            Enroll
-                        </button>
+                        @if(auth()->user()->isStudentCoordinator())
+                            <button 
+                                type="submit"
+                                formaction="{{ route('college.students.markPaid', $student->id) }}"
+                                formmethod="POST"
+                                class="px-3 py-1 bg-yellow-600 text-white rounded text-xs hover:bg-yellow-500"
+                                onclick="return confirm('Confirm payment completed?')"
+                            >
+                                Mark as Paid
+                            </button>
+
+                        @else
+                            <span class="text-yellow-700 font-semibold text-sm">Pending payment</span>
+                        @endif
+
                     @else
-                        <span class="text-green-800 font-semibold text-sm">Enrolled</span>
-                    @endif
+                        @if(auth()->user()->isAssessor())
+                            <button 
+                                formaction="{{ route('college.students.validate.store', $student->id) }}" 
+                                formmethod="POST"
+                                class="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-500 transition text-xs"
+                                onclick="return confirm('Validate and enroll this student?');"
+                            >
+                                Enroll
+                            </button>
+                        
+                        @else
+                            <span class="text-green-600 font-semibold text-sm">Payment Completed</span>
+                        @endif
+                    @endif  
                 </div>
+
 
                 <div class="flex items-center justify-end space-x-3 mt-2">
                     <div class="flex items-center space-x-1">
@@ -212,7 +234,6 @@
                 </div>
             </div>
         </div>
-
         @empty
         <div class="text-center text-gray-500 py-6 italic">
             No students found.
