@@ -287,7 +287,7 @@
                             <span class="text-yellow-700 italic text-sm">Pending payment</span>
                         </template>
                         <template x-if="student.status === 'ENROLLED'">
-                            <span class="text-green-800 font-semibold text-sm">Enrolled</span>
+                            <span class="text-indigo-600 font-semibold text-sm">Enrolled</span>
                         </template>
                     </div>
 

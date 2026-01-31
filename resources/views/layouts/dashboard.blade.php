@@ -213,12 +213,13 @@
                     </a>
                 @endif
 
-                @if(Auth::user()->role === 'assessor')
+                @if(in_array($role, [ 'student_coordinator','assessor']))
                     <a href="{{ route('college.students.validate') }}" class="block px-4 py-2 rounded-md transition
                         {{ request()->routeIs('college.students.validate') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
                         <span>Enrollment Validation</span>
                     </a>
                 @endif
+
             </nav>
         </aside>
 

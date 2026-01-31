@@ -194,12 +194,22 @@ Route::middleware(['auth','role:adviser'])->group(function(){
     Route::post('/college/students/readd/bulk', [AdviserStudentUploadController::class, 'reAddBulk'])->name('college.students.readd.bulk');
 });
 
-Route::middleware(['auth','role:assessor'])->group(function(){
+Route::middleware(['auth','role:assessor,student_coordinator'])->group(function(){
     Route::get('students/validate', [ValidateStudentsController::class, 'index'])->name('college.students.validate');
     Route::post('students/validate/{student}', [ValidateStudentsController::class, 'store'])->name('college.students.validate.store');
     Route::post('/college/students/validate/bulk', [ValidateStudentsController::class, 'bulkValidate'])
         ->name('college.students.validate.bulk');
 });
+
+Route::middleware(['auth','role:student_coordinator'])->group(function(){
+    Route::post(
+        '/college/students/{student}/mark-paid',
+        [ValidateStudentsController::class, 'markPaid']
+    )->name('college.students.markPaid');
+});
+
+
+
 
 
 

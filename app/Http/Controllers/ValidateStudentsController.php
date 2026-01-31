@@ -106,6 +106,7 @@ class ValidateStudentsController extends Controller
 
     public function store(Request $request, $studentId)
     {
+        abort_unless(Auth::user()->isAssessor(), 403);
         $student = Student::findOrFail($studentId);
         $collegeId = Auth::user()->college_id;
         $activeSY = SchoolYear::where('is_active', true)->first();
@@ -117,29 +118,31 @@ class ValidateStudentsController extends Controller
             "section_id.$studentId" => 'required|exists:sections,id',
         ]);
 
-$enrollment = StudentEnrollment::updateOrCreate(
-    [
-        'student_id'     => $student->id,
-        'school_year_id' => $activeSY->id,
-        'semester_id'    => $activeSem->id,
-    ],
-    [
-        'college_id'    => $collegeId,
-        'course_id'     => $request->course_id[$student->id],
-        'year_level_id' => $request->year_level_id[$student->id],
-        'section_id'    => $request->section_id[$student->id],
-        'status'        => 'ENROLLED',
-        'validated_by'  => Auth::id(),
-        'validated_at'  => now(),
-    ]
-);
-
-
+        $enrollment = StudentEnrollment::updateOrCreate(
+            [
+                'student_id'     => $student->id,
+                'school_year_id' => $activeSY->id,
+                'semester_id'    => $activeSem->id,
+            ],
+            [
+                'college_id'    => $collegeId,
+                'course_id'     => $request->course_id[$student->id],
+                'year_level_id' => $request->year_level_id[$student->id],
+                'section_id'    => $request->section_id[$student->id],
+                'status'        => 'ENROLLED',
+                'validated_by'  => Auth::id(),
+                'validated_at'  => now(),
+            ]
+        );
         return back()->with('status', 'Student validated successfully.');
     }
 
-   public function bulkValidate(Request $request)
+    public function bulkValidate(Request $request)
     {
+        abort_unless(Auth::user()->isAssessor(), 403);
+         if (!$request->has('selected_students')) {
+        return back(); // ignore if no students selected (could be a markPaid request)
+    }
         $collegeId = Auth::user()->college_id;
         $activeSY = SchoolYear::where('is_active', true)->first();
         $activeSem = Semester::where('is_active', true)->first();
@@ -197,11 +200,36 @@ $enrollment = StudentEnrollment::updateOrCreate(
 
         try {
             Excel::import(new StudentsImport, $request->file('student_file'));
-            return back()->with('success', 'Student list imported successfully. Students remain unvalidated.');
+            return back()->with('status', 'Student list imported successfully. Students remain unvalidated.');
         } catch (\Exception $e) {
             return back()->withErrors(['student_file' => 'Error importing file: '.$e->getMessage()]);
         }
     }
+
+    public function markPaid(Student $student)
+    {
+        
+
+         abort_unless(Auth::user()->isStudentCoordinator(), 403);
+
+        $activeSY = SchoolYear::where('is_active', true)->first();
+        $activeSem = Semester::where('is_active', true)->first();
+
+        $enrollment = StudentEnrollment::where([
+            'student_id' => $student->id,
+            'school_year_id' => $activeSY->id,
+            'semester_id' => $activeSem->id,
+        ])->firstOrFail();
+
+        $enrollment->update([
+            'is_paid' => true,
+            'paid_at' => now(),
+            'payment_verified_by' => Auth::id(),
+        ]);
+
+        return back()->with('status', 'Payment marked as completed.');
+    }
+
 
 }
 
