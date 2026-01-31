@@ -137,6 +137,12 @@
                     </div>
                 </div>
 
+                <div>
+                    <label class="text-sm font-medium">Religion</label>
+                    <input type="text" name="religion" placeholder="Optional" class="w-full border rounded px-3 py-2 text-sm" value="{{ old('religion') }}">
+                </div>
+
+
                 {{-- Course / Year / Section --}}
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <div>
@@ -204,24 +210,23 @@
         <template x-for="student in filteredStudents" :key="student.id">
             <div class="bg-white shadow rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between space-y-3 md:space-y-0 md:space-x-4">
                <div class="flex items-center md:w-1/3 space-x-2">
-            <template x-if="student.status === 'NOT ENROLLED'">
-                <!-- Bulk select checkbox -->
-<div class="flex items-center space-x-2 md:w-1/12">
-    <input type="checkbox" 
-           x-model="selectedStudents" 
-           :value="student.id" 
-           class="w-5 h-5 border-gray-400 rounded cursor-pointer">
-</div>
-
-            </template>
-            <div class="text-sm font-semibold" x-text="student.student_id"></div>
-            <div class="text-sm font-medium" x-text="student.last_name + ', ' + student.first_name"></div>
-        </div>
+                    <template x-if="student.status === 'NOT ENROLLED'">
+                        <!-- Bulk select checkbox -->
+                        <div class="flex items-center space-x-2 md:w-1/12">
+                            <input type="checkbox" 
+                                x-model="selectedStudents" 
+                                :value="student.id" 
+                                class="w-5 h-5 border-gray-400 rounded cursor-pointer">
+                        </div>
+                    </template>
+                    <div class="text-sm font-semibold" x-text="student.student_id"></div>
+                     <div class="text-sm font-medium" x-text="student.last_name + ', ' + student.first_name + (student.middle_name ? ' ' + student.middle_name : '')"></div>
+                </div>
                 {{-- Student Info --}}
-                <div class="flex items-center space-x-4 md:w-1/3">
+                {{-- <div class="flex items-center space-x-4 md:w-1/3">
                     <div class="text-sm font-semibold" x-text="student.student_id"></div>
                     <div class="text-sm font-medium" x-text="student.last_name + ', ' + student.first_name + (student.middle_name ? ' ' + student.middle_name : '')"></div>
-                </div>
+                </div> --}}
 
                 {{-- Course / Year / Section --}}
                 <div class="md:w-1/3 text-sm text-gray-700">
@@ -288,7 +293,7 @@
                             <span class="text-yellow-700 italic text-sm">Pending payment</span>
                         </template>
                         <template x-if="student.status === 'ENROLLED'">
-                            <span class="text-green-800 font-semibold text-sm">Enrolled</span>
+                            <span class="text-indigo-600 font-semibold text-sm">Enrolled</span>
                         </template>
                     </div>
 

@@ -67,7 +67,7 @@
 
             {{-- Logo --}}
             <div class="h-20 w-20 bg-white rounded-full flex items-center justify-center shadow overflow-hidden">
-                @if(in_array($user->role, ['college', 'student_coordinator', 'adviser']) && $currentCollege?->logo)
+                @if(in_array($user->role, ['college', 'student_coordinator', 'adviser', 'assessor']) && $currentCollege?->logo)
                     <img src="{{ asset('storage/' . $currentCollege->logo) }}"
                         alt="College Logo"
                         class="h-full w-full object-cover">
@@ -82,7 +82,7 @@
                 @endif
             </div>
 
-             @if(in_array($user->role, ['college', 'student_coordinator', 'adviser']) && $currentCollege)
+             @if(in_array($user->role, ['college', 'student_coordinator', 'adviser', 'assessor']) && $currentCollege)
                 <h2 class="mt-3 text-lg font-bold text-center break-words max-w-[12rem]">
                     {{ $currentCollege->name }}
                 </h2>
@@ -91,6 +91,7 @@
                         @case('college') College Dean @break
                         @case('student_coordinator') Student Coordinator @break
                         @case('adviser') Adviser @break
+                        @case('assessor') Assessor @break
                     @endswitch
                 </p>
 
@@ -165,7 +166,7 @@
                     <span>Reports</span>
                 </a>
 
-                @elseif(in_array($role, ['college', 'student_coordinator', 'adviser']))
+                @elseif(in_array($role, ['college', 'student_coordinator', 'adviser', 'assessor']))
                 <a href="{{ route('college.dashboard') }}" class="block px-4 py-2 rounded-md transition
                     {{ request()->routeIs('college.dashboard') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
                     <span>Dashboard</span>
@@ -210,17 +211,15 @@
                         {{ request()->routeIs('college.students.my-upload') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
                         <span> Students Upload</span>
                     </a>
-                    {{-- <a href="{{ route('college.students.my-upload') }}" class="block px-4 py-2 rounded-md hover:bg-red-700">
-                        <span>My Students Upload</span>
-                    </a> --}}
                 @endif
 
-                @if(Auth::user()->role === 'student_coordinator')
+                @if(in_array($role, [ 'student_coordinator','assessor']))
                     <a href="{{ route('college.students.validate') }}" class="block px-4 py-2 rounded-md transition
                         {{ request()->routeIs('college.students.validate') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
                         <span>Enrollment Validation</span>
                     </a>
                 @endif
+
             </nav>
         </aside>
 
