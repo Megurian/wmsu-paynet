@@ -137,6 +137,12 @@
                     </div>
                 </div>
 
+                <div>
+                    <label class="text-sm font-medium">Religion</label>
+                    <input type="text" name="religion" placeholder="Optional" class="w-full border rounded px-3 py-2 text-sm" value="{{ old('religion') }}">
+                </div>
+
+
                 {{-- Course / Year / Section --}}
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <div>

@@ -21,6 +21,7 @@ class Student extends Model
         'email',
         'student_id',
         'suffix',
+         'religion'
     ];
 
     public function course() {
