@@ -40,9 +40,6 @@ Route::middleware('auth')->get('/dashboard', function () {
 })->name('dashboard');
 
 Route::middleware(['auth', 'role:osa'])->group(function () {
-    Route::get('/osa/setup', function () {
-        return view('osa.setup');
-    })->name('osa.setup'); 
     Route::get('/osa/setup', [OSASetupController::class, 'edit'])->name('osa.setup');
     Route::post('/osa/setup', [OSASetupController::class, 'store'])->name('osa.setup.store');
     Route::post('/osa/setup/{id}/add-semester', [OSASetupController::class, 'addSemester'])->name('osa.setup.addSemester');
@@ -65,12 +62,7 @@ Route::middleware(['auth', 'role:osa', CheckActiveSchoolYear::class])->group(fun
     Route::post('/osa/appeals/{appeal}/reject', [App\Http\Controllers\OSAFeesController::class, 'rejectAppeal'])->name('osa.appeals.reject');
 
 
-    // OSA Fee creation (OSA is super admin and can create auto-approved fees)
-    Route::get('/osa/fees/create', [App\Http\Controllers\OSAFeesController::class, 'create'])->name('osa.fees.create');
-    Route::post('/osa/fees', [App\Http\Controllers\OSAFeesController::class, 'store'])->name('osa.fees.store');
-    Route::get('/osa/organizations', function () {
-        return view('osa.organizations');
-    })->name('osa.organizations');
+
     Route::get('/osa/organizations', [OSAOrganizationsController::class, 'index'])->name('osa.organizations');
     Route::get('/osa/organizations/create', [OSAOrganizationsController::class, 'create'])->name('osa.organizations.create');
     Route::post('/osa/organizations', [OSAOrganizationsController::class, 'store'])->name('osa.organizations.store');
@@ -98,8 +90,6 @@ Route::middleware(['auth', 'role:university_org'])->group(function () {
     Route::get('/university_org/dashboard', function () {
         return view('university_org.dashboard');
     })->name('university_org.dashboard');
-
-    Route::get('/university_org/fees', [UniversityOrgFeesController::class, 'index'])->name('university_org.fees');
 
     Route::get('/university_org/offices', function () {
         return redirect()->route('university_org.offices.index');
