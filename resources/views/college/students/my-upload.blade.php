@@ -284,7 +284,7 @@
                                 <input type="hidden" name="course_id" :value="student.course_id">
                                 <input type="hidden" name="year_level_id" :value="student.year_level_id">
                                 <input type="hidden" name="section_id" :value="student.section_id">
-                                <button type="submit" class="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-500 text-xs">
+                                <button type="submit" class="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-500 text-xs" onclick="return confirm('Confirm this Student is Advised and may proceed to payment?')">
                                     Proceed to Payment
                                 </button>
                             </form>

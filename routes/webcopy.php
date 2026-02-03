@@ -129,19 +129,6 @@ Route::middleware(['auth', 'role:college_org'])->group(function () {
      ->name('college.students.search');
 });
 
-Route::middleware(['auth','role:adviser'])->group(function(){
-    Route::get('/college/students/my-upload', [AdviserStudentUploadController::class, 'index'])
-        ->name('college.students.my-upload');
-
-    Route::post('/college/students/my-upload', [AdviserStudentUploadController::class, 'store'])
-        ->name('college.students.my-upload.store');
-
-    Route::post('/college/students/{student}/readd', [AdviserStudentUploadController::class, 'reAddOldStudent'])
-    ->name('college.students.readd');
-
-    Route::post('/college/students/readd/bulk', [AdviserStudentUploadController::class, 'reAddBulk'])->name('college.students.readd.bulk');
-});
-
 Route::middleware(['auth', 'role:college,student_coordinator,adviser,assessor'])->group(function () {
     Route::get('/college/dashboard', function () {
         return view('college.dashboard');
@@ -204,6 +191,18 @@ Route::middleware(['auth', 'role:college,student_coordinator,adviser,assessor'])
     
 });
 
+Route::middleware(['auth','role:adviser'])->group(function(){
+    Route::get('/college/students/my-upload', [AdviserStudentUploadController::class, 'index'])
+        ->name('college.students.my-upload');
+
+    Route::post('/college/students/my-upload', [AdviserStudentUploadController::class, 'store'])
+        ->name('college.students.my-upload.store');
+
+    Route::post('/college/students/{student}/readd', [AdviserStudentUploadController::class, 'reAddOldStudent'])
+    ->name('college.students.readd');
+
+    Route::post('/college/students/readd/bulk', [AdviserStudentUploadController::class, 'reAddBulk'])->name('college.students.readd.bulk');
+});
 
 Route::middleware(['auth','role:assessor,student_coordinator'])->group(function(){
     Route::get('students/validate', [ValidateStudentsController::class, 'index'])->name('college.students.validate');
