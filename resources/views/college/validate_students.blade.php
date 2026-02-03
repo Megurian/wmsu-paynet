@@ -265,7 +265,7 @@
 >
     <div
         @click.away="close()"
-        class="bg-white rounded-xl shadow-xl w-full max-w-5xl max-h-[85vh] overflow-hidden"
+        class="bg-white rounded-xl shadow-xl w-full max-w-6xl max-h-[95vh] "
     >
 
         <!-- Header -->
@@ -274,7 +274,7 @@
             <button @click="close()" class="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
         </div>
 
-        <div class="p-6 text-sm overflow-y-auto max-h-[calc(85vh-140px)]">
+        <div class="p-6 text-sm overflow-y-auto max-h-[calc(92vh-100px)]">
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
                 <!--  Student Information -->
@@ -333,7 +333,8 @@
 
                     <hr class="border-gray-200">
 
-                    <div class="space-y-3">
+                    <!-- Scrollable Payment List -->
+                    <div class="space-y-3 max-h-80 overflow-y-auto">
                         <div class="border rounded-xl p-4 shadow-sm flex justify-between">
                             <div>
                                 <p class="font-medium">CSC Fee</p>
@@ -356,8 +357,42 @@
                             </div>
                         </div>
 
+                        <div class="border rounded-xl p-4 shadow-sm flex justify-between">
+                            <div>
+                                <p class="font-medium">Department Org Fee</p>
+                                <p class="text-xs text-gray-500">College Organization</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="font-semibold">₱ —</p>
+                                <p class="text-green-600 text-sm font-medium">Paid</p>
+                            </div>
+                        </div>
+
+                        <div class="border rounded-xl p-4 shadow-sm flex justify-between">
+                            <div>
+                                <p class="font-medium">Department Org Fee</p>
+                                <p class="text-xs text-gray-500">College Organization</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="font-semibold">₱ —</p>
+                                <p class="text-green-600 text-sm font-medium">Paid</p>
+                            </div>
+                        </div>
+
+                        <div class="border rounded-xl p-4 shadow-sm flex justify-between">
+                            <div>
+                                <p class="font-medium">Department Org Fee</p>
+                                <p class="text-xs text-gray-500">College Organization</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="font-semibold">₱ —</p>
+                                <p class="text-green-600 text-sm font-medium">Paid</p>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
+
 
             </div>
         </div>
