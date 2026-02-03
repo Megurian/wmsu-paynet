@@ -67,15 +67,19 @@
     <div class="space-y-4">
         <div class="flex items-center justify-between mb-2">
             <div class="flex items-center space-x-2">
+                @if(auth()->user()->isAssessor())
                 <input type="checkbox"
                     @click="toggleAll($event)"
                     class="w-5 h-5 border-gray-400 rounded focus:ring-2 focus:ring-blue-400 cursor-pointer">
                 <label class="text-sm font-medium text-gray-700 select-none">Select All</label>
+                @endif
             </div>
             <div x-show="selected.length > 0" x-transition class="transition duration-200">
+                @if(auth()->user()->isAssessor())
                 <button type="submit" class="px-4 py-2 bg-red-800 text-white rounded-md hover:bg-red-700 shadow transition">
                     Enroll Selected Students
                 </button>
+                @endif
             </div>
         </div>
         @forelse($students as $student)
@@ -90,12 +94,14 @@
 
         <div class="bg-white shadow rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between space-y-3 md:space-y-0 md:space-x-4">
             <div class="flex items-center space-x-4 md:w-1/3">
-                @if($isAdvised && $isPaid && !$isEnrolled)
-                    <input type="checkbox"
-                        name="selected_students[]"
-                        class="w-5 h-5 border-gray-400 rounded focus:ring-2 focus:ring-blue-400 cursor-pointer"
-                        value="{{ $student->id }}"
-                        @click="toggleOne($event, '{{ $student->id }}')">
+               @if($isAdvised && $isPaid && !$isEnrolled)
+                    @if(auth()->user()->isAssessor())
+                        <input type="checkbox"
+                            name="selected_students[]"
+                            class="w-5 h-5 border-gray-400 rounded focus:ring-2 focus:ring-blue-400 cursor-pointer"
+                            value="{{ $student->id }}"
+                            @click="toggleOne($event, '{{ $student->id }}')">
+                    @endif
                 @endif
                 <div class="text-sm font-semibold">{{ $student->student_id }}</div>
                 <div class="text-sm font-medium">{{ strtoupper($student->last_name) }}, {{ strtoupper($student->first_name) }}</div>
@@ -263,7 +269,7 @@
                 <div class="space-y-4">
                     <h4 class="font-semibold text-gray-700">Student Information</h4>
 
-                    <div class="grid grid-cols-1 gap-3">
+                    <div class="grid grid-cols-2 gap-3">
                         <div class="bg-gray-50 border rounded-lg p-3">
                             <p class="text-xs text-gray-500">Full Name</p>
                             <p class="font-semibold text-gray-800" x-text="studentName"></p>
