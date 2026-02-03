@@ -7,10 +7,20 @@ use App\Models\Organization;
 
 class UniversityOrgOfficesController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $organizations = Organization::with('college')->orderBy('name')->get();
-        return view('university_org.offices', compact('organizations'));
+        $user = $request->user();
+        $organization = $user?->organization;
+
+        if ($organization) {
+            // Only show organizations for which the current organization is the mother
+            $organizations = Organization::with(['college', 'motherOrganization'])->where('mother_organization_id', $organization->id)->orderBy('name')->get();
+        } else {
+            // Fallback: empty collection if user has no organization
+            $organizations = collect();
+        }
+
+        return view('university_org.offices', compact('organizations', 'organization'));
     }
 
     public function create()
@@ -40,13 +50,23 @@ class UniversityOrgOfficesController extends Controller
         // Determine college id from code
         $college = \App\Models\College::where('college_code', $validated['college_code'])->first();
 
-        // Create the organization
+        // If the authenticated user belongs to a university-level organization, use it as the mother org
+        $motherOrgId = null;
+        if ($request->user() && $request->user()->organization_id) {
+            $possibleMother = Organization::find($request->user()->organization_id);
+            if ($possibleMother && $possibleMother->role === 'university_org') {
+                $motherOrgId = $possibleMother->id;
+            }
+        }
+
+        // Create the organization, recording the mother_organization_id when applicable
         $organization = Organization::create([
             'role' => $validated['role'],
             'name' => $validated['name'],
             'org_code' => $validated['org_code'],
             'logo' => $validated['logo'] ?? null,
             'college_id' => $college?->id,
+            'mother_organization_id' => $motherOrgId,
         ]);
 
         // Create the admin user (assign to college_org role)

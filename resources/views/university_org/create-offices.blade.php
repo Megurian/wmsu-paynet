@@ -9,9 +9,12 @@
     <p class="text-sm text-gray-500 mt-1">
         Welcome, {{ Auth::user()->name }}. Here you can manage the Offices associated with different colleges within the university.
     </p>
+    @if(Auth::user()?->organization && Auth::user()->organization->role === 'university_org')
+        <p class="text-sm text-blue-600 mt-2">⚠️ <strong>Note:</strong> Your organization <em>{{ Auth::user()->organization->name }}</em> will be recorded as the <em>mother organization</em> for any office you create.</p>
+    @endif
 </div>
 <div class="flex justify-center">
-    <form id="org-form" method="POST" action="{{ route('university_org.offices.store') }}" enctype="multipart/form-data" class="w-full max-w-2xl bg-white p-8 rounded-lg shadow-lg">
+    <form id="org-form" method="POST" action="{{ route('university_org.offices.store') }}" enctype="multipart/form-data" class="w-full max-w-2xl bg-white p-8 rounded-lg shadow-lg" @if(Auth::user()?->organization && Auth::user()->organization->role === 'university_org') data-mother-name="{{ Auth::user()->organization->name }}" @endif>
         @csrf
         <input type="hidden" name="current_step" id="current_step" value="{{ old('current_step', 1) }}">
 
@@ -419,6 +422,9 @@ function openPreview() {
     const adminEmail = document.getElementById('admin_email_input')?.value || '';
     const adminPassword = document.getElementById('admin_password')?.value || '';
 
+    // If the current user is a university org, the form carries the mother org name as a data attribute
+    const motherName = (form && form.dataset && form.dataset.motherName) ? form.dataset.motherName : '';
+
     const logoPreviewEl = document.getElementById('logoPreview');
     let logoHtml = '<p class="text-gray-500">No logo uploaded</p>';
     if (logoPreviewEl && !logoPreviewEl.classList.contains('hidden') && logoPreviewEl.src) {
@@ -434,6 +440,7 @@ function openPreview() {
                 <div>
                     <div><strong>Organization Name:</strong> ${escapeHtml(fullName)}</div>
                     <div><strong>Organization Code:</strong> ${escapeHtml(orgCode)}</div>
+                    <div><strong>Mother Organization:</strong> ${motherName ? escapeHtml(motherName) : '<span class="text-gray-500">None</span>'}</div>
                 </div>
             </div>
 
