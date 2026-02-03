@@ -43,4 +43,12 @@ class Organization extends Model
     {
         return $this->hasMany(User::class);
     }
+
+    /**
+     * Get the fees associated with this organization.
+     */
+    public function fees()
+    {
+        return $this->hasMany(Fee::class);
+    }
 }

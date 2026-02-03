@@ -10,7 +10,7 @@
         Welcome, {{ Auth::user()->name }}. Here you can manage the Offices associated with different colleges within the university.
     </p>
     @if(Auth::user()?->organization && Auth::user()->organization->role === 'university_org')
-        <p class="text-sm text-blue-600 mt-2">⚠️ <strong>Note:</strong> Your organization <em>{{ Auth::user()->organization->name }}</em> will be recorded as the <em>mother organization</em> for any office you create.</p>
+        <p class="text-sm text-blue-600 mt-2"><strong>Note:</strong> Your organization <em>{{ Auth::user()->organization->name }}</em> will be recorded as the <em>mother organization</em> for any office you create.</p>
     @endif
 </div>
 <div class="flex justify-center">

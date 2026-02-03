@@ -48,9 +48,21 @@ Route::middleware(['auth', 'role:osa', CheckActiveSchoolYear::class])->group(fun
     Route::get('/osa/dashboard', function () {
         return view('osa.dashboard');
     })->name('osa.dashboard');
-    Route::get('/osa/fees', function () {
-        return view('osa.fees');
-    })->name('osa.fees');
+    Route::get('/osa/fees', [App\Http\Controllers\OSAFeesController::class, 'index'])->name('osa.fees');
+    Route::get('/osa/fees/create', [App\Http\Controllers\OSAFeesController::class, 'create'])->name('osa.fees.create');
+    Route::post('/osa/fees', [App\Http\Controllers\OSAFeesController::class, 'store'])->name('osa.fees.store');
+    Route::get('/osa/fees/{fee}', [App\Http\Controllers\OSAFeesController::class, 'show'])->name('osa.fees.show');
+    Route::post('/osa/fees/{fee}/approve', [App\Http\Controllers\OSAFeesController::class, 'approve'])->name('osa.fees.approve');
+    Route::post('/osa/fees/{fee}/disable', [App\Http\Controllers\OSAFeesController::class, 'disable'])->name('osa.fees.disable');
+
+    // Appeals actions (OSA)
+    Route::post('/osa/appeals/{appeal}/accept', [App\Http\Controllers\OSAFeesController::class, 'acceptAppeal'])->name('osa.appeals.accept');
+    Route::post('/osa/appeals/{appeal}/reject', [App\Http\Controllers\OSAFeesController::class, 'rejectAppeal'])->name('osa.appeals.reject');
+
+
+    // OSA Fee creation (OSA is super admin and can create auto-approved fees)
+    Route::get('/osa/fees/create', [App\Http\Controllers\OSAFeesController::class, 'create'])->name('osa.fees.create');
+    Route::post('/osa/fees', [App\Http\Controllers\OSAFeesController::class, 'store'])->name('osa.fees.store');
     Route::get('/osa/organizations', function () {
         return view('osa.organizations');
     })->name('osa.organizations');
@@ -82,9 +94,7 @@ Route::middleware(['auth', 'role:university_org'])->group(function () {
         return view('university_org.dashboard');
     })->name('university_org.dashboard');
 
-    Route::get('/university_org/fees', function () {
-        return view('university_org.fees');
-    })->name('university_org.fees');
+    Route::get('/university_org/fees', [UniversityOrgFeesController::class, 'index'])->name('university_org.fees');
 
     Route::get('/university_org/offices', function () {
         return redirect()->route('university_org.offices.index');
@@ -101,6 +111,11 @@ Route::middleware(['auth', 'role:university_org'])->group(function () {
     Route::get('/university-org/fees', [UniversityOrgFeesController::class, 'index'])->name('university_org.fees');
     Route::get('/university-org/fees/create', [UniversityOrgFeesController::class, 'create'])->name('university_org.fees.create');
     Route::post('/university-org/fees', [UniversityOrgFeesController::class, 'store'])->name('university_org.fees.store');
+    Route::get('/university-org/fees/{fee}', [UniversityOrgFeesController::class, 'show'])->name('university_org.fees.show');
+    Route::get('/university-org/fees/{fee}/edit', [UniversityOrgFeesController::class, 'edit'])->name('university_org.fees.edit');
+    Route::put('/university-org/fees/{fee}', [UniversityOrgFeesController::class, 'update'])->name('university_org.fees.update');
+    Route::delete('/university-org/fees/{fee}', [UniversityOrgFeesController::class, 'destroy'])->name('university_org.fees.destroy');
+    Route::post('/university-org/fees/{fee}/appeal', [UniversityOrgFeesController::class, 'submitAppeal'])->name('university_org.fees.appeal');
 
     Route::get('/university-org/offices', [UniversityOrgOfficesController::class, 'index'])->name('university_org.offices.index');
     Route::get('/university-org/offices/create', [UniversityOrgOfficesController::class, 'create'])->name('university_org.offices.create');
@@ -115,9 +130,19 @@ Route::middleware(['auth', 'role:college_org'])->group(function () {
     Route::get('/college_org/dashboard', function () {
         return view('college_org.dashboard');
     })->name('college_org.dashboard');
-    Route::get('/college_org/fees', function () {
-        return view('college_org.fees');
-    })->name('college_org.fees');
+
+    // Use controller so we can display inherited fees from the mother organization
+    Route::get('/college_org/fees', [App\Http\Controllers\CollegeOrgFeesController::class, 'index'])->name('college_org.fees');
+
+    // College org fee management (create/store/show/edit/update/destroy/appeal)
+    Route::get('/college_org/fees/create', [App\Http\Controllers\CollegeOrgFeesController::class, 'create'])->name('college_org.fees.create');
+    Route::post('/college_org/fees', [App\Http\Controllers\CollegeOrgFeesController::class, 'store'])->name('college_org.fees.store');
+    Route::get('/college_org/fees/{fee}', [App\Http\Controllers\CollegeOrgFeesController::class, 'show'])->name('college_org.fees.show');
+    Route::get('/college_org/fees/{fee}/edit', [App\Http\Controllers\CollegeOrgFeesController::class, 'edit'])->name('college_org.fees.edit');
+    Route::put('/college_org/fees/{fee}', [App\Http\Controllers\CollegeOrgFeesController::class, 'update'])->name('college_org.fees.update');
+    Route::delete('/college_org/fees/{fee}', [App\Http\Controllers\CollegeOrgFeesController::class, 'destroy'])->name('college_org.fees.destroy');
+    Route::post('/college_org/fees/{fee}/appeal', [App\Http\Controllers\CollegeOrgFeesController::class, 'submitAppeal'])->name('college_org.fees.appeal');
+
     Route::get('/college_org/payment', function () {
         return view('college_org.payment');
     })->name('college_org.payment');
