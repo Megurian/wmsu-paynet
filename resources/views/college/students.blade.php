@@ -83,7 +83,7 @@
     </div>
 
     {{-- Students Table --}}
-    <div class="bg-white shadow-sm border border-gray-200 rounded-xl overflow-hidden">
+    <div class="bg-white shadow-sm border border-gray-200 rounded-xl ">
         <table class="min-w-full text-sm text-gray-800">
             <thead class="bg-gray-50 border-b border-gray-200">
                 <tr class="text-left text-[11px] font-semibold uppercase tracking-wide text-gray-600">
@@ -110,7 +110,7 @@
 
                     {{-- <th class="px-5 py-3">Contact</th>
                     <th class="px-5 py-3">Email</th> --}}
-                    <th class="px-5 py-3 text-center">Actions</th>
+                    <th class="px-5 py-3 text-center"></th>
                 </tr>
             </thead>
 
@@ -131,13 +131,30 @@
                         <td class="px-5 py-3 text-gray-600" x-text="student.email || '-'"></td> --}}
 
                         <td class="px-5 py-3 text-center">
-                            <form :action="`/college/students/${student.id}/unvalidate`" method="POST" onsubmit="return confirm( 'This will remove the student from the current semester . Continue?' )" >
-                                @csrf
-                                @method('DELETE')
-                                <button class="text-red-600 hover:text-red-800 font-medium transition" title="Remove from current semester">
-                                    Remove
+                            <div class="relative inline-block text-left" x-data="{ open: false }">
+                                <!-- Three-dot button -->
+                               <button @click="open = !open"
+                                    class="inline-flex justify-center items-center w-8 h-8 text-gray-500 hover:text-gray-800 rounded-full focus:outline-none">
+                                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M6 10a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm6 0a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm6 0a2 2 0 1 1-4 0 2 2 0 0 1 4 0z"/>
+                                    </svg>
                                 </button>
-                            </form>
+                                <!-- Dropdown menu -->
+                                <div x-show="open" @click.away="open = false" x-transition class="origin-top-right absolute right-0 mt-2 w-36 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-10">
+                                    <div class="py-1 text-sm text-gray-700">
+                                        <a :href="`/college/students/${student.id}`" class="block px-4 py-2 hover:bg-gray-100">
+                                            View
+                                        </a>
+                                        <form :action="`/college/students/${student.id}/unvalidate`" method="POST" onsubmit="return confirm('This will remove the student from the current semester. Continue?')" class="m-0">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="w-full text-left px-4 py-2 hover:bg-gray-100">
+                                                Remove
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
                         </td>
                     </tr>
                 </template>
