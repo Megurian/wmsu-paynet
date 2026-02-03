@@ -54,6 +54,7 @@
 </div>
 @endif
 
+<div x-data="paymentVerification()">
 <form method="POST" action="{{ route('college.students.validate.bulk') }}" x-data="studentSelection()" x-init="init()" class="space-y-4">
     @csrf
 
@@ -73,7 +74,7 @@
             </div>
             <div x-show="selected.length > 0" x-transition class="transition duration-200">
                 <button type="submit" class="px-4 py-2 bg-red-800 text-white rounded-md hover:bg-red-700 shadow transition">
-                    Validate Selected Students
+                    Enroll Selected Students
                 </button>
             </div>
         </div>
@@ -148,23 +149,41 @@
 
             <div class="flex flex-col items-end md:w-1/3 space-y-2">
                 <div>
-                    @if(!$isAdvised)
+                    @if($isEnrolled)
+                        <span class="text-indigo-600 font-semibold text-sm">Enrolled</span>
+
+                    @elseif(!$isAdvised)
                         <span class="text-gray-400 italic text-sm">Waiting for adviser</span>
+
                     @elseif(!$isPaid)
-                        <span class="text-yellow-700 italic text-sm">Pending payment</span>
-                    @elseif(!$isEnrolled)
-                        <button 
-                            formaction="{{ route('college.students.validate.store', $student->id) }}" 
-                            formmethod="POST"
-                            class="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-500 transition text-xs"
-                            onclick="return confirm('Validate and enroll this student?');"
-                        >
-                            Enroll
-                        </button>
+                        @if(auth()->user()->isStudentCoordinator())
+                           <button
+                                type="button"
+                                @click="openPaymentModal({{ $student->id }}, '{{ $student->student_id }}', '{{ strtoupper($student->last_name) }}, {{ strtoupper($student->first_name) }}')"
+                                class="px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-500"  >
+                                Verify Payment
+                            </button>
+                        @else
+                            <span class="text-yellow-700 font-semibold text-sm">Pending payment</span>
+                        @endif
+
                     @else
-                        <span class="text-green-800 font-semibold text-sm">Enrolled</span>
-                    @endif
+                        @if(auth()->user()->isAssessor())
+                            <button 
+                                formaction="{{ route('college.students.validate.store', $student->id) }}" 
+                                formmethod="POST"
+                                class="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-500 transition text-xs"
+                                onclick="return confirm('Validate and enroll this student?');"
+                            >
+                                Enroll
+                            </button>
+                        
+                        @else
+                            <span class="text-green-600 font-semibold text-sm">Payment Completed</span>
+                        @endif
+                    @endif  
                 </div>
+
 
                 <div class="flex items-center justify-end space-x-3 mt-2">
                     <div class="flex items-center space-x-1">
@@ -212,17 +231,142 @@
                 </div>
             </div>
         </div>
-
         @empty
         <div class="text-center text-gray-500 py-6 italic">
             No students found.
         </div>
         @endforelse
     </div>
-
-
 </form>
 
+<!-- Verify Payment Modal -->
+<div
+    x-show="showPaymentModal"
+    x-cloak
+    class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 sm:p-6"
+>
+    <div
+        @click.away="close()"
+        class="bg-white rounded-xl shadow-xl w-full max-w-5xl max-h-[85vh] overflow-hidden"
+    >
+
+        <!-- Header -->
+        <div class="px-6 py-4 border-b flex justify-between items-start">
+            <h3 class="text-xl font-bold text-gray-800">Verify Payment</h3>
+            <button @click="close()" class="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
+        </div>
+
+        <div class="p-6 text-sm overflow-y-auto max-h-[calc(85vh-140px)]">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+                <!--  Student Information -->
+                <div class="space-y-4">
+                    <h4 class="font-semibold text-gray-700">Student Information</h4>
+
+                    <div class="grid grid-cols-1 gap-3">
+                        <div class="bg-gray-50 border rounded-lg p-3">
+                            <p class="text-xs text-gray-500">Full Name</p>
+                            <p class="font-semibold text-gray-800" x-text="studentName"></p>
+                        </div>
+
+                        <div class="bg-gray-50 border rounded-lg p-3">
+                            <p class="text-xs text-gray-500">Student ID</p>
+                            <p class="font-semibold text-gray-800" x-text="studentNumber"></p>
+                        </div>
+
+                        <div class="bg-gray-50 border rounded-lg p-3">
+                            <p class="text-xs text-gray-500">Course · Year · Section</p>
+                            <p class="font-semibold text-gray-800">-</p>
+                        </div>
+
+                        <div class="bg-gray-50 border rounded-lg p-3">
+                            <p class="text-xs text-gray-500">Email</p>
+                            <p class="font-semibold text-gray-800">—</p>
+                        </div>
+
+                        <div class="bg-gray-50 border rounded-lg p-3">
+                            <p class="text-xs text-gray-500">Contact</p>
+                            <p class="font-semibold text-gray-800">—</p>
+                        </div>
+
+                        <div class="bg-gray-50 border rounded-lg p-3">
+                            <p class="text-xs text-gray-500">Religion</p>
+                            <p class="font-semibold text-gray-800">—</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Payment Details -->
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between">
+                        <h4 class="font-semibold text-gray-700">Payment & Transaction Details</h4>
+                        <span class="text-xs text-gray-400 italic">S.Y. & Semester</span>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <span class="font-medium">Overall Status:</span>
+                            <span class="ml-1 text-yellow-600 font-semibold">Pending</span>
+                        </div>
+                        <div>
+                            <span class="font-medium">Last Updated:</span>
+                            <span class="ml-1 text-gray-500">—</span>
+                        </div>
+                    </div>
+
+                    <hr class="border-gray-200">
+
+                    <div class="space-y-3">
+                        <div class="border rounded-xl p-4 shadow-sm flex justify-between">
+                            <div>
+                                <p class="font-medium">CSC Fee</p>
+                                <p class="text-xs text-gray-500">University Student Council</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="font-semibold">₱ —</p>
+                                <p class="text-green-600 text-sm font-medium">Paid</p>
+                            </div>
+                        </div>
+
+                        <div class="border rounded-xl p-4 shadow-sm flex justify-between">
+                            <div>
+                                <p class="font-medium">Department Org Fee</p>
+                                <p class="text-xs text-gray-500">College Organization</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="font-semibold">₱ —</p>
+                                <p class="text-green-600 text-sm font-medium">Paid</p>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="px-6 py-4 border-t flex justify-end gap-3 bg-gray-50">
+            <button @click="close()" class="px-4 py-2 border rounded text-gray-600 hover:bg-gray-100">
+                Cancel
+            </button>
+            <form :action="markPaidUrl" method="POST">
+                @csrf
+                <button class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-500"
+                onclick="return confirm('Confirm this Student for Enrollment?')">
+                    Clear Student for Enrollment
+                </button>
+            </form>
+        </div>
+
+    </div>
+</div>
+
+
+
+
+
+</div>
 <script>
 function studentSelection() {
     return {
@@ -265,6 +409,28 @@ function studentSelection() {
                     this.submitting = true;
                 }
             });
+        }
+    }
+}
+
+function paymentVerification() {
+    return {
+        showPaymentModal: false,
+        studentId: null,
+        studentName: '',
+        studentNumber: '',
+        markPaidUrl: '',
+
+        openPaymentModal(id, studentNo, name) {
+            this.studentId = id;
+            this.studentNumber = studentNo;
+            this.studentName = name;
+            this.markPaidUrl = `/college/students/${id}/mark-paid`;
+            this.showPaymentModal = true;
+        },
+
+        close() {
+            this.showPaymentModal = false;
         }
     }
 }

@@ -30,21 +30,40 @@
         <thead>
             <tr class="bg-gray-100">
                 <th class="border px-4 py-2">Fee Name</th>
+                <th class="border px-4 py-2">Purpose</th>
                 <th class="border px-4 py-2">Amount</th>
+                <th class="border px-4 py-2">Requirement</th>
                 <th class="border px-4 py-2">Status</th>
+                <th class="border px-4 py-2">Actions</th>
             </tr>
         </thead>
         <tbody>
-            <tr>
-                <td class="border px-4 py-2">CSC Fee</td>
-                <td class="border px-4 py-2">₱0.00</td>
-                <td class="border px-4 py-2">Approved</td>
-            </tr>
-            <tr>
-                <td class="border px-4 py-2">Miscellaneous Fee</td>
-                <td class="border px-4 py-2">₱0.00</td>
-                <td class="border px-4 py-2">Pending Approval</td>
-            </tr>
+            @forelse($fees as $fee)
+                <tr>
+                    <td class="border px-4 py-2">{{ $fee->fee_name }}</td>
+                    <td class="border px-4 py-2">{{ $fee->purpose }}</td>
+                    <td class="border px-4 py-2">₱{{ number_format($fee->amount, 2) }}</td>
+                    <td class="border px-4 py-2 capitalize">{{ $fee->requirement_level }}</td>
+                    <td class="border px-4 py-2 capitalize">{{ $fee->status }}</td>
+                    <td class="border px-4 py-2">
+                        <a href="{{ route('university_org.fees.show', $fee->id) }}" class="inline-flex items-center px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">View Details</a>
+                        @if($fee->status !== 'approved')
+                            <a href="{{ route('university_org.fees.edit', $fee->id) }}" class="ml-2 inline-flex items-center px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600">Edit</a>
+                            <form method="POST" action="{{ route('university_org.fees.destroy', $fee->id) }}" class="inline-block ml-2" onsubmit="return confirm('Are you sure you want to delete this fee? This action cannot be undone.')">
+                                @csrf
+                                @method('DELETE')
+                                <button class="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700">Delete</button>
+                            </form>
+                        @else
+                            <span class="ml-2 inline-block px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded">Locked</span>
+                        @endif
+                    </td>
+                </tr>
+            @empty
+                <tr>
+                    <td class="border px-4 py-2" colspan="6">No fees found for this organization.</td>
+                </tr>
+            @endforelse
         </tbody>
     </table>
 </div>

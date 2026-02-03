@@ -38,7 +38,7 @@ class AppServiceProvider extends ServiceProvider
                     $organization = $user->organization;
                 }
 
-                if (in_array($user->role, ['college', 'student_coordinator', 'adviser'])) {
+                if (in_array($user->role, ['college', 'student_coordinator', 'adviser', 'assessor'])) {
                     $currentCollege = $user->college;
                 }
             }
