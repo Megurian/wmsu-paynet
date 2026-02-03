@@ -66,6 +66,32 @@ class CollegeStudentController extends Controller
         ]);
     }
 
+    public function show(Student $student)
+    {
+        $collegeId = Auth::user()->college_id;
+
+        abort_if($student->college_id !== $collegeId, 403);
+
+        $activeSY = SchoolYear::where('is_active', true)->first();
+        $activeSem = Semester::where('is_active', true)->first();
+
+        $enrollment = StudentEnrollment::with(['course', 'yearLevel', 'section'])
+            ->where('student_id', $student->id)
+            ->where('college_id', $collegeId)
+            ->when($activeSY, fn ($q) => $q->where('school_year_id', $activeSY->id))
+            ->when($activeSem, fn ($q) => $q->where('semester_id', $activeSem->id))
+            ->first();
+
+        return view('college.student-details', compact(
+            'student',
+            'enrollment',
+            'activeSY',
+            'activeSem'
+        ));
+    }
+
+
+
 
     public function store(Request $request)
     {

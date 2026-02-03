@@ -131,6 +131,9 @@
                         <td class="px-5 py-3 text-gray-600" x-text="student.email || '-'"></td> --}}
 
                         <td class="px-5 py-3 text-center">
+                             <a :href="`/college/students/${student.id}`" class="text-blue-600 hover:text-blue-800 font-medium transition">
+                                View
+                            </a>
                             <form :action="`/college/students/${student.id}/unvalidate`" method="POST" onsubmit="return confirm( 'This will remove the student from the current semester . Continue?' )" >
                                 @csrf
                                 @method('DELETE')
