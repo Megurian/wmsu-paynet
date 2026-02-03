@@ -34,6 +34,9 @@
         @if($org->college)
             <p class="text-sm text-gray-600"> {{ $org->college->name }}</p>
         @endif
+        @if($org->motherOrganization)
+            <p class="text-sm text-gray-500">Mother: {{ $org->motherOrganization->name }}</p>
+        @endif
 
         <div class="absolute top-2 right-2">
             <button onclick="document.getElementById('menu-{{ $org->id }}').classList.toggle('hidden')" 
