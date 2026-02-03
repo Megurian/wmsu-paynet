@@ -19,6 +19,7 @@
         <select name="role" class="w-full border p-2 rounded" required>
             <option value="student_coordinator">Student Coordinator</option>
             <option value="adviser">Adviser</option>
+            <option value="assessor">Assessor</option>
         </select>
     </div>
     <div class="mb-4">

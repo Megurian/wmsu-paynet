@@ -58,5 +58,22 @@ class User extends Authenticatable
         return $this->belongsTo(Organization::class, 'organization_id');
     }
 
+    public function hasRole($role)
+    {
+        return $this->role === $role;
+    }
+
+    public function isAssessor(): bool
+    {
+        return $this->role === 'assessor';
+    }
+
+
+    public function isStudentCoordinator(): bool
+    {
+        return $this->role === 'student_coordinator';
+    }
+
+
 
 }

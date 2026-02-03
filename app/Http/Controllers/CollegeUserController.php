@@ -13,7 +13,7 @@ class CollegeUserController extends Controller
     {
         $collegeId = Auth::user()->college_id;
         $users = User::where('college_id', $collegeId)
-                     ->whereIn('role', ['student_coordinator', 'adviser'])
+                     ->whereIn('role', ['student_coordinator', 'adviser', 'assessor'])
                      ->get();
 
         return view('college.users', compact('users'));
@@ -30,7 +30,7 @@ class CollegeUserController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
             'password' => 'required|string|min:8|confirmed',
-            'role' => 'required|in:student_coordinator,adviser',
+            'role' => 'required|in:student_coordinator,adviser,assessor',
         ]);
 
         User::create([
@@ -47,7 +47,7 @@ class CollegeUserController extends Controller
 
     public function destroy(User $user)
     {
-        if ($user->college_id !== Auth::user()->college_id || !in_array($user->role, ['student_coordinator', 'adviser'])) {
+        if ($user->college_id !== Auth::user()->college_id || !in_array($user->role, ['student_coordinator', 'adviser', 'assessor'])) {
             abort(403, 'Unauthorized access.');
         }
 
