@@ -1,4 +1,4 @@
-name: Sync on DOM Cloud
+name: Update Production on DOM Cloud
 'on':
   workflow_dispatch: {}
   push:
