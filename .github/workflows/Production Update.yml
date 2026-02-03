@@ -3,7 +3,7 @@ name: Update Production on DOM Cloud
   workflow_dispatch: {}
   push:
     branches:
-      - production
+      - main
     paths-ignore:
       - '.github/workflows/**'
 
