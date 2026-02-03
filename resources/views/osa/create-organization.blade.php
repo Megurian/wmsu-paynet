@@ -100,20 +100,24 @@
                 <p id="emailFeedback" class="text-xs mt-1"></p>
             </div>
 
-            <div class="mb-4 relative">
+            <div class="mb-4">
                 <label class="block font-medium mb-1">Password</label>
-                <input id="admin_password" type="password" name="admin_password" placeholder="Enter Password" class="w-full border border-gray-300 px-4 py-2 pr-10 rounded focus:outline-none focus:ring-2 focus:ring-blue-400" required>
-                <button type="button" class="toggle-password-btn absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500" aria-label="Toggle password visibility" onclick="togglePassword('admin_password', this)">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>
-                </button>
+                <div class="relative">
+                    <input id="admin_password" type="password" name="admin_password" placeholder="Enter Password" class="w-full border border-gray-300 px-4 py-2 pr-10 rounded focus:outline-none focus:ring-2 focus:ring-blue-400" required>
+                    <button type="button" class="toggle-password-btn absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500" aria-label="Toggle password visibility" onclick="togglePassword('admin_password', this)">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>
+                    </button>
+                </div>
             </div>
 
-            <div class="mb-6 relative">
+            <div class="mb-6">
                 <label class="block font-medium mb-1">Confirm Password</label>
-                <input id="admin_password_confirmation" type="password" name="admin_password_confirmation" placeholder="Confirm Password" class="w-full border border-gray-300 px-4 py-2 pr-10 rounded focus:outline-none focus:ring-2 focus:ring-blue-400" required>
-                <button type="button" class="toggle-password-btn absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500" aria-label="Toggle confirm password visibility" onclick="togglePassword('admin_password_confirmation', this)">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>
-                </button>
+                <div class="relative">
+                    <input id="admin_password_confirmation" type="password" name="admin_password_confirmation" placeholder="Confirm Password" class="w-full border border-gray-300 px-4 py-2 pr-10 rounded focus:outline-none focus:ring-2 focus:ring-blue-400" required>
+                    <button type="button" class="toggle-password-btn absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500" aria-label="Toggle confirm password visibility" onclick="togglePassword('admin_password_confirmation', this)">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>
+                    </button>
+                </div>
                 <p id="passwordFeedback" class="text-xs mt-1 text-red-600"></p>
             </div>
 
@@ -257,6 +261,21 @@ function checkPasswordMatch() {
 if (pwInput && pwcInput) {
     pwInput.addEventListener('input', checkPasswordMatch);
     pwcInput.addEventListener('input', checkPasswordMatch);
+}
+
+// Toggle password visibility helper
+function togglePassword(inputId, btn) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+    const wasPassword = input.type === 'password';
+    input.type = wasPassword ? 'text' : 'password';
+    if (btn) {
+        btn.setAttribute('aria-pressed', wasPassword ? 'true' : 'false');
+        // swap icon between eye and eye-off for clarity
+        btn.innerHTML = wasPassword
+            ? '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a21.88 21.88 0 0 1 5-5.94"/><path d="M1 1l22 22"/></svg>'
+            : '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+    }
 }
 
 // Live org code check
@@ -441,27 +460,37 @@ document.addEventListener('DOMContentLoaded', function(){
 });
 
 // logo handlers (kept unchanged)
-logoInput.addEventListener('change', function(e){
-    const file = e.target.files[0];
-    if(file){
-        const reader = new FileReader();
-        reader.onload = function(e){
-            logoPreview.src = e.target.result;
-            logoPreview.classList.remove('hidden');
-            logoPlus.classList.add('hidden');
-            removeLogo.classList.remove('hidden');
-        }
-        reader.readAsDataURL(file);
-    }
-});
+const logoInput = document.getElementById('logoInput');
+const logoPreview = document.getElementById('logoPreview');
+const logoPlus = document.getElementById('logoPlus');
+const removeLogo = document.getElementById('removeLogo');
 
-removeLogo.addEventListener('click', function(){
-    logoInput.value = '';
-    logoPreview.src = '';
-    logoPreview.classList.add('hidden');
-    logoPlus.classList.remove('hidden');
-    removeLogo.classList.add('hidden');
-});
+if (logoInput) {
+    logoInput.addEventListener('change', function(e){
+        const file = e.target.files[0];
+        if(file){
+            const reader = new FileReader();
+            reader.onload = function(e){
+                if (logoPreview) {
+                    logoPreview.src = e.target.result;
+                    logoPreview.classList.remove('hidden');
+                }
+                if (logoPlus) logoPlus.classList.add('hidden');
+                if (removeLogo) removeLogo.classList.remove('hidden');
+            }
+            reader.readAsDataURL(file);
+        }
+    });
+}
+
+if (removeLogo) {
+    removeLogo.addEventListener('click', function(){
+        if (logoInput) logoInput.value = '';
+        if (logoPreview) { logoPreview.src = ''; logoPreview.classList.add('hidden'); }
+        if (logoPlus) logoPlus.classList.remove('hidden');
+        removeLogo.classList.add('hidden');
+    });
+}
 
 const roleSelect = document.getElementById('org-role');
 const collegeSelectWrapper = document.getElementById('college-select');

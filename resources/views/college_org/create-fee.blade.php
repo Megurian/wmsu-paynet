@@ -7,12 +7,12 @@
 <div class="mb-8">
     <h2 class="text-3xl font-bold text-gray-800"> {{ ($organization?->org_code ?? 'Organization') . " Setup of Fees" }} </h2>
     <p class="text-sm text-gray-500 mt-1">
-        Welcome, {{ Auth::user()->name }}. Here you can manage the fees associated with different colleges within the university.
+        Welcome, {{ Auth::user()->name }}. Here you can manage the fees associated with this college organization.
     </p>
 </div>
 
 <div class="flex justify-center">
-    <form id="fee-form" method="POST" action="{{ route('university_org.fees.store') }}" enctype="multipart/form-data" class="w-full max-w-2xl bg-white p-8 rounded-lg shadow-lg">
+    <form id="fee-form" method="POST" action="{{ route('college_org.fees.store') }}" enctype="multipart/form-data" class="w-full max-w-2xl bg-white p-8 rounded-lg shadow-lg">
         @csrf
         @if ($errors->any())
             <div class="mb-4 bg-red-50 border border-red-200 text-red-700 p-3 rounded">
@@ -27,64 +27,45 @@
 
         <!-- Progress Bar -->
         <div class="flex items-center justify-center mb-8">
-            <!-- Step 1 -->
+            <!-- Step indicators copied from university_org view -->
             <div class="flex items-center">
-                <div id="step-1-indicator" class="step-indicator flex items-center justify-center w-10 h-10 rounded-full bg-red-700 text-white">
-                    1
-                </div>
+                <div id="step-1-indicator" class="step-indicator flex items-center justify-center w-10 h-10 rounded-full bg-red-700 text-white">1</div>
                 <div id="step-1-line" class="w-20 h-1 bg-gray-200 mx-4"></div>
             </div>
-            
-            <!-- Step 2 -->
             <div class="flex items-center">
-                <div id="step-2-indicator" class="step-indicator flex items-center justify-center w-10 h-10 rounded-full bg-gray-200">
-                    2
-                </div>
+                <div id="step-2-indicator" class="step-indicator flex items-center justify-center w-10 h-10 rounded-full bg-gray-200">2</div>
                 <div id="step-2-line" class="w-20 h-1 bg-gray-200 mx-4"></div>
             </div>
-
-            <!-- Step 3 -->
             <div class="flex items-center">
-                <div id="step-3-indicator" class="step-indicator flex items-center justify-center w-10 h-10 rounded-full bg-gray-200">
-                    3
-                </div>
+                <div id="step-3-indicator" class="step-indicator flex items-center justify-center w-10 h-10 rounded-full bg-gray-200">3</div>
             </div>
         </div>
 
-        <!-- Step 1: Basic Information -->
+        <!-- Step 1 -->
         <div id="step-1" class="form-step">
             <div class="space-y-6">
                 <div>
                     <label for="fee_name" class="block text-sm font-medium text-gray-700 mb-1">Fee Name</label>
-                    <input type="text" id="fee_name" name="fee_name" required
-                           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500"
-                           placeholder="e.g., Student Activity Fee">
+                    <input type="text" id="fee_name" name="fee_name" required class="w-full px-3 py-2 border border-gray-300 rounded-md" placeholder="e.g., Library Fee" />
                 </div>
 
                 <div>
                     <label for="purpose" class="block text-sm font-medium text-gray-700 mb-1">Purpose of Collection</label>
-                    <input type="text" id="purpose" name="purpose" required
-                           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500"
-                           placeholder="e.g., Library Fund">
+                    <input type="text" id="purpose" name="purpose" required class="w-full px-3 py-2 border border-gray-300 rounded-md" placeholder="e.g., Library Fund" />
                 </div>
 
                 <div>
                     <label for="description" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                    <textarea id="description" name="description" rows="4" required
-                              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500"
-                              placeholder="Detailed explanation of what the fee covers..."></textarea>
+                    <textarea id="description" name="description" rows="4" required class="w-full px-3 py-2 border border-gray-300 rounded-md" placeholder="Detailed explanation..."></textarea>
                 </div>
 
                 <div class="flex justify-end mt-8">
-                    <button type="button" id="to-step-2"
-                            class="ml-3 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-700 hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-                        Next
-                    </button>
+                    <button type="button" id="to-step-2" class="ml-3 inline-flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-red-700">Next</button>
                 </div>
             </div>
         </div>
 
-        <!-- Step 2: Financial Configuration -->
+        <!-- Step 2 -->
         <div id="step-2" class="form-step hidden">
             <div class="space-y-6">
                 <div>
@@ -93,57 +74,34 @@
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <span class="text-gray-500 sm:text-sm">₱</span>
                         </div>
-                        <input type="number" id="amount" name="amount" min="0" step="0.01" required
-                               class="focus:ring-red-500 focus:border-red-500 block w-full pl-7 pr-12 sm:text-sm border-gray-300 rounded-md"
-                               placeholder="0.00">
+                        <input type="number" id="amount" name="amount" min="0" step="0.01" required class="block w-full pl-7 pr-12 sm:text-sm border-gray-300 rounded-md" placeholder="0.00" />
                     </div>
                 </div>
 
                 <div>
                     <label for="remittance_percent" class="block text-sm font-medium text-gray-700 mb-1">Remittance (%) <span class="text-sm text-gray-500">(optional)</span></label>
-                    <input type="number" id="remittance_percent" name="remittance_percent" step="0.01" min="0" max="100"
-                           class="focus:ring-red-500 focus:border-red-500 block w-full pl-3 pr-3 sm:text-sm border-gray-300 rounded-md"
-                           placeholder="e.g., 10 for 10%">
+                    <input type="number" id="remittance_percent" name="remittance_percent" step="0.01" min="0" max="100" class="w-full border rounded px-3 py-2" placeholder="e.g., 10" />
                 </div>
 
                 <div>
                     <div class="flex items-center gap-2">
                         <span class="block text-sm font-medium text-gray-700 mb-1">Requirement Level</span>
-                        <!-- Tooltip icon -->
-                        <button type="button" id="requirement-help" class="ml-2 text-gray-400 hover:text-gray-600 focus:outline-none" title="Why choose Mandatory vs Optional? Click for details." onclick="openRequirementModal()" aria-label="Requirement level help">
-                            <svg  xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 24 24" >
-                                <!--Boxicons v3.0.8 https://boxicons.com | License  https://docs.boxicons.com/free-->
-                                <path d="M11 11h2v6h-2zm0-4h2v2h-2z"></path>
-                                <path d="M12 22c5.51 0 10-4.49 10-10S17.51 2 12 2 2 6.49 2 12s4.49 10 10 10m0-18c4.41 0 8 3.59 8 8s-3.59 8-8 8-8-3.59-8-8 3.59-8 8-8"></path>
-                            </svg>
-                        </button>
+                        <button type="button" id="requirement-help" class="ml-2 text-gray-400 hover:text-gray-600" onclick="openRequirementModal()" title="Why choose Mandatory vs Optional?">?</button>
                     </div>
                     <div class="mt-2 flex items-center gap-6">
-                        <label class="inline-flex items-center">
-                            <input type="radio" name="requirement_level" value="mandatory" class="requirement-radio" />
-                            <span class="ml-2">Mandatory</span>
-                        </label>
-                        <label class="inline-flex items-center">
-                            <input type="radio" name="requirement_level" value="optional" class="requirement-radio" />
-                            <span class="ml-2">Optional</span>
-                        </label>
+                        <label class="inline-flex items-center"><input type="radio" name="requirement_level" value="mandatory" class="requirement-radio" /> <span class="ml-2">Mandatory</span></label>
+                        <label class="inline-flex items-center"><input type="radio" name="requirement_level" value="optional" class="requirement-radio" /> <span class="ml-2">Optional</span></label>
                     </div>
                 </div>
 
                 <div class="flex justify-between mt-8">
-                    <button type="button" onclick="prevStep()" 
-                            class="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-                        Back
-                    </button>
-                    <button type="button" id="to-step-3" 
-                            class="ml-3 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-700 hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-                        Next
-                    </button>
+                    <button type="button" onclick="prevStep()" class="inline-flex py-2 px-4 border rounded text-gray-700">Back</button>
+                    <button type="button" id="to-step-3" class="ml-3 inline-flex py-2 px-4 bg-red-700 text-white rounded">Next</button>
                 </div>
             </div>
         </div>
 
-        <!-- Step 3: Supporting Documentation -->
+        <!-- Step 3 -->
         <div id="step-3" class="form-step hidden">
             <div class="space-y-6">
                 <div>
@@ -151,13 +109,11 @@
                     <p class="text-sm text-gray-500">Upload legal proof required based on the selected requirement level.</p>
                 </div>
 
-                <!-- Optional: accreditation only -->
                 <div id="supporting-optional" class="hidden">
                     <label for="accreditation_file_optional" class="block text-sm font-medium text-gray-700 mb-1">Certificate of Accreditation / Accreditation Permit</label>
                     <input type="file" id="accreditation_file_optional" name="accreditation_file" accept=".pdf,image/*" class="w-full" />
                 </div>
 
-                <!-- Mandatory: accreditation + resolution -->
                 <div id="supporting-mandatory" class="hidden space-y-4">
                     <div>
                         <label for="accreditation_file_mandatory" class="block text-sm font-medium text-gray-700 mb-1">Certificate of Accreditation / Accreditation Permit</label>
@@ -170,40 +126,33 @@
                 </div>
 
                 <div class="flex justify-between mt-8">
-                    <button type="button" onclick="prevStep()" 
-                            class="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-                        Back
-                    </button>
-                    <button type="submit" id="submit-fee" 
-                            class="ml-3 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-700 hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-                        Submit Fee
-                    </button>
+                    <button type="button" onclick="prevStep()" class="inline-flex py-2 px-4 border rounded text-gray-700">Back</button>
+                    <button type="submit" id="submit-fee" class="ml-3 inline-flex py-2 px-4 bg-red-700 text-white rounded">Submit Fee</button>
                 </div>
             </div>
         </div>
     </form>
 </div>
 
-<!-- Requirement Level Modal -->
+<!-- Requirement Modal (same as university_org) -->
 <div id="requirement-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center">
   <div id="requirement-modal-overlay" class="fixed inset-0 bg-black bg-opacity-50"></div>
   <div class="relative bg-white rounded-lg shadow-xl max-w-xl w-full mx-4 z-10 p-6">
     <div class="flex items-start justify-between">
       <h3 id="requirement-modal-title" class="text-lg font-medium text-gray-900">Requirement Level Details</h3>
-      <button type="button" onclick="closeRequirementModal()" class="text-gray-400 hover:text-gray-600 focus:outline-none" aria-label="Close modal">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
-      </button>
+      <button type="button" onclick="closeRequirementModal()" class="text-gray-400 hover:text-gray-600 focus:outline-none" aria-label="Close modal">×</button>
     </div>
     <div id="requirement-modal-body" class="mt-4 text-sm text-gray-700">
       <p>Please select a requirement level to view details.</p>
     </div>
     <div class="mt-6 flex justify-end">
-      <button type="button" onclick="closeRequirementModal()" class="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none">Close</button>
+      <button type="button" onclick="closeRequirementModal()" class="inline-flex justify-center py-2 px-4 border rounded text-gray-700 bg-white">Close</button>
     </div>
   </div>
 </div>
 
 <script>
+// Copy the JS from university_org/create-fees and change the submit route is already set in the form action
 let currentStep = 1;
 
 function updateProgress() {
@@ -287,7 +236,7 @@ function updateSupportingDocs() {
 
     if (selected === 'optional') {
         if (opt) opt.classList.remove('hidden');
-        if (accOpt) { accOpt.disabled = false; /* optional - not required */ }
+        if (accOpt) { accOpt.disabled = false; }
     } else if (selected === 'mandatory') {
         if (mand) mand.classList.remove('hidden');
         if (accMand) { accMand.required = true; accMand.disabled = false; }
@@ -297,12 +246,10 @@ function updateSupportingDocs() {
 
 function goToStep3() {
     if (!validateStep2()) return;
-    // ensure supporting docs reflect the choice
     updateSupportingDocs();
     showStep(3);
 }
 
-// Modal controls for requirement level details
 function openRequirementModal() {
     const req = document.querySelector('input[name="requirement_level"]:checked');
     const title = document.getElementById('requirement-modal-title');
@@ -333,31 +280,21 @@ function closeRequirementModal() {
     document.removeEventListener('keydown', onModalKeyDown);
 }
 
-function onModalKeyDown(e) {
-    if (e.key === 'Escape') closeRequirementModal();
-}
-
+function onModalKeyDown(e) { if (e.key === 'Escape') closeRequirementModal(); }
 
 document.addEventListener('DOMContentLoaded', function() {
     showStep(1);
 
-    document.getElementById('to-step-2').addEventListener('click', function() {
-        if (validateStep1()) showStep(2);
-    });
-
+    document.getElementById('to-step-2').addEventListener('click', function() { if (validateStep1()) showStep(2); });
     document.getElementById('to-step-3').addEventListener('click', goToStep3);
+    document.querySelectorAll('.requirement-radio').forEach(r => { r.addEventListener('change', updateSupportingDocs); });
 
-    document.querySelectorAll('.requirement-radio').forEach(r => {
-        r.addEventListener('change', updateSupportingDocs);
-    });
-
-    // initialize supporting docs state in case of validation errors / pre-selected values
+    // initialize supporting docs
     updateSupportingDocs();
 
     const form = document.getElementById('fee-form');
     if (form) {
         form.onsubmit = function(e) {
-            // client-side validation for required files based on requirement level
             const req = document.querySelector('input[name="requirement_level"]:checked');
             if (!req) { e.preventDefault(); alert('Requirement Level is missing.'); showStep(2); return false; }
             if (req.value === 'mandatory') {
@@ -366,8 +303,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (!a || a.files.length === 0) { e.preventDefault(); alert('Please upload the Certificate of Accreditation/Accreditation Permit.'); showStep(3); return false; }
                 if (!r || r.files.length === 0) { e.preventDefault(); alert('Please upload the Resolution of Collection.'); showStep(3); return false; }
             }
-            // if optional, accreditation is optional
-            // allow the form to submit normally
             return true;
         };
     }
@@ -375,20 +310,9 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <style>
-.form-step {
-    transition: all 0.3s ease;
-}
-.step-indicator {
-    transition: all 0.3s ease;
-}
-/* Modal small styling */
-#requirement-modal .relative {
-    transform: translateY(0);
-    transition: transform 0.15s ease-out, opacity 0.15s ease-out;
-}
-#requirement-modal:not(.hidden) .relative {
-    transform: translateY(0);
-    opacity: 1;
-}
+.form-step { transition: all 0.3s ease; }
+.step-indicator { transition: all 0.3s ease; }
+#requirement-modal .relative { transform: translateY(0); transition: transform 0.15s ease-out, opacity 0.15s ease-out; }
+#requirement-modal:not(.hidden) .relative { transform: translateY(0); opacity: 1; }
 </style>
 @endsection
