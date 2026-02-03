@@ -74,7 +74,7 @@
                 <label class="text-sm font-medium text-gray-700 select-none">Select All</label>
                 @endif
             </div>
-            <div x-show="selected.length > 0" x-transition class="transition duration-200">
+            <div x-show="selected.length > 0" x-transition class="transition duration-200" x-cloak>
                 @if(auth()->user()->isAssessor())
                 <button type="submit" class="px-4 py-2 bg-red-800 text-white rounded-md hover:bg-red-700 shadow transition">
                     Enroll Selected Students
@@ -165,10 +165,22 @@
                         @if(auth()->user()->isStudentCoordinator())
                            <button
                                 type="button"
-                                @click="openPaymentModal({{ $student->id }}, '{{ $student->student_id }}', '{{ strtoupper($student->last_name) }}, {{ strtoupper($student->first_name) }}')"
-                                class="px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-500"  >
+                                @click="openPaymentModal(
+                                    {{ $student->id }},
+                                    '{{ $student->student_id }}',
+                                    '{{ strtoupper($student->last_name) }}, {{ strtoupper($student->first_name) }}',
+                                    '{{ $displayEnrollment->course->name ?? '—' }}',
+                                    '{{ $displayEnrollment->yearLevel->name ?? '—' }}',
+                                    '{{ $displayEnrollment->section->name ?? '—' }}',
+                                    '{{ $student->email ?? '—' }}',
+                                    '{{ $student->contact ?? '—' }}',
+                                    '{{ $student->religion ?? '—' }}'
+                                )"
+                                class="px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-500"
+                            >
                                 Verify Payment
                             </button>
+
                         @else
                             <span class="text-yellow-700 font-semibold text-sm">Pending payment</span>
                         @endif
@@ -282,22 +294,21 @@
 
                         <div class="bg-gray-50 border rounded-lg p-3">
                             <p class="text-xs text-gray-500">Course · Year · Section</p>
-                            <p class="font-semibold text-gray-800">-</p>
+                            <p class="font-semibold text-gray-800" x-text="`${studentCourse} · ${studentYear} · ${studentSection}`"></p>
                         </div>
-
                         <div class="bg-gray-50 border rounded-lg p-3">
                             <p class="text-xs text-gray-500">Email</p>
-                            <p class="font-semibold text-gray-800">—</p>
+                            <p class="font-semibold text-gray-800" x-text="studentEmail || '—'"></p>
                         </div>
 
                         <div class="bg-gray-50 border rounded-lg p-3">
                             <p class="text-xs text-gray-500">Contact</p>
-                            <p class="font-semibold text-gray-800">—</p>
+                            <p class="font-semibold text-gray-800" x-text="studentContact || '—'"></p>
                         </div>
 
                         <div class="bg-gray-50 border rounded-lg p-3">
                             <p class="text-xs text-gray-500">Religion</p>
-                            <p class="font-semibold text-gray-800">—</p>
+                            <p class="font-semibold text-gray-800" x-text="studentReligion || '—'"></p>
                         </div>
                     </div>
                 </div>
@@ -425,16 +436,27 @@ function paymentVerification() {
         studentId: null,
         studentName: '',
         studentNumber: '',
+        studentCourse: '',
+        studentYear: '',
+        studentSection: '',
+        studentEmail: '',
+        studentContact: '',
+        studentReligion: '',
         markPaidUrl: '',
 
-        openPaymentModal(id, studentNo, name) {
+        openPaymentModal(id, studentNo, name, course, year, section, email, contact, religion) {
             this.studentId = id;
             this.studentNumber = studentNo;
             this.studentName = name;
+            this.studentCourse = course;
+            this.studentYear = year;
+            this.studentSection = section;
+            this.studentEmail = email;
+            this.studentContact = contact;
+            this.studentReligion = religion;
             this.markPaidUrl = `/college/students/${id}/mark-paid`;
             this.showPaymentModal = true;
         },
-
         close() {
             this.showPaymentModal = false;
         }
