@@ -339,16 +339,6 @@
                             </div>
                         </div>
 
-                        <div class="border rounded-xl p-4 shadow-sm flex justify-between bg-yellow-50 border-yellow-300">
-                            <div>
-                                <p class="font-medium">Red Cross Youth</p>
-                                <p class="text-xs text-gray-500">Required Organization</p>
-                            </div>
-                            <div class="text-right">
-                                <p class="font-semibold">₱ —</p>
-                                <p class="text-yellow-700 text-sm font-medium">Unpaid</p>
-                            </div>
-                        </div>
                     </div>
                 </div>
 
