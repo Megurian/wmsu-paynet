@@ -210,6 +210,7 @@ Route::middleware(['auth','role:student_coordinator'])->group(function(){
         '/college/students/{student}/mark-paid',
         [ValidateStudentsController::class, 'markPaid']
     )->name('college.students.markPaid');
+    
 });
 
 
