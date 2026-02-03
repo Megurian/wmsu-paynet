@@ -1,13 +1,9 @@
 name: Sync on DOM Cloud
-on:
-  workflow_dispatch: {} # Allows you to click a button to deploy manually
+'on':
+  workflow_dispatch: {}
   push:
     branches:
       - main
-      - master
-    paths-ignore:
-      - '.github/workflows/**' # Don't trigger if you only change this file
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -38,12 +34,5 @@ jobs:
             's/utf8mb4_0900_ai_ci/utf8mb4_unicode_ci/g' {} \\; || true","php
             artisan migrate:fresh --seed || true","php artisan
             key:generate","php artisan storage:link","npm install","npm run
-            build","chmod 0750 -R storage || true","rm -f public/hot"],"wait":1}
-          verbose: true
-
-      - name: Check deployment status
-        uses: distributhor/workflow-webhook@v3
-        env:
-          webhook_url: https://my.domcloud.co/api/githubdeploycheck
-          webhook_secret: ${{ secrets.WEBHOOK_SECRET }}
-          webhook_auth: ${{ secrets.WEBHOOK_AUTH }}
+            build","chmod 0750 -R storage || true","rm -f
+            public/hot"],"wait":1,"webhook_id":"Megurian/wmsu-paynet#95429d055acb3c980e34c20f94dbc6fe2ac77e21"}
