@@ -67,15 +67,19 @@
     <div class="space-y-4">
         <div class="flex items-center justify-between mb-2">
             <div class="flex items-center space-x-2">
+                @if(auth()->user()->isAssessor())
                 <input type="checkbox"
                     @click="toggleAll($event)"
                     class="w-5 h-5 border-gray-400 rounded focus:ring-2 focus:ring-blue-400 cursor-pointer">
                 <label class="text-sm font-medium text-gray-700 select-none">Select All</label>
+                @endif
             </div>
-            <div x-show="selected.length > 0" x-transition class="transition duration-200">
+            <div x-show="selected.length > 0" x-transition class="transition duration-200" x-cloak>
+                @if(auth()->user()->isAssessor())
                 <button type="submit" class="px-4 py-2 bg-red-800 text-white rounded-md hover:bg-red-700 shadow transition">
                     Enroll Selected Students
                 </button>
+                @endif
             </div>
         </div>
         @forelse($students as $student)
@@ -90,12 +94,14 @@
 
         <div class="bg-white shadow rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between space-y-3 md:space-y-0 md:space-x-4">
             <div class="flex items-center space-x-4 md:w-1/3">
-                @if($isAdvised && $isPaid && !$isEnrolled)
-                    <input type="checkbox"
-                        name="selected_students[]"
-                        class="w-5 h-5 border-gray-400 rounded focus:ring-2 focus:ring-blue-400 cursor-pointer"
-                        value="{{ $student->id }}"
-                        @click="toggleOne($event, '{{ $student->id }}')">
+               @if($isAdvised && $isPaid && !$isEnrolled)
+                    @if(auth()->user()->isAssessor())
+                        <input type="checkbox"
+                            name="selected_students[]"
+                            class="w-5 h-5 border-gray-400 rounded focus:ring-2 focus:ring-blue-400 cursor-pointer"
+                            value="{{ $student->id }}"
+                            @click="toggleOne($event, '{{ $student->id }}')">
+                    @endif
                 @endif
                 <div class="text-sm font-semibold">{{ $student->student_id }}</div>
                 <div class="text-sm font-medium">{{ strtoupper($student->last_name) }}, {{ strtoupper($student->first_name) }}</div>
@@ -159,10 +165,22 @@
                         @if(auth()->user()->isStudentCoordinator())
                            <button
                                 type="button"
-                                @click="openPaymentModal({{ $student->id }}, '{{ $student->student_id }}', '{{ strtoupper($student->last_name) }}, {{ strtoupper($student->first_name) }}')"
-                                class="px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-500"  >
+                                @click="openPaymentModal(
+                                    {{ $student->id }},
+                                    '{{ $student->student_id }}',
+                                    '{{ strtoupper($student->last_name) }}, {{ strtoupper($student->first_name) }}',
+                                    '{{ $displayEnrollment->course->name ?? '—' }}',
+                                    '{{ $displayEnrollment->yearLevel->name ?? '—' }}',
+                                    '{{ $displayEnrollment->section->name ?? '—' }}',
+                                    '{{ $student->email ?? '—' }}',
+                                    '{{ $student->contact ?? '—' }}',
+                                    '{{ $student->religion ?? '—' }}'
+                                )"
+                                class="px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-500"
+                            >
                                 Verify Payment
                             </button>
+
                         @else
                             <span class="text-yellow-700 font-semibold text-sm">Pending payment</span>
                         @endif
@@ -247,7 +265,7 @@
 >
     <div
         @click.away="close()"
-        class="bg-white rounded-xl shadow-xl w-full max-w-5xl max-h-[85vh] overflow-hidden"
+        class="bg-white rounded-xl shadow-xl w-full max-w-6xl max-h-[95vh] "
     >
 
         <!-- Header -->
@@ -256,14 +274,14 @@
             <button @click="close()" class="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
         </div>
 
-        <div class="p-6 text-sm overflow-y-auto max-h-[calc(85vh-140px)]">
+        <div class="p-6 text-sm overflow-y-auto max-h-[calc(92vh-100px)]">
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
                 <!--  Student Information -->
                 <div class="space-y-4">
                     <h4 class="font-semibold text-gray-700">Student Information</h4>
 
-                    <div class="grid grid-cols-1 gap-3">
+                    <div class="grid grid-cols-2 gap-3">
                         <div class="bg-gray-50 border rounded-lg p-3">
                             <p class="text-xs text-gray-500">Full Name</p>
                             <p class="font-semibold text-gray-800" x-text="studentName"></p>
@@ -276,22 +294,21 @@
 
                         <div class="bg-gray-50 border rounded-lg p-3">
                             <p class="text-xs text-gray-500">Course · Year · Section</p>
-                            <p class="font-semibold text-gray-800">-</p>
+                            <p class="font-semibold text-gray-800" x-text="`${studentCourse} · ${studentYear} · ${studentSection}`"></p>
                         </div>
-
                         <div class="bg-gray-50 border rounded-lg p-3">
                             <p class="text-xs text-gray-500">Email</p>
-                            <p class="font-semibold text-gray-800">—</p>
+                            <p class="font-semibold text-gray-800" x-text="studentEmail || '—'"></p>
                         </div>
 
                         <div class="bg-gray-50 border rounded-lg p-3">
                             <p class="text-xs text-gray-500">Contact</p>
-                            <p class="font-semibold text-gray-800">—</p>
+                            <p class="font-semibold text-gray-800" x-text="studentContact || '—'"></p>
                         </div>
 
                         <div class="bg-gray-50 border rounded-lg p-3">
                             <p class="text-xs text-gray-500">Religion</p>
-                            <p class="font-semibold text-gray-800">—</p>
+                            <p class="font-semibold text-gray-800" x-text="studentReligion || '—'"></p>
                         </div>
                     </div>
                 </div>
@@ -316,7 +333,8 @@
 
                     <hr class="border-gray-200">
 
-                    <div class="space-y-3">
+                    <!-- Scrollable Payment List -->
+                    <div class="space-y-3 max-h-80 overflow-y-auto">
                         <div class="border rounded-xl p-4 shadow-sm flex justify-between">
                             <div>
                                 <p class="font-medium">CSC Fee</p>
@@ -339,8 +357,42 @@
                             </div>
                         </div>
 
+                        <div class="border rounded-xl p-4 shadow-sm flex justify-between">
+                            <div>
+                                <p class="font-medium">Department Org Fee</p>
+                                <p class="text-xs text-gray-500">College Organization</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="font-semibold">₱ —</p>
+                                <p class="text-green-600 text-sm font-medium">Paid</p>
+                            </div>
+                        </div>
+
+                        <div class="border rounded-xl p-4 shadow-sm flex justify-between">
+                            <div>
+                                <p class="font-medium">Department Org Fee</p>
+                                <p class="text-xs text-gray-500">College Organization</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="font-semibold">₱ —</p>
+                                <p class="text-green-600 text-sm font-medium">Paid</p>
+                            </div>
+                        </div>
+
+                        <div class="border rounded-xl p-4 shadow-sm flex justify-between">
+                            <div>
+                                <p class="font-medium">Department Org Fee</p>
+                                <p class="text-xs text-gray-500">College Organization</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="font-semibold">₱ —</p>
+                                <p class="text-green-600 text-sm font-medium">Paid</p>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
+
 
             </div>
         </div>
@@ -419,16 +471,27 @@ function paymentVerification() {
         studentId: null,
         studentName: '',
         studentNumber: '',
+        studentCourse: '',
+        studentYear: '',
+        studentSection: '',
+        studentEmail: '',
+        studentContact: '',
+        studentReligion: '',
         markPaidUrl: '',
 
-        openPaymentModal(id, studentNo, name) {
+        openPaymentModal(id, studentNo, name, course, year, section, email, contact, religion) {
             this.studentId = id;
             this.studentNumber = studentNo;
             this.studentName = name;
+            this.studentCourse = course;
+            this.studentYear = year;
+            this.studentSection = section;
+            this.studentEmail = email;
+            this.studentContact = contact;
+            this.studentReligion = religion;
             this.markPaidUrl = `/college/students/${id}/mark-paid`;
             this.showPaymentModal = true;
         },
-
         close() {
             this.showPaymentModal = false;
         }
