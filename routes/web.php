@@ -161,6 +161,8 @@ Route::middleware(['auth', 'role:college,student_coordinator,adviser,assessor'])
     Route::delete('/college/students/{id}', [CollegeStudentController::class, 'destroy'])->name('college.students.destroy');
     Route::get('/college/students/{student}', [CollegeStudentController::class, 'show'])
     ->name('college.students.show');
+    Route::put('/college/students/{student}', [CollegeStudentController::class, 'update'])
+    ->name('college.students.update');
 
 
     Route::delete('/college/students/{student}/unvalidate', [CollegeStudentController::class, 'unvalidate']

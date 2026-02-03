@@ -169,6 +169,40 @@ class CollegeStudentController extends Controller
         return back()->with('status', 'Student removed from current semester.');
     }
 
-    
+    public function update(Request $request, Student $student)
+{
+    $collegeId = Auth::user()->college_id;
+    abort_if($student->college_id !== $collegeId, 403);
+
+    $request->validate([
+        'field' => ['required', 'string', Rule::in(['name', 'email', 'contact', 'religion'])],
+        'value' => ['required', 'string', 'max:255'],
+    ]);
+
+    switch ($request->field) {
+        case 'name':
+            // Assuming value contains full name in format "Last, First Middle Suffix"
+            $parts = explode(',', $request->value);
+            $student->last_name = trim($parts[0] ?? $student->last_name);
+            $student->first_name = trim($parts[1] ?? $student->first_name);
+            $student->middle_name = trim($parts[2] ?? $student->middle_name);
+            $student->suffix = trim($parts[3] ?? $student->suffix);
+            break;
+        case 'email':
+            $student->email = $request->value;
+            break;
+        case 'contact':
+            $student->contact = $request->value;
+            break;
+        case 'religion':
+            $student->religion = $request->value;
+            break;
+    }
+
+    $student->save();
+
+    return back()->with('status', $request->field . ' updated successfully.');
+}
+
 
 }
