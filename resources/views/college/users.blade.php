@@ -158,43 +158,70 @@
 
 <!-- Account Management Tab -->
 @if($activeTab === 'accounts')
-    <div class="flex justify-between items-center mb-4">
-        <a href="{{ route('college.users.create') }}" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-            + Add User
-        </a>
-    </div>
+    <div class="space-y-6">
 
-    <div>
+        <!-- Header -->
+        <div class="bg-white p-8 rounded shadow flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+                <h2 class="text-2xl font-bold text-gray-800">Account Management</h2>
+                <p class="text-gray-600 text-sm mt-1">
+                    Manage coordinators, advisers, and assessors assigned to this college.
+                </p>
+            </div>
+
+            <a href="{{ route('college.users.create') }}"
+               class="inline-flex items-center px-5 py-2.5 bg-red-800 text-white rounded-lg hover:bg-red-700 transition text-sm font-medium">
+                Add Account
+            </a>
+        </div>
+
+        <!-- User Cards -->
         @if($users->count())
-            <table class="w-full border rounded">
-                <thead class="bg-gray-100">
-                    <tr>
-                        <th class="p-2 border">Name</th>
-                        <th class="p-2 border">Email</th>
-                        <th class="p-2 border">Role</th>
-                        <th class="p-2 border">Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($users as $user)
-                    <tr class="text-center">
-                        <td class="p-2 border">{{ $user->name }}</td>
-                        <td class="p-2 border">{{ $user->email }}</td>
-                        <td class="p-2 border capitalize">{{ str_replace('_', ' ', $user->role) }}</td>
-                        <td class="p-2 border">
-                            <form action="{{ route('college.users.destroy', $user) }}" method="POST" onsubmit="return confirm('Delete this user?');">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                @foreach($users as $user)
+                    <div class="bg-white rounded-lg shadow border border-gray-100 p-6 flex flex-col justify-between">
+
+                        <!-- User Info -->
+                        <div class="space-y-2">
+                            <h3 class="text-lg font-semibold text-gray-800 leading-tight">
+                                {{ $user->last_name }},
+                                {{ $user->first_name }}
+                                {{ $user->middle_name ? substr($user->middle_name, 0, 1).'.' : '' }}
+                                {{ $user->suffix }}
+                            </h3>
+
+                            <p class="text-sm text-gray-600">
+                                {{ $user->email }}
+                            </p>
+
+                            <span class="inline-block bg-red-100 text-red-800 text-xs font-semibold px-3 py-1 rounded-full capitalize w-fit">
+                                {{ str_replace('_', ' ', $user->role) }}
+                            </span>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="pt-4 mt-4 border-t flex justify-end">
+                            <form action="{{ route('college.users.destroy', $user) }}"
+                                  method="POST"
+                                  onsubmit="return confirm('Delete this user?');">
                                 @csrf
                                 @method('DELETE')
-                                <button type="submit" class="px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700">Delete</button>
+                                <button type="submit"
+                                        class="text-sm text-red-600 hover:text-red-800 font-medium">
+                                    Delete
+                                </button>
                             </form>
-                        </td>
-                    </tr>
-                    @endforeach
-                </tbody>
-            </table>
+                        </div>
+
+                    </div>
+                @endforeach
+            </div>
         @else
-            <p class="text-gray-500 italic mt-4">No users created yet.</p>
+            <div class="bg-white p-8 rounded shadow text-center text-gray-500 italic">
+                No users have been added yet.
+            </div>
         @endif
+
     </div>
 @endif
 

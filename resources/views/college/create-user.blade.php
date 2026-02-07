@@ -73,7 +73,7 @@
 
             <!-- Submit -->
             <div class="pt-2 border-t mt-2">
-                <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">
+                <button type="submit" class="px-6 py-2 bg-red-800 text-white rounded hover:bg-red-800 transition">
                     Create User
                 </button>
             </div>
