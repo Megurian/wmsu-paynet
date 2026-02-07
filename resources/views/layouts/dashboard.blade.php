@@ -202,7 +202,7 @@
                  @if($role === 'college')
                 <a href="{{ route('college.users.index') }}" class="block px-4 py-2 rounded-md transition
                     {{ request()->routeIs('college.users.*') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-                    <span>User Management</span>
+                    <span> College Management</span>
                 </a>
                 @endif
 
@@ -253,7 +253,7 @@
                 <!-- User Dropdown -->
                 <div class="relative">
                     <button type="button" class="flex items-center gap-2 text-sm text-gray-700 hover:text-gray-900 focus:outline-none" onclick="document.getElementById('user-dropdown').classList.toggle('hidden')">
-                        <span>{{ Auth::user()->name }}</span>
+                        <span>{{ auth()->user()->full_name }}</span>
                         <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                         </svg>
@@ -337,23 +337,33 @@
         </div>
 
         <script>
-            function toggleSidebar() {
-                const sidebar = document.getElementById('sidebar');
-                const mainArea = document.getElementById('main-area');
-                const header = document.getElementById('main-header');
+            const sidebar = document.getElementById('sidebar');
+            const mainArea = document.getElementById('main-area');
+            const header = document.getElementById('main-header');
 
-                sidebar.classList.toggle('collapsed');
-
-                if (sidebar.classList.contains('collapsed')) {
+            function applySidebarState(collapsed) {
+                if (collapsed) {
+                    sidebar.classList.add('collapsed');
                     mainArea.style.marginLeft = '100px';
                     header.style.left = '100px';
                     header.style.right = '0';
                 } else {
+                    sidebar.classList.remove('collapsed');
                     mainArea.style.marginLeft = '16rem';
                     header.style.left = '16rem';
                     header.style.right = '0';
                 }
             }
+            function toggleSidebar() {
+                const isCollapsed = sidebar.classList.toggle('collapsed');
+                applySidebarState(isCollapsed);
+                localStorage.setItem('sidebarCollapsed', isCollapsed); 
+            }
+
+            document.addEventListener('DOMContentLoaded', () => {
+                const savedState = localStorage.getItem('sidebarCollapsed') === 'true';
+                applySidebarState(savedState);
+            });
 
             function closeSuccessModal() {
                 const modal = document.getElementById('successModal');
@@ -361,11 +371,7 @@
             }
 
             setTimeout(() => closeSuccessModal(), 3000);
-
-            
-
         </script>
-
     </div>
 
 </body>

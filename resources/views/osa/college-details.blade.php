@@ -33,7 +33,7 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             @foreach($college->admins as $admin)
             <div class="border rounded p-4 flex flex-col space-y-1">
-                <p class="font-semibold">{{ $admin->name }}</p>
+                <p class="font-semibold">{{ $admin->first_name }} {{ $admin->middle_name }}{{ $admin->last_name }} {{ $admin->suffix }} </p>
                 <p class="text-gray-600 text-sm">{{ $admin->email }}</p>
             </div>
             @endforeach

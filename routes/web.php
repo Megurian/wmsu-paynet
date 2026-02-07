@@ -211,7 +211,8 @@ Route::middleware(['auth', 'role:college,student_coordinator,adviser,assessor'])
     Route::get('/college/users/create', [CollegeUserController::class, 'create'])->name('college.users.create');
     Route::post('/college/users', [CollegeUserController::class, 'store'])->name('college.users.store');
     Route::delete('/college/users/{user}', [CollegeUserController::class, 'destroy'])->name('college.users.destroy');
-
+     Route::put('info/logo', [CollegeUserController::class, 'updateCollegeLogo'])->name('college.info.updateLogo');
+    Route::put('info/name', [CollegeUserController::class, 'updateCollegeName'])->name('college.info.updateName');
     Route::get('/college/students/import/template', function () {
         return response()->download(
             storage_path('app/templates/student_import_template.xlsx'),
@@ -219,10 +220,7 @@ Route::middleware(['auth', 'role:college,student_coordinator,adviser,assessor'])
         );
     })->name('college.students.import.template');
     Route::post('college/students/import', [ValidateStudentsController::class, 'import'])->name('college.students.import');
-
-    
 });
-
 
 Route::middleware(['auth','role:assessor,student_coordinator'])->group(function(){
     Route::get('students/validate', [ValidateStudentsController::class, 'index'])->name('college.students.validate');
@@ -238,11 +236,6 @@ Route::middleware(['auth','role:student_coordinator'])->group(function(){
     )->name('college.students.markPaid');
     
 });
-
-
-
-
-
 
 
 
