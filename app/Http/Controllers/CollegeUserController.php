@@ -20,7 +20,7 @@ class CollegeUserController extends Controller
                      ->get();
 
         return view('college.users', [
-            'users',
+            'users' => $users,
             'courses' => Course::where('college_id', $collegeId)->get(),
             'years' => YearLevel::where('college_id', $collegeId)->get(),
             'sections' => Section::where('college_id', $collegeId)->get(),
@@ -35,14 +35,25 @@ class CollegeUserController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'first_name' => 'required|string|max:255',
+            'middle_name' => 'nullable|string|max:255',
+            'suffix' => 'nullable|string|max:10',
             'email' => 'required|email|unique:users,email',
             'password' => 'required|string|min:8|confirmed',
             'role' => 'required|in:student_coordinator,adviser,assessor',
         ]);
 
+        $fullName = $request->first_name . ' ' .
+                    ($request->middle_name ? $request->middle_name . ' ' : '') .
+                    $request->last_name .
+                    ($request->suffix ? ', ' . $request->suffix : '');
+
         User::create([
-            'name' => $request->name,
+            'first_name' => $request->first_name,
+            'middle_name' => $request->middle_name,
+            'last_name' => $request->last_name,
+            'suffix' => $request->suffix,
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'role' => $request->role,
@@ -50,7 +61,7 @@ class CollegeUserController extends Controller
         ]);
 
         return redirect()->route('college.users.index')
-                         ->with('status', 'User created successfully!');
+                        ->with('status', 'User created successfully!');
     }
 
     public function destroy(User $user)
