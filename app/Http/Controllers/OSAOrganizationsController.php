@@ -59,7 +59,10 @@ class OSAOrganizationsController extends Controller
                 },
             ],
             'logo' => 'nullable|image|max:2048',
-            'admin_name' => 'required|string|max:255',
+            'admin_last_name' => 'required|string|max:255',
+            'admin_first_name' => 'required|string|max:255',
+            'admin_middle_name' => 'nullable|string|max:255',
+            'admin_suffix' => 'nullable|string|max:255',
             'admin_email' => 'required|email|unique:users,email',
             'admin_password' => 'required|string|min:8|confirmed',
         ]);
@@ -77,7 +80,10 @@ class OSAOrganizationsController extends Controller
                 ]);
 
                 User::create([
-                    'name' => $request->admin_name,
+                    'last_name' => $request->admin_last_name,
+                    'first_name' => $request->admin_first_name,
+                    'middle_name' => $request->admin_middle_name,
+                    'suffix' => $request->admin_suffix,
                     'email' => $request->admin_email,
                     'password' => Hash::make($request->admin_password),
                     'role' => $request->role,

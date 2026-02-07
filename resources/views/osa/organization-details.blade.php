@@ -35,7 +35,7 @@
     <h3 class="text-xl font-semibold mb-4">Organization Admin</h3>
     @if($orgDetail->admin)
         <div class="border rounded p-4 flex flex-col space-y-1">
-            <p class="font-semibold">{{ $orgDetail->admin->name }}</p>
+            <p class="font-semibold">{{ $orgDetail->admin->first_name }}{{ $orgDetail->admin->middle_name }} {{ $orgDetail->admin->last_name }} {{ $orgDetail->admin->suffix }}</p>
             <p class="text-gray-600 text-sm">{{ $orgDetail->admin->email }}</p>
         </div>
     @else
