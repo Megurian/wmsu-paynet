@@ -151,19 +151,49 @@
         <div class="form-step hidden" id="step-3">
             <h3 class="text-xl font-bold mb-6 text-center">College Dean Account</h3>
 
-            <div class="mb-4">
-                <label class="block font-medium mb-1">Admin Name</label>
-                <input type="text" name="admin_name" class="w-full border border-gray-300 px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400" placeholder="Enter Admin Name" required>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block font-medium mb-1">Last Name</label>
+                    <input type="text" name="admin_last_name" placeholder = "Enter Last Name"
+                        class="w-full border border-gray-300 px-4 py-2 rounded"
+                        required>
+                </div>
+
+                <div>
+                    <label class="block font-medium mb-1">First Name</label>
+                    <input type="text" name="admin_first_name" placeholder="Enter First Name"
+                        class="w-full border border-gray-300 px-4 py-2 rounded"
+                        required>
+                </div>
             </div>
 
             <div class="mb-4">
-                <label class="block font-medium mb-1">Admin Email</label>
+                <label class="block font-medium mb-1">Middle Name</label>
+                <input type="text" name="admin_middle_name" placeholder="Enter Middle Name"
+                    class="w-full border border-gray-300 px-4 py-2 rounded">
+            </div>
+
+            <div class="mb-4">
+                <label class="block font-medium mb-1">Suffix</label>
+                <select name="admin_suffix"
+                        class="w-full border border-gray-300 px-4 py-2 rounded">
+                    <option value="">None</option>
+                    <option value="Jr.">Jr.</option>
+                    <option value="Sr.">Sr.</option>
+                    <option value="II">II</option>
+                    <option value="III">III</option>
+                    <option value="IV">IV</option>
+                </select>
+            </div>
+
+            <div class="mb-4">
+                <label class="block font-medium mb-1"> Email</label>
                 <input id="admin_email_input" type="email" name="admin_email" class="w-full border border-gray-300 px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400" placeholder="Enter Admin Email" required>
                 <p id="emailFeedback" class="text-xs mt-1"></p>
             </div>
 
             <div class="mb-4">
-                <label class="block font-medium mb-1">Admin Password</label>
+                <label class="block font-medium mb-1"> Password</label>
                 <div class="relative">
                     <input id="admin_password" type="password" name="admin_password" class="w-full border border-gray-300 px-4 py-2 pr-10 rounded focus:outline-none focus:ring-2 focus:ring-blue-400" placeholder="Enter Password" required>
                     <button type="button" class="toggle-password-btn absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500" aria-label="Toggle password visibility" onclick="togglePassword('admin_password', this)">
@@ -465,7 +495,14 @@ function addItem(type, value = null) {
 
         const name = form.querySelector('input[name="name"]').value.trim();
         const code = form.querySelector('input[name="college_code"]').value.trim();
-        const adminName = form.querySelector('input[name="admin_name"]').value.trim();
+        const adminLast = form.querySelector('input[name="admin_last_name"]').value.trim();
+        const adminFirst = form.querySelector('input[name="admin_first_name"]').value.trim();
+        const adminMiddle = form.querySelector('input[name="admin_middle_name"]').value.trim();
+        const adminSuffix = form.querySelector('select[name="admin_suffix"]').value;
+        const adminFullName =
+            `${adminLast}, ${adminFirst}` +
+            (adminMiddle ? ` ${adminMiddle}` : '') +
+            (adminSuffix ? ` ${adminSuffix}` : '');
         const adminEmail = form.querySelector('input[name="admin_email"]').value.trim();
         const adminPassword = form.querySelector('input[name="admin_password"]').value || '';
 
@@ -487,7 +524,7 @@ function addItem(type, value = null) {
                 <div class="flex items-center gap-4">
                     <div class="flex-shrink-0">${logoHtml}</div>
                     <div>
-                        <div><strong>College Name:</strong> ${escapeHtml(name)}</div>
+                        <div><strong>Name:</strong> ${escapeHtml(adminFullName)}</div>
                         <div>
                             <strong>College Code:</strong> ${escapeHtml(code)}
                             <div id="preview-code-error" class="text-xs mt-1 text-red-600"></div>
@@ -516,7 +553,7 @@ function addItem(type, value = null) {
                 <div>
                     <h4 class="font-semibold">Admin Account</h4>
                     <div class="mt-1 text-sm">
-                        <div><strong>Name:</strong> ${escapeHtml(adminName)}</div>
+                        <div><strong>Name:</strong> ${escapeHtml(adminFullName)}</div>
                         <div><strong>Email:</strong> ${escapeHtml(adminEmail)}</div>
                         <div id="preview-email-error" class="text-xs mt-1 text-red-600"></div>
                         <div><strong>Password:</strong> ${maskedPassword}</div>
