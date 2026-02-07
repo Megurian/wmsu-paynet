@@ -219,10 +219,7 @@ Route::middleware(['auth', 'role:college,student_coordinator,adviser,assessor'])
         );
     })->name('college.students.import.template');
     Route::post('college/students/import', [ValidateStudentsController::class, 'import'])->name('college.students.import');
-
-    
 });
-
 
 Route::middleware(['auth','role:assessor,student_coordinator'])->group(function(){
     Route::get('students/validate', [ValidateStudentsController::class, 'index'])->name('college.students.validate');
