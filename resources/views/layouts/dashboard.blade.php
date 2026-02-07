@@ -337,23 +337,33 @@
         </div>
 
         <script>
-            function toggleSidebar() {
-                const sidebar = document.getElementById('sidebar');
-                const mainArea = document.getElementById('main-area');
-                const header = document.getElementById('main-header');
+            const sidebar = document.getElementById('sidebar');
+            const mainArea = document.getElementById('main-area');
+            const header = document.getElementById('main-header');
 
-                sidebar.classList.toggle('collapsed');
-
-                if (sidebar.classList.contains('collapsed')) {
+            function applySidebarState(collapsed) {
+                if (collapsed) {
+                    sidebar.classList.add('collapsed');
                     mainArea.style.marginLeft = '100px';
                     header.style.left = '100px';
                     header.style.right = '0';
                 } else {
+                    sidebar.classList.remove('collapsed');
                     mainArea.style.marginLeft = '16rem';
                     header.style.left = '16rem';
                     header.style.right = '0';
                 }
             }
+            function toggleSidebar() {
+                const isCollapsed = sidebar.classList.toggle('collapsed');
+                applySidebarState(isCollapsed);
+                localStorage.setItem('sidebarCollapsed', isCollapsed); 
+            }
+
+            document.addEventListener('DOMContentLoaded', () => {
+                const savedState = localStorage.getItem('sidebarCollapsed') === 'true';
+                applySidebarState(savedState);
+            });
 
             function closeSuccessModal() {
                 const modal = document.getElementById('successModal');
@@ -361,11 +371,7 @@
             }
 
             setTimeout(() => closeSuccessModal(), 3000);
-
-            
-
         </script>
-
     </div>
 
 </body>
