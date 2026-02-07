@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\User;
+use App\Models\Course;
+use App\Models\YearLevel;
+use App\Models\Section;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 
@@ -16,7 +19,12 @@ class CollegeUserController extends Controller
                      ->whereIn('role', ['student_coordinator', 'adviser', 'assessor'])
                      ->get();
 
-        return view('college.users', compact('users'));
+        return view('college.users', [
+            'users',
+            'courses' => Course::where('college_id', $collegeId)->get(),
+            'years' => YearLevel::where('college_id', $collegeId)->get(),
+            'sections' => Section::where('college_id', $collegeId)->get(),
+        ]);
     }
 
     public function create()
@@ -55,6 +63,38 @@ class CollegeUserController extends Controller
 
         return redirect()->route('college.users.index')
                         ->with('status', 'User deleted successfully!');
+    }
+
+    public function updateCollegeLogo(Request $request)
+    {
+        $request->validate([
+            'college_logo' => 'required|image|mimes:jpg,png,jpeg,gif|max:2048',
+        ]);
+
+        $college = Auth::user()->college;
+
+        if ($request->hasFile('college_logo')) {
+            $path = $request->file('college_logo')->store('college_logos', 'public');
+            $college->logo = $path;
+            $college->save();
+        }
+
+        return redirect()->route('college.users.index', ['tab' => 'college'])
+                        ->with('status', 'College logo updated successfully!');
+    }
+
+    public function updateCollegeName(Request $request)
+    {
+        $request->validate([
+            'college_name' => 'required|string|max:255',
+        ]);
+
+        $college = Auth::user()->college;
+        $college->name = $request->college_name;
+        $college->save();
+
+        return redirect()->route('college.users.index', ['tab' => 'college'])
+                        ->with('status', 'College name updated successfully!');
     }
 
 }

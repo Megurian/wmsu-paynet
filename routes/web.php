@@ -211,7 +211,8 @@ Route::middleware(['auth', 'role:college,student_coordinator,adviser,assessor'])
     Route::get('/college/users/create', [CollegeUserController::class, 'create'])->name('college.users.create');
     Route::post('/college/users', [CollegeUserController::class, 'store'])->name('college.users.store');
     Route::delete('/college/users/{user}', [CollegeUserController::class, 'destroy'])->name('college.users.destroy');
-
+     Route::put('info/logo', [CollegeUserController::class, 'updateCollegeLogo'])->name('college.info.updateLogo');
+    Route::put('info/name', [CollegeUserController::class, 'updateCollegeName'])->name('college.info.updateName');
     Route::get('/college/students/import/template', function () {
         return response()->download(
             storage_path('app/templates/student_import_template.xlsx'),
@@ -235,11 +236,6 @@ Route::middleware(['auth','role:student_coordinator'])->group(function(){
     )->name('college.students.markPaid');
     
 });
-
-
-
-
-
 
 
 

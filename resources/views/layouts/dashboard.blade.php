@@ -202,7 +202,7 @@
                  @if($role === 'college')
                 <a href="{{ route('college.users.index') }}" class="block px-4 py-2 rounded-md transition
                     {{ request()->routeIs('college.users.*') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-                    <span>User Management</span>
+                    <span> College Management</span>
                 </a>
                 @endif
 
