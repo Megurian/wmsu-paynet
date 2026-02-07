@@ -5,7 +5,7 @@
 
 @section('content')
 <div class="flex justify-center">
-    <form id="collegeForm" action="{{ route('osa.college.store') }}" method="POST" enctype="multipart/form-data" class="w-full max-w-2xl bg-white p-8 rounded-lg shadow-lg">
+    <form id="collegeForm" action="{{ route('osa.college.store') }}" method="POST" enctype="multipart/form-data" class="w-full max-w-4xl bg-white p-8 rounded-lg shadow-lg">
         @csrf
 
         <div class="flex items-center justify-center mb-8">
@@ -27,32 +27,36 @@
         <div class="form-step" id="step-1">
             <h3 class="text-xl font-bold mb-6 text-center">College Information</h3>
 
-            <div class="mb-4">
-                <label class="block font-medium mb-1">College Name</label>
-                <input type="text" name="name" class="w-full border border-gray-300 px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400" placeholder="Enter College Name" required>
-            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-4">
+                <div class="grid grid-cols-1 md:grid-cols-1 gap-2 mb-4">
+                    <div class="mb-4">
+                        <label class="block font-medium mb-1">College Name</label>
+                        <input type="text" name="name" class="w-full border border-gray-300 px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400" placeholder="Enter College Name" required>
+                    </div>
 
-            <div class="mb-4">
-                <label class="block font-medium mb-1">College Code</label>
-                <input id="college_code_input" type="text" name="college_code" class="w-full border border-gray-300 px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400" placeholder="Enter College Code (e.g., CCS001)" required>
-                <p class="text-xs text-gray-500 mt-1">Unique code for the college</p>
-                <p id="codeFeedback" class="text-xs mt-1"></p>
-            </div>
-
-            <div class="mb-6 relative">
-                <label class="block font-medium mb-2">College Logo (Optional)</label>
-
-                <div id="logoUpload" class="w-40 h-40 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center cursor-pointer relative mx-auto">
-                    <button type="button" id="removeLogo" class="hidden absolute -top-7 -right-3 right-0 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-700">×</button>
-                    <span id="logoPlus" class="text-gray-400 text-4xl font-bold">+</span>
-                    <img id="logoPreview" class="hidden w-full h-full object-cover rounded-lg absolute top-0 left-0" alt="Logo Preview">
-                    <input type="file" name="logo" id="logoInput" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                    <div class="mb-4">
+                        <label class="block font-medium mb-1">College Code</label>
+                        <input id="college_code_input" type="text" name="college_code" class="w-full border border-gray-300 px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400" placeholder="Enter College Code (e.g., CCS001)" required>
+                        <p class="text-xs text-gray-500 mt-1">Unique code for the college</p>
+                        <p id="codeFeedback" class="text-xs mt-1"></p>
+                    </div>
                 </div>
-                <p class="text-xs text-gray-500 mt-1 text-center">Click to upload college logo</p>
+
+                <div class="mb-6 relative">
+                    <label class="block font-medium px-5 mb-2">College Logo (Optional)</label>
+
+                    <div id="logoUpload" class="w-40 h-40 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center cursor-pointer relative mx-auto">
+                        <button type="button" id="removeLogo" class="hidden absolute -top-7 -right-3 right-0 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-700">×</button>
+                        <span id="logoPlus" class="text-gray-400 text-4xl font-bold">+</span>
+                        <img id="logoPreview" class="hidden w-full h-full object-cover rounded-lg absolute top-0 left-0" alt="Logo Preview">
+                        <input type="file" name="logo" id="logoInput" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1 text-center">Click to upload college logo</p>
+                </div>
             </div>
 
             <div class="flex justify-end">
-                <button id="nextStepBtn1" type="button" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 transition" onclick="nextStep()">Next</button>
+                <button id="nextStepBtn1" type="button" class="bg-red-800 text-white px-6 py-2 rounded hover:bg-red-700 transition" onclick="nextStep()">Next</button>
             </div>
         </div>
 
@@ -71,12 +75,12 @@
                         placeholder="e.g. BS Computer Science">
                     <button type="button"
                             onclick="addItem('course')"
-                            class="bg-blue-600 text-white px-4 py-2 rounded">
+                            class="bg-red-700 text-white px-4 py-2 rounded">
                         Add
                     </button>
                 </div>
 
-                <ul id="courseList" class="space-y-2 text-sm"></ul>
+                <ul id="courseList" class="grid grid-cols-1 md:grid-cols-6 gap-2 mb-4"></ul>
                 <p id="courseFeedback" class="text-xs mt-1 text-red-600"></p>
             </div>
 
@@ -88,7 +92,7 @@
                     <button type="button"
                             onclick="addDefaultYears()"
                             class="text-xs text-blue-600 hover:underline">
-                        Use Default (1st–4th Year)
+                        Use Default (1–4)
                     </button>
                 </div>
 
@@ -98,12 +102,12 @@
                         placeholder="e.g. 1st Year">
                     <button type="button"
                             onclick="addItem('year')"
-                            class="bg-blue-600 text-white px-4 py-2 rounded">
+                            class="bg-red-700 text-white px-4 py-2 rounded">
                         Add
                     </button>
                 </div>
 
-                <ul id="yearList" class="space-y-2 text-sm"></ul>
+                <ul id="yearList" class="grid grid-cols-1 md:grid-cols-6 gap-2 mb-4 "></ul>
                 <p id="yearFeedback" class="text-xs mt-1 text-red-600"></p>
             </div>
 
@@ -124,12 +128,12 @@
                         placeholder="e.g. A">
                     <button type="button"
                             onclick="addItem('section')"
-                            class="bg-blue-600 text-white px-4 py-2 rounded">
+                            class="bg-red-700 text-white px-4 py-2 rounded">
                         Add
                     </button>
                 </div>
 
-                <ul id="sectionList" class="space-y-2 text-sm"></ul>
+                <ul id="sectionList" class="grid grid-cols-1 md:grid-cols-6 gap-2 mb-4"></ul>
                 <p id="sectionFeedback" class="text-xs mt-1 text-red-600"></p>
             </div>
 
@@ -141,7 +145,7 @@
                 </button>
 
                 <button type="button"
-                    class="bg-blue-600 text-white px-6 py-2 rounded"
+                    class="bg-red-800 text-white px-6 py-2 rounded"
                     onclick="nextStep()">
                     Next
                 </button>
@@ -151,7 +155,7 @@
         <div class="form-step hidden" id="step-3">
             <h3 class="text-xl font-bold mb-6 text-center">College Dean Account</h3>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-2 mb-4">
                 <div>
                     <label class="block font-medium mb-1">Last Name</label>
                     <input type="text" name="admin_last_name" placeholder = "Enter Last Name"
@@ -165,25 +169,25 @@
                         class="w-full border border-gray-300 px-4 py-2 rounded"
                         required>
                 </div>
-            </div>
 
-            <div class="mb-4">
-                <label class="block font-medium mb-1">Middle Name</label>
-                <input type="text" name="admin_middle_name" placeholder="Enter Middle Name"
-                    class="w-full border border-gray-300 px-4 py-2 rounded">
-            </div>
-
-            <div class="mb-4">
-                <label class="block font-medium mb-1">Suffix</label>
-                <select name="admin_suffix"
+                <div class="mb-4">
+                    <label class="block font-medium mb-1">Middle Name</label>
+                    <input type="text" name="admin_middle_name" placeholder="Enter Middle Name"
                         class="w-full border border-gray-300 px-4 py-2 rounded">
-                    <option value="">None</option>
-                    <option value="Jr.">Jr.</option>
-                    <option value="Sr.">Sr.</option>
-                    <option value="II">II</option>
-                    <option value="III">III</option>
-                    <option value="IV">IV</option>
-                </select>
+                </div>
+
+                <div class="mb-4">
+                    <label class="block font-medium mb-1">Suffix</label>
+                    <select name="admin_suffix"
+                            class="w-full border border-gray-300 px-4 py-2 rounded">
+                        <option value="">None</option>
+                        <option value="Jr.">Jr.</option>
+                        <option value="Sr.">Sr.</option>
+                        <option value="II">II</option>
+                        <option value="III">III</option>
+                        <option value="IV">IV</option>
+                    </select>
+                </div>
             </div>
 
             <div class="mb-4">
@@ -344,13 +348,13 @@ function addItem(type, value = null) {
     dataStore[type].push(input);
 
     const li = document.createElement('li');
-    li.className = 'flex justify-between items-center border rounded px-3 py-1';
+    li.className = 'flex gap-2 justify-between items-center border rounded px-3 py-1';
     li.innerHTML = `
         <span>${input}</span>
         <button type="button"
                 onclick="removeItem('${type}', '${input}', this)"
                 class="text-red-600 text-xs">
-            Remove
+            X
         </button>
         <input type="hidden" name="${type}s[]" value="${input}">
     `;
@@ -368,7 +372,7 @@ function addItem(type, value = null) {
     }
 
     function addDefaultYears() {
-        ['1st Year', '2nd Year', '3rd Year', '4th Year']
+        ['1', '2', '3', '4']
             .forEach(y => addItem('year', y));
     }
 
