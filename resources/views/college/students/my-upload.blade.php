@@ -16,7 +16,7 @@
                 Download the template, fill in student details, and upload. Students remain unvalidated until manual validation.
             </p>
 
-            <a href="{{ route('college.students.import.template') }}" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition">
+           <a href="{{ route('college.students.import.template') }}?v={{ time() }}" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition">
                 Download Import Template
             </a>
 
