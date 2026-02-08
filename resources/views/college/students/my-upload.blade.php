@@ -6,9 +6,6 @@
 @section('content')
 
 <div x-data="myStudentsUpload()" x-init="">
-    {{-- Top Actions --}}
-
-
     {{-- Import Modal --}}
     <div x-show="showImportModal" x-cloak class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
         <div @click.away="showImportModal = false" class="bg-white rounded-xl shadow-lg w-full max-w-md p-6 relative">
@@ -86,8 +83,11 @@
         </div>
 
         {{-- Action Buttons --}}
-        <div class="flex justify-end gap-4 mt-4">
+        <div class="flex justify-end gap-4 mt-4 i items-center">
 
+             <div class="text-gray-500 text-sm italic">
+                This view shows the students you are assigned to. You can manage, add, or import student data for your course.
+            </div>
             <button @click="showModal = true"
                 class="bg-red-800 text-white px-4 py-2 rounded hover:bg-red-700 transition">
                 New Student

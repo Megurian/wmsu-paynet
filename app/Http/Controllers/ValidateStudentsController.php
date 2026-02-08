@@ -184,26 +184,37 @@ class ValidateStudentsController extends Controller
         );
     }
 
-    public function template()
-    {
-        $headers = ['#', 'student_id', 'Student Name', 'Course', 'Year Level', 'Section', 'Contact', 'Email'];
-        $filename = 'student_import_template.xlsx';
+    // public function template()
+    // {
+    //     $headers = ['#', 'student_id', 'Student Name', 'Course', 'Year Level', 'Section', 'Contact', 'Email'];
+    //     $filename = 'student_import_template.xlsx';
 
-        return Excel::download(new TemplateExport($headers), $filename);
-    }
+    //     return Excel::download(new TemplateExport($headers), $filename);
+    // }
+
+    // public function import(Request $request)
+    // {
+    //     $request->validate([
+    //         'student_file' => 'required|file|mimes:xlsx,csv',
+    //     ]);
+
+    //     try {
+    //         Excel::import(new StudentsImport, $request->file('student_file'));
+    //         return back()->with('status', 'Student list imported successfully. Students remain unvalidated.');
+    //     } catch (\Exception $e) {
+    //         return back()->withErrors(['student_file' => 'Error importing file: '.$e->getMessage()]);
+    //     }
+    // }
 
     public function import(Request $request)
     {
         $request->validate([
-            'student_file' => 'required|file|mimes:xlsx,csv',
+            'student_file' => 'required|file|mimes:xlsx,xls,csv',
         ]);
 
-        try {
-            Excel::import(new StudentsImport, $request->file('student_file'));
-            return back()->with('status', 'Student list imported successfully. Students remain unvalidated.');
-        } catch (\Exception $e) {
-            return back()->withErrors(['student_file' => 'Error importing file: '.$e->getMessage()]);
-        }
+        Excel::import(new StudentsImport, $request->file('student_file'));
+
+        return redirect()->back()->with('success', 'Students imported successfully.');
     }
 
     public function markPaid(Student $student)
