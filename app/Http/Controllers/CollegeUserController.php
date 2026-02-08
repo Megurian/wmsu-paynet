@@ -114,4 +114,20 @@ class CollegeUserController extends Controller
                         ->with('status', 'College name updated successfully!');
     }
 
+    public function assignCourse(Request $request, User $user)
+    {
+        $request->validate([
+            'course_id' => 'required|exists:courses,id',
+        ]);
+
+        if ($user->college_id !== Auth::user()->college_id || $user->role !== 'adviser') {
+            abort(403, 'Unauthorized access.');
+        }
+
+        $user->course_id = $request->course_id;
+        $user->save();
+
+        return redirect()->route('college.users.index', ['tab' => 'accounts'])
+                        ->with('status', 'Course assigned to adviser successfully!');
+    }
 }

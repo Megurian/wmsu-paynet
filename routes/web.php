@@ -206,7 +206,8 @@ Route::middleware(['auth', 'role:college,student_coordinator,adviser,assessor'])
     )  ->name('college.students.unvalidate');
 
     Route::get('/college/history', [CollegeHistoryController::class, 'history'])->name('college.history');
-
+    Route::post('/college/users/{user}/assign-course', [CollegeUserController::class, 'assignCourse'])
+    ->name('college.users.assign-course');
     Route::get('/college/users', [CollegeUserController::class, 'index'])->name('college.users.index');
     Route::get('/college/users/create', [CollegeUserController::class, 'create'])->name('college.users.create');
     Route::post('/college/users', [CollegeUserController::class, 'store'])->name('college.users.store');
