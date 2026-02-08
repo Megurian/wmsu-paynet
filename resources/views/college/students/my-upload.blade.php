@@ -47,14 +47,17 @@
                 class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none transition">&times;</button>
         </div>
 
-        {{-- Course --}}
-        <select x-model="filterCourse"
+        {{-- Course
+        @unless(Auth::user()->role === 'adviser')
+    <select x-model="filterCourse"
             class="rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
             <option value="">All Courses</option>
             @foreach($courses as $course)
             <option value="{{ $course->id }}">{{ $course->name }}</option>
             @endforeach
         </select>
+@endunless --}}
+        
 
         {{-- Year --}}
         <select x-model="filterYear"
@@ -145,15 +148,26 @@
 
                 {{-- Course / Year / Section --}}
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <div>
-                        <label class="text-sm font-medium">Course <span class="text-red-500">*</span></label>
-                        <select name="course_id" required class="w-full border rounded px-3 py-2 text-sm">
-                            <option value="">Select Course</option>
-                            @foreach($courses as $course)
-                            <option value="{{ $course->id }}">{{ $course->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
+                    @if(Auth::user()->role === 'adviser')
+                        <input type="hidden" name="course_id" value="{{ Auth::user()->course_id }}">
+                        <div>
+                            <label class="text-sm font-medium">Course</label>
+                            <input type="text"
+                                value="{{ Auth::user()->course?->name ?? 'No course assigned' }}"
+                                disabled
+                                class="w-full border rounded px-3 py-2 text-sm bg-gray-100">
+                        </div>
+                    @else
+                        <div>
+                            <label class="text-sm font-medium">Course <span class="text-red-500">*</span></label>
+                            <select name="course_id" required class="w-full border rounded px-3 py-2 text-sm">
+                                <option value="">Select Course</option>
+                                @foreach($courses as $course)
+                                <option value="{{ $course->id }}">{{ $course->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    @endif        
                     <div>
                         <label class="text-sm font-medium">Year Level <span class="text-red-500">*</span></label>
                         <select name="year_level_id" required class="w-full border rounded px-3 py-2 text-sm">
@@ -233,7 +247,7 @@
                     <div class="grid grid-cols-3 gap-2 items-center">
                         {{-- Course --}}
                         <div>
-                            <select 
+                            {{-- <select 
                                 x-model="student.course_id" 
                                 @change="updateStudent(student.id, 'course_id', student.course_id)" 
                                 class="w-full border rounded px-2 py-1 text-xs"
@@ -242,7 +256,12 @@
                                 @foreach($courses as $course)
                                 <option value="{{ $course->id }}">{{ $course->name }}</option>
                                 @endforeach
-                            </select>
+                            </select> --}}
+                            <select
+                                x-model="student.course_id"
+                                class="w-full border rounded px-2 py-1 text-xs"
+                                disabled
+                            ></select>
                         </div>
 
                         {{-- Year --}}

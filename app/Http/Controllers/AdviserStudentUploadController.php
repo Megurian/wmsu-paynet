@@ -22,13 +22,15 @@ class AdviserStudentUploadController extends Controller
         $sectionId = request('section_id');
         $adviserId = Auth::id();
         $collegeId = Auth::user()->college_id;
-
         $activeSY = SchoolYear::where('is_active', true)->first();
         $activeSem = Semester::where('is_active', true)->first();
 
+        $adviser = Auth::user();
+        $adviserCourseId = $adviser->course_id;
         $students = Student::where('college_id', $collegeId)
-            ->whereHas('enrollments', function ($q) use ($adviserId) {
-                $q->where('adviser_id', $adviserId);
+            ->whereHas('enrollments', function ($q) use ($adviserId, $adviserCourseId) {
+                $q->where('adviser_id', $adviserId)
+                ->where('course_id', $adviserCourseId);
             })
             ->where(function ($q) use ($request) {
 
@@ -39,18 +41,17 @@ class AdviserStudentUploadController extends Controller
                         ->orWhere('first_name', 'like', '%' . $request->search . '%');
                     });
                 }
-
-                if ($request->filled('course_id')) {
-                    $q->whereHas('enrollments', function ($e) use ($request) {
-                        $e->where('course_id', $request->course_id);
-                    });
-                }
-
+               
                 if ($request->filled('year_level_id')) {
                     $q->whereHas('enrollments', function ($e) use ($request) {
                         $e->where('year_level_id', $request->year_level_id);
                     });
                 }
+                $adviser = Auth::user();
+                 $adviserCourseId = $adviser->course_id;
+                $q->whereHas('enrollments', function ($e) use ($adviserCourseId) {
+                    $e->where('course_id', $adviserCourseId);
+                });
 
                 if ($request->filled('section_id')) {
                     $q->whereHas('enrollments', function ($e) use ($request) {
@@ -63,6 +64,7 @@ class AdviserStudentUploadController extends Controller
                 ->where('semester_id', $activeSem->id);
             }])
             ->get();
+
 
         $courses = Course::where('college_id', $collegeId)->get();
         $years = YearLevel::where('college_id', $collegeId)->get();
@@ -125,7 +127,9 @@ class AdviserStudentUploadController extends Controller
             'last_name' => 'required|string|max:255',
             'first_name' => 'required|string|max:255',
             'middle_name' => 'nullable|string|max:255',
-            'course_id' => 'required|exists:courses,id',
+            'course_id' => Auth::user()->role === 'adviser'
+                ? 'nullable'
+                : 'required|exists:courses,id',
             'year_level_id' => 'required|exists:year_levels,id',
             'section_id' => 'required|exists:sections,id',
         ]);
@@ -139,10 +143,13 @@ class AdviserStudentUploadController extends Controller
         $activeSem = Semester::where('is_active', true)->first();
 
         if ($activeSY && $activeSem) {
+            $courseId = Auth::user()->role === 'adviser'
+                    ? Auth::user()->course_id
+                    : $request->course_id;
             StudentEnrollment::create([
                 'student_id' => $student->id,
                 'college_id' => $collegeId,
-                'course_id' => $request->course_id,
+                'course_id' => $courseId,
                 'year_level_id' => $request->year_level_id,
                 'section_id' => $request->section_id,
                 'school_year_id' => $activeSY->id,
@@ -184,7 +191,7 @@ public function reAddOldStudent(Request $request, $studentId)
             'college_id' => $collegeId,
             'adviser_id' => $adviserId,
             'status' => 'FOR_PAYMENT_VALIDATION',
-            'course_id' => $request->course_id ?? $prev?->course_id,
+            'course_id' => Auth::user()->course_id,
             'year_level_id' => $request->year_level_id ?? $prev?->year_level_id,
             'section_id' => $request->section_id ?? $prev?->section_id,
         ]
@@ -198,6 +205,7 @@ public function reAddBulk(Request $request)
     $request->validate([
         'students' => 'required|array',
         'students.*' => 'exists:students,id',
+        'course_id' => Auth::user()->course_id,
     ]);
 
     foreach ($request->students as $studentId) {

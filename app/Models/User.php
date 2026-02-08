@@ -28,6 +28,7 @@ class User extends Authenticatable
         'role',
         'college_id',
         'organization_id',
+        'course_id',
     ];
 
     /**
@@ -84,7 +85,9 @@ class User extends Authenticatable
     {
         return $this->role === 'student_coordinator';
     }
-
-
+    public function course()
+    {
+        return $this->belongsTo(Course::class);
+    }
 
 }
