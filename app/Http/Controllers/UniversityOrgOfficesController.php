@@ -37,7 +37,10 @@ class UniversityOrgOfficesController extends Controller
             'name' => 'required|string|max:255',
             'org_code' => 'required|string|max:255|unique:organizations,org_code',
             'logo' => 'nullable|image',
-            'admin_name' => 'required|string|max:255',
+            'admin_last_name' => 'required|string|max:255',
+            'admin_first_name' => 'required|string|max:255',
+            'admin_middle_name' => 'nullable|string|max:255',
+            'admin_suffix' => 'nullable|string|max:50',
             'admin_email' => 'required|email|unique:users,email',
             'admin_password' => 'required|string|min:8|confirmed',
         ]);
@@ -71,7 +74,10 @@ class UniversityOrgOfficesController extends Controller
 
         // Create the admin user (assign to college_org role)
         $organization->users()->create([
-            'name' => $validated['admin_name'],
+            'last_name' => $validated['admin_last_name'],
+            'first_name' => $validated['admin_first_name'],
+            'middle_name' => $validated['admin_middle_name'] ?? null,
+            'suffix' => $validated['admin_suffix'] ?? null,
             'email' => $validated['admin_email'],
             'password' => bcrypt($validated['admin_password']),
             'role' => 'college_org',

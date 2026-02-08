@@ -86,11 +86,15 @@
                 <h2 class="mt-3 text-lg font-bold text-center break-words max-w-[12rem]">
                     {{ $currentCollege->name }}
                 </h2>
-                <p class="text-xs opacity-80 text-center">
+                <p class="text-sm opacity-90 mt-3 font-bold text-center">
                     @switch($user->role)
                         @case('college') College Dean @break
                         @case('student_coordinator') Student Coordinator @break
-                        @case('adviser') Adviser @break
+                        @case('adviser') Adviser 
+                        <span class="inline-block bg-blue-100 text-blue-800 text-xs font-semibold px-3 py-1 rounded-full">
+                            {{ Auth::user()->course?->name ?? 'No course assigned' }}
+                        </span>
+                        @break
                         @case('assessor') Assessor @break
                     @endswitch
                 </p>

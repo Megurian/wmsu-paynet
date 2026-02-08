@@ -58,6 +58,21 @@
                     <option value="assessor">Assessor</option>
                 </select>
             </div>
+            <!-- Adviser Course -->
+            <div id="course-field" class="hidden">
+                <label class="block mb-1 text-gray-700 font-medium">
+                    Assigned Course <span class="text-red-500">*</span>
+                </label>
+                <select name="course_id"
+                        class="w-full border border-gray-300 p-2 rounded focus:ring-1 focus:ring-blue-400">
+                    <option value="">-- Select Course --</option>
+                    @foreach($courses as $course)
+                        <option value="{{ $course->id }}">
+                            {{ $course->name }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
 
             <!-- Password -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -80,4 +95,20 @@
         </form>
     </div>
 </div>
+
+<script>
+    const roleSelect = document.querySelector('select[name="role"]');
+    const courseField = document.getElementById('course-field');
+
+    function toggleCourseField() {
+        if (roleSelect.value === 'adviser') {
+            courseField.classList.remove('hidden');
+        } else {
+            courseField.classList.add('hidden');
+        }
+    }
+
+    roleSelect.addEventListener('change', toggleCourseField);
+    toggleCourseField();
+</script>
 @endsection

@@ -6,9 +6,6 @@
 @section('content')
 
 <div x-data="myStudentsUpload()" x-init="">
-    {{-- Top Actions --}}
-
-
     {{-- Import Modal --}}
     <div x-show="showImportModal" x-cloak class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
         <div @click.away="showImportModal = false" class="bg-white rounded-xl shadow-lg w-full max-w-md p-6 relative">
@@ -19,7 +16,7 @@
                 Download the template, fill in student details, and upload. Students remain unvalidated until manual validation.
             </p>
 
-            <a href="{{ route('college.students.import.template') }}" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition">
+           <a href="{{ route('college.students.import.template') }}?v={{ time() }}" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition">
                 Download Import Template
             </a>
 
@@ -36,60 +33,72 @@
 
 
     {{-- Filters and Actions --}}
-<div class="bg-white border border-gray-200 rounded-xl p-4 mb-5 shadow-sm">
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
+    <div class="bg-white border border-gray-200 rounded-xl p-4 mb-5 shadow-sm">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
 
-        {{-- Search --}}
-        <div class="relative col-span-1 sm:col-span-2">
-            <input type="text" x-model="search" placeholder="Search by name or Student ID"
-                class="w-full px-3 py-2 pr-10 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none">
-            <button type="button" x-show="search" @click="search=''"
-                class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none transition">&times;</button>
+            {{-- Search --}}
+            <div class="relative col-span-1 sm:col-span-2">
+                <input type="text" x-model="search" placeholder="Search by name or Student ID"
+                    class="w-full px-3 py-2 pr-10 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none">
+                <button type="button" x-show="search" @click="search=''"
+                    class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none transition">&times;</button>
+            </div>
+
+            
+            @if(Auth::user()->role === 'adviser')
+                <select class="rounded-lg border border-gray-300 px-4 py-2.5 text-sm bg-gray-100 cursor-not-allowed" disabled>
+                    <option value="{{ Auth::user()->course_id }}" selected>
+                        {{ Auth::user()->course?->name ?? 'No course assigned' }}
+                    </option>
+                </select>
+            @else
+                <select x-model="filterCourse"
+                        class="rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
+                    <option value="">All Courses</option>
+                    @foreach($courses as $course)
+                    <option value="{{ $course->id }}">{{ $course->name }}</option>
+                    @endforeach
+                </select>
+            @endif
+            
+
+            {{-- Year --}}
+            <select x-model="filterYear"
+                class="rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
+                <option value="">All Year Levels</option>
+                @foreach($years as $year)
+                <option value="{{ $year->id }}">{{ $year->name }}</option>
+                @endforeach
+            </select>
+
+            {{-- Section --}}
+            <select x-model="filterSection"
+                class="rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
+                <option value="">All Sections</option>
+                @foreach($sections as $section)
+                <option value="{{ $section->id }}">{{ $section->name }}</option>
+                @endforeach
+            </select>
+
         </div>
 
-        {{-- Course --}}
-        <select x-model="filterCourse"
-            class="rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
-            <option value="">All Courses</option>
-            @foreach($courses as $course)
-            <option value="{{ $course->id }}">{{ $course->name }}</option>
-            @endforeach
-        </select>
+        {{-- Action Buttons --}}
+        <div class="flex justify-end gap-4 mt-4 i items-center">
 
-        {{-- Year --}}
-        <select x-model="filterYear"
-            class="rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
-            <option value="">All Year Levels</option>
-            @foreach($years as $year)
-            <option value="{{ $year->id }}">{{ $year->name }}</option>
-            @endforeach
-        </select>
+             <div class="text-gray-500 text-sm italic">
+                This view shows the students you are assigned to. You can manage, add, or import student data for your course.
+            </div>
+            <button @click="showModal = true"
+                class="bg-red-800 text-white px-4 py-2 rounded hover:bg-red-700 transition">
+                New Student
+            </button>
 
-        {{-- Section --}}
-        <select x-model="filterSection"
-            class="rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
-            <option value="">All Sections</option>
-            @foreach($sections as $section)
-            <option value="{{ $section->id }}">{{ $section->name }}</option>
-            @endforeach
-        </select>
-
+            <button @click="showImportModal = true"
+                class="px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-500 transition">
+                Import Student List
+            </button>
+        </div>
     </div>
-
-    {{-- Action Buttons --}}
-    <div class="flex justify-end gap-4 mt-4">
-
-        <button @click="showModal = true"
-            class="bg-red-800 text-white px-4 py-2 rounded hover:bg-red-700 transition">
-            New Student
-        </button>
-
-        <button @click="showImportModal = true"
-            class="px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-500 transition">
-            Import Student List
-        </button>
-    </div>
-</div>
 
 
 
@@ -145,15 +154,27 @@
 
                 {{-- Course / Year / Section --}}
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <div>
-                        <label class="text-sm font-medium">Course <span class="text-red-500">*</span></label>
-                        <select name="course_id" required class="w-full border rounded px-3 py-2 text-sm">
-                            <option value="">Select Course</option>
-                            @foreach($courses as $course)
-                            <option value="{{ $course->id }}">{{ $course->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
+                   @if(Auth::user()->role === 'adviser')
+                        <div>
+                            <label class="text-sm font-medium">Course</label>
+                            <select class="w-full border rounded px-3 py-2 text-sm bg-gray-100" disabled>
+                                <option value="{{ Auth::user()->course_id }}" selected>
+                                    {{ Auth::user()->course?->name ?? 'No course assigned' }}
+                                </option>
+                            </select>
+                            <input type="hidden" name="course_id" value="{{ Auth::user()->course_id }}">
+                        </div>
+                    @else
+                        <div>
+                            <label class="text-sm font-medium">Course <span class="text-red-500">*</span></label>
+                            <select name="course_id" required class="w-full border rounded px-3 py-2 text-sm">
+                                <option value="">Select Course</option>
+                                @foreach($courses as $course)
+                                <option value="{{ $course->id }}">{{ $course->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    @endif        
                     <div>
                         <label class="text-sm font-medium">Year Level <span class="text-red-500">*</span></label>
                         <select name="year_level_id" required class="w-full border rounded px-3 py-2 text-sm">
@@ -233,7 +254,7 @@
                     <div class="grid grid-cols-3 gap-2 items-center">
                         {{-- Course --}}
                         <div>
-                            <select 
+                            {{-- <select 
                                 x-model="student.course_id" 
                                 @change="updateStudent(student.id, 'course_id', student.course_id)" 
                                 class="w-full border rounded px-2 py-1 text-xs"
@@ -242,6 +263,11 @@
                                 @foreach($courses as $course)
                                 <option value="{{ $course->id }}">{{ $course->name }}</option>
                                 @endforeach
+                            </select> --}}
+                            <select x-model="student.course_id" class="w-full border rounded px-2 py-1 text-xs" disabled >
+                                <option value="{{ Auth::user()->course_id }}" selected>
+                                    {{ Auth::user()->course?->name ?? 'No course assigned' }}
+                                </option>
                             </select>
                         </div>
 

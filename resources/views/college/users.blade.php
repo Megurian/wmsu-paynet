@@ -158,9 +158,8 @@
 
 <!-- Account Management Tab -->
 @if($activeTab === 'accounts')
-    <div class="space-y-6">
+    <div x-data="assignCourse()" class="space-y-6">
 
-        <!-- Header -->
         <div class="bg-white p-8 rounded shadow flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
                 <h2 class="text-2xl font-bold text-gray-800">Account Management</h2>
@@ -175,18 +174,16 @@
             </a>
         </div>
 
-        <!-- User Cards -->
         @if($users->count())
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 @foreach($users as $user)
                     <div class="bg-white rounded-lg shadow border border-gray-100 p-6 flex flex-col justify-between">
 
-                        <!-- User Info -->
                         <div class="space-y-2">
                             <h3 class="text-lg font-semibold text-gray-800 leading-tight">
-                                {{ $user->last_name }},
                                 {{ $user->first_name }}
                                 {{ $user->middle_name ? substr($user->middle_name, 0, 1).'.' : '' }}
+                                {{ $user->last_name }}
                                 {{ $user->suffix }}
                             </h3>
 
@@ -197,22 +194,27 @@
                             <span class="inline-block bg-red-100 text-red-800 text-xs font-semibold px-3 py-1 rounded-full capitalize w-fit">
                                 {{ str_replace('_', ' ', $user->role) }}
                             </span>
+                            @if($user->role === 'adviser' && $user->course)
+                                <span class="inline-block bg-blue-100 text-blue-800 text-xs font-semibold px-3 py-1 rounded-full w-fit">
+                                    {{ $user->course->name }}
+                                </span>
+                            @endif
                         </div>
 
                         <!-- Actions -->
-                        <div class="pt-4 mt-4 border-t flex justify-end">
-                            <form action="{{ route('college.users.destroy', $user) }}"
-                                  method="POST"
-                                  onsubmit="return confirm('Delete this user?');">
+                        <div class="pt-4 mt-4 border-t flex justify-end gap-3 items-center">
+                             @if($user->role === 'adviser')
+                                <button @click="openAssignModal({{ $user->id }}, '{{ $user->first_name }} {{ $user->last_name }}', {{ $user->course_id ?? 'null' }})"
+                                        class="text-sm text-green-600 hover:text-green-800 font-medium">
+                                    Assign
+                                </button>
+                            @endif
+                            <form action="{{ route('college.users.destroy', $user) }}" method="POST" onsubmit="return confirm('Delete this user?');">
                                 @csrf
                                 @method('DELETE')
-                                <button type="submit"
-                                        class="text-sm text-red-600 hover:text-red-800 font-medium">
-                                    Delete
-                                </button>
+                                <button type="submit" class="text-sm text-red-600 hover:text-red-800 font-medium">Delete</button>
                             </form>
                         </div>
-
                     </div>
                 @endforeach
             </div>
@@ -221,11 +223,56 @@
                 No users have been added yet.
             </div>
         @endif
+        <div x-cloak x-show="showModal" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+            <div @click.away="closeModal()" class="bg-white rounded-xl shadow-lg w-full max-w-md p-6 relative">
+                <button @click="closeModal()" class="absolute top-2 right-3 text-gray-500 hover:text-gray-800 text-xl">&times;</button>
 
+                <h3 class="text-lg font-semibold mb-4">Assign Course/Batch</h3>
+                <p class="text-sm text-gray-700 mb-4">Assign a course to <span class="font-semibold" x-text="userName"></span>.</p>
+
+                <form :action="`/college/users/${userId}/assign-course`" method="POST">
+                    @csrf
+                    <select name="course_id" class="w-full border rounded px-3 py-2 text-sm mb-4" x-model="courseId">
+                        <option value="">Select Course</option>
+                        @foreach($courses as $course)
+                            <option :value="{{ $course->id }}">{{ $course->name }}</option>
+                        @endforeach
+                    </select>
+
+                    <div class="flex justify-end gap-2">
+                        <button type="button" @click="closeModal()" class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">Cancel</button>
+                        <button type="submit" class="px-4 py-2 bg-red-800 text-white rounded hover:bg-red-700">Assign</button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 @endif
 
 <script>
+    function assignCourse() {
+        return {
+            showModal: false,
+            userId: null,
+            userName: '',
+            courseId: null,
+
+            openAssignModal(id, name, courseId) {
+                this.userId = id;
+                this.userName = name;
+                this.courseId = courseId ? parseInt(courseId) : null;
+                this.showModal = true;
+            },
+
+            closeModal() {
+                this.showModal = false;
+                this.userId = null;
+                this.userName = '';
+                this.courseId = null;
+            }
+        }
+    }
+
     function confirmLogoUpdate(input) {
         if(input.files.length > 0) {
             const confirmed = confirm("Are you sure you want to update the college logo?");

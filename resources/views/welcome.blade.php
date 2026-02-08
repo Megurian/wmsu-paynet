@@ -19,13 +19,13 @@
             Login to Your Account
         </a>
 
-        @if (Route::has('register'))
+        {{-- @if (Route::has('register'))
             <a href="{{ route('register') }}"
                class="block text-center border border-red-700 text-red-700
                       hover:bg-red-50 py-2.5 rounded-md font-medium transition">
                 Create a New Account
             </a>
-        @endif
+        @endif --}}
     </div>
 
     <p class="text-xs text-gray-500 text-center mt-6">

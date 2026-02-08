@@ -80,12 +80,12 @@
             Login
         </button>
 
-        <p class="text-sm text-center text-gray-600 mt-4">
+        {{-- <p class="text-sm text-center text-gray-600 mt-4">
             Don’t have an account?
             <a href="{{ route('register') }}"
                class="text-red-700 font-medium hover:underline">
                 Register here
             </a>
-        </p>
+        </p> --}}
     </form>
 @endsection
