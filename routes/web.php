@@ -175,7 +175,7 @@ Route::middleware(['auth','role:college'])->group(function () {
         ->name('college.fees.reject');
 });
 
-Route::middleware(['auth', 'role:college,student_coordinator,adviser,assessor'])->group(function () {
+Route::middleware(['auth', 'role:admin,college,student_coordinator,adviser,assessor'])->group(function () {
     Route::get('/college/dashboard', function () {
         return view('college.dashboard');
     })->name('college.dashboard');
@@ -244,6 +244,18 @@ Route::middleware(['auth','role:assessor,student_coordinator'])->group(function(
     Route::post('students/validate/{student}', [ValidateStudentsController::class, 'store'])->name('college.students.validate.store');
     Route::post('/college/students/validate/bulk', [ValidateStudentsController::class, 'bulkValidate'])
         ->name('college.students.validate.bulk');
+});
+
+Route::middleware(['auth', 'role:admin'])->group(function () {
+    Route::get('college/cashiering', [App\Http\Controllers\AdminCashieringController::class, 'index'])
+        ->name('admin.cashiering');
+
+    Route::post('college/cashiering/pay', [App\Http\Controllers\AdminCashieringController::class, 'collectPayment'])
+        ->name('admin.cashiering.pay');
+
+    // Optional: AJAX search for students
+    Route::get('college/cashiering/search-students', [App\Http\Controllers\AdminCashieringController::class, 'searchStudents'])
+        ->name('admin.cashiering.searchStudents');
 });
 
 Route::middleware(['auth','role:student_coordinator'])->group(function(){

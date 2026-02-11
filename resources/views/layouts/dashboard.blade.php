@@ -221,6 +221,13 @@
                     </a>
                 @endif
 
+                @if(Auth::user()->role === 'admin')
+                    <a href="{{ route('admin.cashiering') }}" class="block px-4 py-2 rounded-md transition
+                        {{ request()->routeIs('admin.cashiering') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                        <span> Payments</span>
+                    </a>
+                @endif
+
                 @if(in_array($role, [ 'student_coordinator','assessor']))
                     <a href="{{ route('college.students.validate') }}" class="block px-4 py-2 rounded-md transition
                         {{ request()->routeIs('college.students.validate') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
