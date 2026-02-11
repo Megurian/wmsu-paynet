@@ -21,6 +21,11 @@ class Fee extends Model
         'accreditation_file',
         'resolution_file',
         'status',
+        'fee_scope',
+        'college_id',
+        'approval_level',
+        'approved_by',
+        'approved_at',
     ];
 
     /**
@@ -45,5 +50,15 @@ class Fee extends Model
     public function appeals()
     {
         return $this->hasMany(Appeal::class);
+    }
+
+     public function college()
+    {
+        return $this->belongsTo(College::class);
+    }
+
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'user_id');
     }
 }

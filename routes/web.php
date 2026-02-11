@@ -14,6 +14,8 @@ use App\Http\Controllers\UniversityOrgOfficesController;
 use App\Http\Controllers\CollegeUserController;
 use App\Http\Middleware\CheckActiveSchoolYear;
 use App\Http\Controllers\AdviserStudentUploadController;
+use App\Http\Controllers\CollegeFeeController;
+use App\Http\Controllers\CollegeFeeApprovalController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 
@@ -148,6 +150,7 @@ Route::middleware(['auth', 'role:college_org'])->group(function () {
      ->name('college.students.search');
 });
 
+
 Route::middleware(['auth','role:adviser'])->group(function(){
     Route::get('/college/students/my-upload', [AdviserStudentUploadController::class, 'index'])
         ->name('college.students.my-upload');
@@ -159,6 +162,17 @@ Route::middleware(['auth','role:adviser'])->group(function(){
     ->name('college.students.readd');
 
     Route::post('/college/students/readd/bulk', [AdviserStudentUploadController::class, 'reAddBulk'])->name('college.students.readd.bulk');
+});
+
+Route::middleware(['auth','role:college'])->group(function () {
+    Route::get('/college/fees/approval', [CollegeFeeApprovalController::class, 'index'])
+        ->name('college.fees.approval');
+
+    Route::post('/college/fees/{fee}/approve', [CollegeFeeApprovalController::class, 'approve'])
+        ->name('college.fees.approve');
+
+    Route::post('/college/fees/{fee}/reject', [CollegeFeeApprovalController::class, 'reject'])
+        ->name('college.fees.reject');
 });
 
 Route::middleware(['auth', 'role:college,student_coordinator,adviser,assessor'])->group(function () {
@@ -237,6 +251,15 @@ Route::middleware(['auth','role:student_coordinator'])->group(function(){
         '/college/students/{student}/mark-paid',
         [ValidateStudentsController::class, 'markPaid']
     )->name('college.students.markPaid');
+
+    Route::get('/college/fees', [CollegeFeeController::class, 'index'])
+        ->name('college.fees');
+
+    Route::get('/college/fees/create', [CollegeFeeController::class, 'create'])
+        ->name('college.fees.create');
+
+    Route::post('/college/fees', [CollegeFeeController::class, 'store'])
+        ->name('college.fees.store');
     
 });
 
