@@ -1,22 +1,25 @@
 @extends('layouts.dashboard')
 
-@section('title', 'Academic Structure')
-@section('page-title', 'Academic Structure')
+@section('title', 'College Fees')
+@section('page-title', 'College Fees')
 
 @section('content')
 @php
-    $tab = request('tab', 'pending'); // default tab
+    $tab = request('tab', 'pending');
 @endphp
 
 <div class="mb-6 flex space-x-2">
     <a href="{{ route('college.fees.approval', ['tab' => 'pending']) }}"
        class="px-4 py-2 rounded-full font-medium text-sm transition
-       {{ $tab === 'pending' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300' }}">
+       {{ $tab === 'pending' ? 'bg-red-800 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300' }}">
         Pending Fees
+        <span class="ml-2 inline-block bg-white text-red-800 font-semibold text-xs px-2 py-0.5 rounded-full">
+            {{ $pendingFees->count() }}
+        </span>
     </a>
     <a href="{{ route('college.fees.approval', ['tab' => 'approved']) }}"
        class="px-4 py-2 rounded-full font-medium text-sm transition
-       {{ $tab === 'approved' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300' }}">
+       {{ $tab === 'approved' ? 'bg-red-800 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300' }}">
         Approved Fees
     </a>
 </div>
