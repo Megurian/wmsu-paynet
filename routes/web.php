@@ -16,6 +16,7 @@ use App\Http\Middleware\CheckActiveSchoolYear;
 use App\Http\Controllers\AdviserStudentUploadController;
 use App\Http\Controllers\CollegeFeeController;
 use App\Http\Controllers\CollegeFeeApprovalController;
+use App\Http\Controllers\AdminCashieringController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 
@@ -247,15 +248,12 @@ Route::middleware(['auth','role:assessor,student_coordinator'])->group(function(
 });
 
 Route::middleware(['auth', 'role:admin'])->group(function () {
-    Route::get('college/cashiering', [App\Http\Controllers\AdminCashieringController::class, 'index'])
+    Route::get('college/cashiering', [AdminCashieringController::class, 'index'])
         ->name('admin.cashiering');
 
-    Route::post('college/cashiering/pay', [App\Http\Controllers\AdminCashieringController::class, 'collectPayment'])
-        ->name('admin.cashiering.pay');
-
-    // Optional: AJAX search for students
-    Route::get('college/cashiering/search-students', [App\Http\Controllers\AdminCashieringController::class, 'searchStudents'])
-        ->name('admin.cashiering.searchStudents');
+    Route::get('/admin/cashiering/search', [AdminCashieringController::class, 'searchAdvisedStudents']);
+    Route::get('/admin/cashiering/student/{student}', [AdminCashieringController::class, 'getStudentDetails']);
+    Route::post('/admin/cashiering/collect', [AdminCashieringController::class, 'collectPayment']);
 });
 
 Route::middleware(['auth','role:student_coordinator'])->group(function(){

@@ -16,7 +16,6 @@ class AdminCashieringController extends Controller
         $activeSY = SchoolYear::where('is_active', true)->first();
         $activeSem = Semester::where('is_active', true)->first();
 
-        // Get only students who are advised and may proceed to payment
         $students = Student::whereHas('enrollments', function($q) use ($activeSY, $activeSem) {
             $q->where('status', 'FOR_PAYMENT_VALIDATION')
               ->where('school_year_id', $activeSY->id)
@@ -36,7 +35,6 @@ class AdminCashieringController extends Controller
         }])
         ->get();
 
-        // Only fees approved by the college dean
         $fees = Fee::where('status', 'APPROVED')->get();
 
         return view('college.cashiering', compact('students', 'fees'));
@@ -54,28 +52,63 @@ class AdminCashieringController extends Controller
             ->where('status', 'FOR_PAYMENT_VALIDATION')
             ->firstOrFail();
 
-        // Mark fees as paid (simplified; you may want a Payment model)
         $studentEnrollment->update([
             'is_paid' => true,
             'status' => 'PAID',
         ]);
 
-        return back()->with('status', 'Payment collected successfully.');
+        return response()->json(['message' => 'Payment collected successfully.']);
     }
-
-    public function searchStudents(Request $request)
+   public function searchAdvisedStudents(Request $request)
     {
-        $search = $request->query('q');
-        $students = Student::whereHas('enrollments', function($q) {
-            $q->where('status', 'FOR_PAYMENT_VALIDATION');
+        $query = $request->query('q');
+
+        $activeSY = SchoolYear::where('is_active', true)->first();
+        $activeSem = Semester::where('is_active', true)->first();
+
+        $students = Student::whereHas('enrollments', function($q) use ($activeSY, $activeSem) {
+            $q->where('status', 'FOR_PAYMENT_VALIDATION')
+            ->where('school_year_id', $activeSY->id)
+            ->where('semester_id', $activeSem->id);
         })
-        ->where(function($q) use ($search) {
-            $q->where('student_id', 'like', "%$search%")
-              ->orWhere('first_name', 'like', "%$search%")
-              ->orWhere('last_name', 'like', "%$search%");
+        ->where(function($q) use ($query) {
+            $q->where('student_id', 'like', "%$query%")
+            ->orWhere('first_name', 'like', "%$query%")
+            ->orWhere('last_name', 'like', "%$query%");
         })
-        ->get();
+        ->take(10)
+        ->get(['id', 'student_id', 'first_name', 'last_name']);
 
         return response()->json($students);
     }
+
+    public function getStudentDetails(Request $request, $studentId)
+    {
+        $activeSY = SchoolYear::where('is_active', true)->first();
+        $activeSem = Semester::where('is_active', true)->first();
+
+        $student = Student::with(['enrollments' => function($q) use ($activeSY, $activeSem) {
+            $q->where('school_year_id', $activeSY->id)
+            ->where('semester_id', $activeSem->id);
+        }])->findOrFail($studentId);
+
+        $enrollment = $student->enrollments->first();
+
+        $fees = Fee::where('status', 'APPROVED')->get();
+
+        return response()->json([
+            'student' => [
+                'id' => $student->id,
+                'student_id' => $student->student_id,
+                'first_name' => $student->first_name,
+                'last_name' => $student->last_name,
+                'email' => $student->email,
+                'course' => $enrollment?->course->name ?? null,
+                'year_level' => $enrollment?->yearLevel->name ?? null,
+                'section' => $enrollment?->section->name ?? null,
+            ],
+            'fees' => $fees
+        ]);
+    }
+
 }
