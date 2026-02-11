@@ -1,21 +1,28 @@
 <?php
 
 namespace App\Http\Controllers;
+
 use App\Models\Fee;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 
 class CollegeFeeApprovalController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
+        $collegeId = auth()->user()->college_id;
+        $tab = $request->get('tab', 'pending');
 
-        $fees = Fee::where('fee_scope', 'college')
-            ->where('college_id', auth()->user()->college_id)
+        $pendingFees = Fee::where('fee_scope', 'college')
+            ->where('college_id', $collegeId)
             ->where('status', 'pending')
             ->get();
 
-        return view('college.fees.approval', compact('fees'));
+        $approvedFees = Fee::where('fee_scope', 'college')
+            ->where('college_id', $collegeId)
+            ->where('status', 'approved')
+            ->get();
+
+        return view('college.fees.approval', compact('pendingFees', 'approvedFees', 'tab'));
     }
 
     public function approve(Fee $fee)
