@@ -20,7 +20,7 @@
     <a href="{{ route('college.fees.approval', ['tab' => 'approved']) }}"
        class="px-4 py-2 rounded-full font-medium text-sm transition
        {{ $tab === 'approved' ? 'bg-red-800 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300' }}">
-        Approved Fees
+        All
     </a>
 </div>
 
@@ -32,7 +32,7 @@
                 <div class="flex-1">
                     <h3 class="text-lg font-semibold text-gray-800">{{ $fee->fee_name }}</h3>
                     <p class="text-sm text-gray-500 mt-1">Amount: <span class="font-medium">₱{{ number_format($fee->amount, 2) }}</span></p>
-                    <p class="text-sm text-gray-500">Requirement: <span class="capitalize font-medium">{{ $fee->requirement_level }}</span></p>
+                    <p class="text-sm text-gray-500"> <span class="capitalize font-medium">{{ $fee->requirement_level }}</span></p>
                     <p class="text-sm text-gray-400 mt-1">Submitted on: {{ $fee->created_at->format('M d, Y') }}</p>
                 </div>
 
@@ -64,7 +64,7 @@
                 <div class="flex-1">
                     <h3 class="text-lg font-semibold text-gray-800">{{ $fee->fee_name }}</h3>
                     <p class="text-sm text-gray-500 mt-1">Amount: <span class="font-medium">₱{{ number_format($fee->amount, 2) }}</span></p>
-                    <p class="text-sm text-gray-500">Requirement: <span class="capitalize font-medium">{{ $fee->requirement_level }}</span></p>
+                    <p class="text-sm text-gray-500"> <span class="capitalize font-medium">{{ $fee->requirement_level }}</span></p>
                     <p class="text-sm text-gray-400 mt-1">
                         Approved on: {{ optional(\Illuminate\Support\Carbon::parse($fee->approved_at))->format('M d, Y') }}
                     </p>

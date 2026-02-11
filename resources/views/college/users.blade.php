@@ -175,51 +175,62 @@
         </div>
 
         @if($users->count())
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div class="space-y-4">
                 @foreach($users as $user)
-                    <div class="bg-white rounded-lg shadow border border-gray-100 p-6 flex flex-col justify-between">
+                    <div class="bg-white rounded-xl shadow p-6 hover:shadow-md transition">
 
-                        <div class="space-y-2">
-                            <h3 class="text-lg font-semibold text-gray-800 leading-tight">
-                                {{ $user->first_name }}
-                                {{ $user->middle_name ? substr($user->middle_name, 0, 1).'.' : '' }}
-                                {{ $user->last_name }}
-                                {{ $user->suffix }}
-                            </h3>
+                        <h3 class="text-lg font-semibold text-gray-800">
+                            {{ $user->first_name }}
+                            {{ $user->middle_name ? substr($user->middle_name, 0, 1).'.' : '' }}
+                            {{ $user->last_name }}
+                            {{ $user->suffix }}
+                        </h3>
 
-                            <p class="text-sm text-gray-600">
-                                {{ $user->email }}
-                            </p>
+                        <p class="text-sm text-gray-500 mt-1">
+                            {{ $user->email }}
+                        </p>
 
-                            <span class="inline-block bg-red-100 text-red-800 text-xs font-semibold px-3 py-1 rounded-full capitalize w-fit">
-                                {{ str_replace('_', ' ', $user->role) }}
-                            </span>
-                            @if($user->role === 'adviser' && $user->course)
-                                <span class="inline-block bg-blue-100 text-blue-800 text-xs font-semibold px-3 py-1 rounded-full w-fit">
-                                    {{ $user->course->name }}
+                        <div class="flex flex-col md:flex-row md:items-center md:justify-between mt-4 gap-3">
+
+                            <div class="flex flex-wrap gap-2">
+                                <span class="bg-red-100 text-red-800 text-xs font-medium px-3 py-1 rounded-full capitalize">
+                                    {{ str_replace('_', ' ', $user->role) }}
                                 </span>
-                            @endif
+
+                                @if($user->role === 'adviser' && $user->course)
+                                    <span class="bg-blue-100 text-blue-800 text-xs font-medium px-3 py-1 rounded-full">
+                                        {{ $user->course->name }}
+                                    </span>
+                                @endif
+                            </div>
+
+                            <div class="flex items-center gap-4">
+
+                                @if($user->role === 'adviser')
+                                    <button 
+                                        @click="openAssignModal({{ $user->id }}, '{{ $user->first_name }} {{ $user->last_name }}', {{ $user->course_id ?? 'null' }})"
+                                        class="text-sm font-medium text-green-600 hover:text-green-800">
+                                        Assign
+                                    </button>
+                                @endif
+
+                                <form action="{{ route('college.users.destroy', $user) }}" method="POST" onsubmit="return confirm('Delete this user?');">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="text-sm font-medium text-red-600 hover:text-red-800">
+                                        Delete
+                                    </button>
+                                </form>
+
+                            </div>
+
                         </div>
 
-                        <!-- Actions -->
-                        <div class="pt-4 mt-4 border-t flex justify-end gap-3 items-center">
-                             @if($user->role === 'adviser')
-                                <button @click="openAssignModal({{ $user->id }}, '{{ $user->first_name }} {{ $user->last_name }}', {{ $user->course_id ?? 'null' }})"
-                                        class="text-sm text-green-600 hover:text-green-800 font-medium">
-                                    Assign
-                                </button>
-                            @endif
-                            <form action="{{ route('college.users.destroy', $user) }}" method="POST" onsubmit="return confirm('Delete this user?');">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="text-sm text-red-600 hover:text-red-800 font-medium">Delete</button>
-                            </form>
-                        </div>
                     </div>
                 @endforeach
             </div>
         @else
-            <div class="bg-white p-8 rounded shadow text-center text-gray-500 italic">
+            <div class="bg-white p-8 rounded-xl shadow text-center text-gray-500 italic">
                 No users have been added yet.
             </div>
         @endif
