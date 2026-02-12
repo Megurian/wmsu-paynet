@@ -10,18 +10,15 @@ class CollegeOrgApprovalController extends Controller
 {
     public function index()
     {
-        // Get all student-coordinator orgs (need approval)
         $studentOrgs = Organization::where('college_id', Auth::user()->college_id)
             ->whereNull('mother_organization_id')
             ->get();
 
-        // Get all mother org offices (just for view)
         $motherOrgOffices = Organization::where('college_id', Auth::user()->college_id)
             ->whereNotNull('mother_organization_id')
-            ->with('motherOrganization') // eager load mother org
+            ->with('motherOrganization')
             ->get();
 
-        // Merge collections
         $orgs = $studentOrgs->concat($motherOrgOffices);
 
         return view('college.local_organizations.approvals', compact('orgs'));

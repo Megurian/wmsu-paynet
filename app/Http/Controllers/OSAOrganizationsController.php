@@ -71,13 +71,18 @@ class OSAOrganizationsController extends Controller
             DB::transaction(function () use ($request) {
                 $logoPath = $request->file('logo')?->store('organizations', 'public');
 
+                $status = null; 
+                if ($request->role === 'college_org' && $request->college_id) {
+                    $status = 'pending'; 
+                }
                 $organization = Organization::create([
                     'name' => $request->name,
                     'org_code' => strtoupper($request->org_code),
                     'role' => $request->role,
                     'college_id' => $request->college_id,
                     'logo' => $logoPath,
-                    'status' => null,
+                    'status' => $status,
+                    'mother_organization_id' => $request->mother_organization_id ?? null,
                 ]);
 
                 User::create([
