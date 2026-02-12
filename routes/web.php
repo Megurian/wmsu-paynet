@@ -17,6 +17,8 @@ use App\Http\Controllers\AdviserStudentUploadController;
 use App\Http\Controllers\CollegeFeeController;
 use App\Http\Controllers\CollegeFeeApprovalController;
 use App\Http\Controllers\AdminCashieringController;
+use App\Http\Controllers\LocalOrgsController;
+use App\Http\Controllers\CollegeOrgApprovalController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 
@@ -238,7 +240,16 @@ Route::middleware(['auth', 'role:admin,college,student_coordinator,adviser,asses
 
         return response()->download($file, 'student_template.xlsx');
     })->name('college.students.import.template');
-    Route::post('college/students/import', [ValidateStudentsController::class, 'import'])->name('college.students.import');});
+    Route::post('college/students/import', [ValidateStudentsController::class, 'import'])->name('college.students.import');
+Route::get('/college/local_organizations/approvals', [CollegeOrgApprovalController::class, 'index'])
+        ->name('college.local_organizations.approvals');
+
+    Route::post('/college/local_organizations/{organization}/approve', [CollegeOrgApprovalController::class, 'approve'])
+        ->name('college.local_organizations.approve');
+
+    Route::post('/college/local_organizations/{organization}/reject', [CollegeOrgApprovalController::class, 'reject'])
+        ->name('college.local_organizations.reject');
+});
 
 Route::middleware(['auth','role:assessor,student_coordinator'])->group(function(){
     Route::get('students/validate', [ValidateStudentsController::class, 'index'])->name('college.students.validate');
@@ -270,6 +281,14 @@ Route::middleware(['auth','role:student_coordinator'])->group(function(){
 
     Route::post('/college/fees', [CollegeFeeController::class, 'store'])
         ->name('college.fees.store');
+
+    Route::get('/college/local_organizations', [LocalOrgsController::class, 'index'])
+        ->name('college.local_organizations');
+    Route::get('/college/local_organizations/create', [LocalOrgsController::class, 'create'])
+        ->name('college.local_organizations.create');
+
+    Route::post('/college/local_organizations', [LocalOrgsController::class, 'store'])
+        ->name('college.local_organizations.store');
     
 });
 

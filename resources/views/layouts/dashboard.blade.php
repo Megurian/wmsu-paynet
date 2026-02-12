@@ -210,7 +210,7 @@
                 </a>
                 <a href="{{ route('college.fees.approval') }}" class="block px-4 py-2 rounded-md transition
                     {{ request()->routeIs('college.fees.approval') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-                    <span>Approve Fees</span>
+                    <span> Fees</span>
                 </a>
                 @endif
 
@@ -233,9 +233,17 @@
                         {{ request()->routeIs('college.students.validate') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
                         <span>Enrollment Validation</span>
                     </a>
+                    
+                @endif
+
+                @if(Auth::user()->role === 'student_coordinator')
                     <a href="{{ route('college.fees') }}" class="block px-4 py-2 rounded-md transition
                         {{ request()->routeIs('college.fees') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
                         <span>Fees</span>
+                    </a>
+                    <a href="{{ route('college.local_organizations') }}" class="block px-4 py-2 rounded-md transition
+                        {{ request()->routeIs('college.local_organizations') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                        <span> College Organizations</span>
                     </a>
                 @endif
 
