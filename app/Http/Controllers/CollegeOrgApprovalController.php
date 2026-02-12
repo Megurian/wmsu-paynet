@@ -10,10 +10,19 @@ class CollegeOrgApprovalController extends Controller
 {
     public function index()
     {
-        $orgs = Organization::where('college_id', Auth::user()->college_id)
-            ->whereNull('mother_organization_id') 
-            ->where('status', 'pending')
+        // Get all student-coordinator orgs (need approval)
+        $studentOrgs = Organization::where('college_id', Auth::user()->college_id)
+            ->whereNull('mother_organization_id')
             ->get();
+
+        // Get all mother org offices (just for view)
+        $motherOrgOffices = Organization::where('college_id', Auth::user()->college_id)
+            ->whereNotNull('mother_organization_id')
+            ->with('motherOrganization') // eager load mother org
+            ->get();
+
+        // Merge collections
+        $orgs = $studentOrgs->concat($motherOrgOffices);
 
         return view('college.local_organizations.approvals', compact('orgs'));
     }
@@ -25,7 +34,7 @@ class CollegeOrgApprovalController extends Controller
             return back()->with('success', 'Organization approved.');
         }
 
-        return back()->with('error', 'This organization cannot be approved.');
+        return back()->with('error', 'Only pending student-coordinator organizations can be approved.');
     }
 
     public function reject(Organization $organization)
@@ -35,6 +44,6 @@ class CollegeOrgApprovalController extends Controller
             return back()->with('success', 'Organization rejected.');
         }
 
-        return back()->with('error', 'This organization cannot be rejected.');
+        return back()->with('error', 'Only pending student-coordinator organizations can be rejected.');
     }
 }
