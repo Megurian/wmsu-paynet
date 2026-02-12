@@ -12,14 +12,25 @@ class OSAFeesController extends Controller
     public function index(Request $request)
     {
         // show pending fees for OSA to review (includes fees with pending appeals)
-        $pendingFees = Fee::with(['organization', 'user', 'appeals'])
-            ->where('fee_scope', 'organization')  
-            ->where(function($q) {
-                $q->where('status', 'pending')
-                ->orWhereHas('appeals', function($q2) {
-                    $q2->where('status', 'pending');
-                });
-            })->orderBy('created_at', 'desc')->get();
+       $pendingFees = Fee::with(['organization', 'user', 'appeals'])
+        ->where(function($q) {
+            $q->where(function($q2) {
+                // Fees specifically pending for OSA
+                $q2->where('fee_scope', 'organization')
+                ->where('status', 'pending');
+            })
+            ->orWhere(function($q3) {
+                // College fees assigned to OSA
+                $q3->where('fee_scope', 'college')
+                ->where('approval_level', 'osa')
+                ->where('status', 'pending');
+            })
+            ->orWhereHas('appeals', function($q4) {
+                $q4->where('status', 'pending');
+            });
+        })
+        ->orderBy('created_at', 'desc')
+        ->get();
 
         // Status filter (default to approved)
         $status = $request->get('status', 'approved');

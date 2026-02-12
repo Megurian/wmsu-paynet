@@ -12,14 +12,17 @@ class CollegeFeeApprovalController extends Controller
         $collegeId = auth()->user()->college_id;
         $tab = $request->get('tab', 'pending');
 
+        // Only fetch fees for Dean approval
         $pendingFees = Fee::where('fee_scope', 'college')
             ->where('college_id', $collegeId)
             ->where('status', 'pending')
+            ->where('approval_level', 'dean')
             ->get();
 
         $approvedFees = Fee::where('fee_scope', 'college')
             ->where('college_id', $collegeId)
             ->where('status', 'approved')
+            ->where('approval_level', 'dean')
             ->get();
 
         return view('college.fees.approval', compact('pendingFees', 'approvedFees', 'tab'));
