@@ -77,6 +77,7 @@ class OSAOrganizationsController extends Controller
                     'role' => $request->role,
                     'college_id' => $request->college_id,
                     'logo' => $logoPath,
+                    'status' => null,
                 ]);
 
                 User::create([

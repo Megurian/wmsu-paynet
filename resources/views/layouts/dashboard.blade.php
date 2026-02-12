@@ -212,6 +212,10 @@
                     {{ request()->routeIs('college.fees.approval') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
                     <span> Fees</span>
                 </a>
+                <a href="{{ route('college.local_organizations.approvals') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('college.local_organizations.approvals') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span> Organizations</span>
+                </a>
                 @endif
 
                 @if(Auth::user()->role === 'adviser')

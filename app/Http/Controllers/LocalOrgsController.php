@@ -14,8 +14,6 @@ class LocalOrgsController extends Controller
     public function index()
     {
         $collegeId = Auth::user()->college_id;
-
-        // Get all orgs for this college
         $orgs = Organization::where('college_id', $collegeId)->get();
 
         return view('college.local_organizations.college_org', compact('orgs'));
@@ -50,7 +48,7 @@ class LocalOrgsController extends Controller
                 'org_code' => $request->org_code,
                 'role' => 'college_org',
                 'college_id' => Auth::user()->college_id,
-                'mother_organization_id' => null, // standalone
+                'mother_organization_id' => null,
                 'status' => 'pending',
                 'logo' => $logoPath,
             ]);

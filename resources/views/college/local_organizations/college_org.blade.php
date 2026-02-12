@@ -17,8 +17,8 @@
         <li class="border p-3 rounded flex justify-between items-center">
             <div>
                 <strong>{{ $org->name }}</strong> ({{ $org->org_code }})
-                @if(is_null($org->mother_organization_id))
-                    — Status: <span class="capitalize">{{ $org->status }}</span>
+                @if($org->status)
+                     — Status: <span class="capitalize">{{ $org->status }}</span>
                 @endif
             </div>
         </li>
