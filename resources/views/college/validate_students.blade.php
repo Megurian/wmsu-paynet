@@ -159,7 +159,7 @@
                         $isCleared = $currentEnrollment && $currentEnrollment->cleared_for_enrollment;
                     @endphp
                     @if($isEnrolled)
-                        <span class="text-indigo-600 font-semibold text-sm">Enrolled</span>
+                        <span class="text-indigo-600 font-semibold text-sm">Assessed</span>
 
                     @elseif(!$isAdvised)
                         <span class="text-gray-400 italic text-sm">Waiting for adviser</span>
@@ -196,7 +196,7 @@
                                 class="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-500 transition text-xs"
                                 onclick="return confirm('Validate and enroll this student?');"
                             >
-                                Enroll
+                                Assess
                             </button>
                         
                         @else
@@ -244,10 +244,10 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
                                 </svg>
                             @else
-                                <span class="text-[8px] font-semibold text-gray-500">E</span>
+                                <span class="text-[8px] font-semibold text-gray-500">A</span>
                             @endif
                         </div>
-                        <span class="text-[10px] {{ $isEnrolled ? 'text-indigo-600 font-semibold' : 'text-gray-400' }}">Enrollment</span>
+                        <span class="text-[10px] {{ $isEnrolled ? 'text-indigo-600 font-semibold' : 'text-gray-400' }}">Assessment</span>
                     </div>
                 </div>
             </div>
