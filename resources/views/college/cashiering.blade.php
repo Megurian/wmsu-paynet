@@ -269,8 +269,11 @@ proceedBtn.addEventListener('click', () => {
     })
     .then(data => {
         alert(data.message || 'Payment collected successfully.');
+
+        window.open(`/admin/cashiering/receipt/pdf/${data.payment_id}`, '_blank');
+
         selectedStudent = null;
-        FEES = @json($fees); 
+        FEES = @json($fees);
         searchInput.value = '';
         studentCard.classList.add('hidden');
         resetPayment();

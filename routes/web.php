@@ -263,6 +263,8 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::get('/admin/cashiering/search', [AdminCashieringController::class, 'searchAdvisedStudents']);
     Route::get('/admin/cashiering/student/{student}', [AdminCashieringController::class, 'getStudentDetails']);
     Route::post('/admin/cashiering/collect', [AdminCashieringController::class, 'collectPayment']);
+    Route::get('/admin/cashiering/receipt/pdf/{payment}', [AdminCashieringController::class, 'downloadReceipt'])
+    ->name('cashiering.receipt.pdf');
 });
 
 Route::middleware(['auth','role:student_coordinator'])->group(function(){

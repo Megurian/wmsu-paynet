@@ -9,6 +9,7 @@ use App\Models\Fee;
 use App\Models\SchoolYear;
 use App\Models\Semester;
 use App\Models\Payment;
+use Mpdf\Mpdf;
 
 class AdminCashieringController extends Controller
 {
@@ -124,10 +125,26 @@ class AdminCashieringController extends Controller
             'status' => 'PAID'
         ]);
 
+        
         return response()->json([
             'message'=>'Payment collected successfully.',
             'total'=>$totalAmount,
-            'change'=>$change
+            'change'=>$change,
+            'payment_id' => $payment->id,
         ]);
+    }
+
+    public function downloadReceipt($paymentId)
+    {
+        $payment = Payment::with(['student', 'fees', 'collector'])->findOrFail($paymentId);
+
+        // Load Blade view for receipt HTML
+        $html = view('college.receipt-pdf', compact('payment'))->render();
+
+        $mpdf = new Mpdf(['format' => 'A4']);
+        $mpdf->WriteHTML($html);
+
+        // Output PDF inline in browser
+        return $mpdf->Output("receipt-{$payment->id}.pdf", 'I');
     }
 }
