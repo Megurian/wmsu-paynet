@@ -259,9 +259,7 @@ Route::middleware(['auth','role:assessor,student_coordinator'])->group(function(
 });
 
 Route::middleware(['auth', 'role:admin'])->group(function () {
-    Route::get('college/cashiering', [AdminCashieringController::class, 'index'])
-        ->name('admin.cashiering');
-
+     Route::get('/college/cashiering', [AdminCashieringController::class, 'index'])->name('admin.cashiering');
     Route::get('/admin/cashiering/search', [AdminCashieringController::class, 'searchAdvisedStudents']);
     Route::get('/admin/cashiering/student/{student}', [AdminCashieringController::class, 'getStudentDetails']);
     Route::post('/admin/cashiering/collect', [AdminCashieringController::class, 'collectPayment']);
