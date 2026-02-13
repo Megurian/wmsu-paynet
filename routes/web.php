@@ -250,7 +250,7 @@ Route::middleware(['auth', 'role:admin,college,student_coordinator,adviser,asses
         return response()->download($file, 'student_template.xlsx');
     })->name('college.students.import.template');
     Route::post('college/students/import', [ValidateStudentsController::class, 'import'])->name('college.students.import');
-Route::get('/college/local_organizations/approvals', [CollegeOrgApprovalController::class, 'index'])
+    Route::get('/college/local_organizations/approvals', [CollegeOrgApprovalController::class, 'index'])
         ->name('college.local_organizations.approvals');
 
     Route::post('/college/local_organizations/{organization}/approve', [CollegeOrgApprovalController::class, 'approve'])
@@ -258,6 +258,8 @@ Route::get('/college/local_organizations/approvals', [CollegeOrgApprovalControll
 
     Route::post('/college/local_organizations/{organization}/reject', [CollegeOrgApprovalController::class, 'reject'])
         ->name('college.local_organizations.reject');
+        Route::post('/college/students/{student}/clear-for-enrollment', [ValidateStudentsController::class, 'clearForEnrollment'])
+    ->name('college.students.clear-for-enrollment');
 });
 
     Route::middleware(['auth','role:assessor,student_coordinator'])->group(function(){

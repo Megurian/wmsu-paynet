@@ -200,7 +200,7 @@
                             </button>
                         
                         @else
-                            <span class="text-green-600 font-semibold text-sm">Payment Completed</span>
+                            <span class="text-green-600 font-semibold text-sm">For Assessment</span>
                         @endif
                     @endif  
                 </div>
@@ -285,7 +285,7 @@
             <button @click="close()" class="px-4 py-2 border rounded text-gray-600 hover:bg-gray-100">
                 Cancel
             </button>
-            <form :action="markPaidUrl" method="POST">
+            <form :action="clearEnrollmentUrl" method="POST">
                 @csrf
                 <button class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-500"
                 onclick="return confirm('Confirm this Student for Enrollment?')">
@@ -361,6 +361,7 @@ function paymentVerification() {
         studentContact: '',
         studentReligion: '',
         markPaidUrl: '',
+        clearEnrollmentUrl: '',
         fees: [],
 
         openPaymentModal(id, studentNo, name, course, year, section, email, contact, religion) {
@@ -374,6 +375,7 @@ function paymentVerification() {
             this.studentContact = contact;
             this.studentReligion = religion;
             this.markPaidUrl = `/college/students/${id}/mark-paid`;
+            this.clearEnrollmentUrl = `/college/students/${id}/clear-for-enrollment`;
             this.showPaymentModal = true;
             fetch(`/college/students/${id}/fees`)
                 .then(res => res.json())
