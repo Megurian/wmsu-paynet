@@ -12,33 +12,37 @@ use App\Models\Semester;
 class AdminCashieringController extends Controller
 {
     public function index(Request $request)
-    {
-        $activeSY = SchoolYear::where('is_active', true)->first();
-        $activeSem = Semester::where('is_active', true)->first();
+{
+    $activeSY = SchoolYear::where('is_active', true)->first();
+    $activeSem = Semester::where('is_active', true)->first();
 
-        $students = Student::whereHas('enrollments', function($q) use ($activeSY, $activeSem) {
-            $q->where('status', 'FOR_PAYMENT_VALIDATION')
-              ->where('school_year_id', $activeSY->id)
-              ->where('semester_id', $activeSem->id);
-        })
-        ->when($request->filled('search'), function($q) use ($request) {
-            $search = $request->search;
-            $q->where(function($s) use ($search) {
-                $s->where('student_id', 'like', "%$search%")
-                  ->orWhere('first_name', 'like', "%$search%")
-                  ->orWhere('last_name', 'like', "%$search%");
-            });
-        })
-        ->with(['enrollments' => function($q) use ($activeSY, $activeSem) {
-            $q->where('school_year_id', $activeSY->id)
-              ->where('semester_id', $activeSem->id);
-        }])
+    $students = Student::whereHas('enrollments', function($q) use ($activeSY, $activeSem) {
+        $q->where('status', 'FOR_PAYMENT_VALIDATION')
+          ->where('school_year_id', $activeSY->id)
+          ->where('semester_id', $activeSem->id);
+    })
+    ->when($request->filled('search'), function($q) use ($request) {
+        $search = $request->search;
+        $q->where(function($s) use ($search) {
+            $s->where('student_id', 'like', "%$search%")
+              ->orWhere('first_name', 'like', "%$search%")
+              ->orWhere('last_name', 'like', "%$search%");
+        });
+    })
+    ->with(['enrollments' => function($q) use ($activeSY, $activeSem) {
+        $q->where('school_year_id', $activeSY->id)
+          ->where('semester_id', $activeSem->id);
+    }])
+    ->get();
+
+    $fees = Fee::where('status', 'APPROVED')
+        ->where('fee_scope', 'college')
+        ->where('college_id', auth()->user()->college_id)
+        ->whereNull('organization_id') 
         ->get();
 
-        $fees = Fee::where('status', 'APPROVED')->get();
-
-        return view('college.cashiering', compact('students', 'fees'));
-    }
+    return view('college.cashiering', compact('students', 'fees'));
+}
 
     public function collectPayment(Request $request)
     {
@@ -83,32 +87,36 @@ class AdminCashieringController extends Controller
     }
 
     public function getStudentDetails(Request $request, $studentId)
-    {
-        $activeSY = SchoolYear::where('is_active', true)->first();
-        $activeSem = Semester::where('is_active', true)->first();
+{
+    $activeSY = SchoolYear::where('is_active', true)->first();
+    $activeSem = Semester::where('is_active', true)->first();
 
-        $student = Student::with(['enrollments' => function($q) use ($activeSY, $activeSem) {
-            $q->where('school_year_id', $activeSY->id)
-            ->where('semester_id', $activeSem->id);
-        }])->findOrFail($studentId);
+    $student = Student::with(['enrollments' => function($q) use ($activeSY, $activeSem) {
+        $q->where('school_year_id', $activeSY->id)
+          ->where('semester_id', $activeSem->id);
+    }])->findOrFail($studentId);
 
-        $enrollment = $student->enrollments->first();
+    $enrollment = $student->enrollments->first();
 
-        $fees = Fee::where('status', 'APPROVED')->get();
+    $fees = Fee::where('status', 'APPROVED')
+        ->where('fee_scope', 'college')
+        ->where('college_id', auth()->user()->college_id)
+        ->whereNull('organization_id') 
+        ->get();
 
-        return response()->json([
-            'student' => [
-                'id' => $student->id,
-                'student_id' => $student->student_id,
-                'first_name' => $student->first_name,
-                'last_name' => $student->last_name,
-                'email' => $student->email,
-                'course' => $enrollment?->course->name ?? null,
-                'year_level' => $enrollment?->yearLevel->name ?? null,
-                'section' => $enrollment?->section->name ?? null,
-            ],
-            'fees' => $fees
-        ]);
-    }
+    return response()->json([
+        'student' => [
+            'id' => $student->id,
+            'student_id' => $student->student_id,
+            'first_name' => $student->first_name,
+            'last_name' => $student->last_name,
+            'email' => $student->email,
+            'course' => $enrollment?->course->name ?? null,
+            'year_level' => $enrollment?->yearLevel->name ?? null,
+            'section' => $enrollment?->section->name ?? null,
+        ],
+        'fees' => $fees
+    ]);
+}
 
 }
