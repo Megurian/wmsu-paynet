@@ -321,7 +321,7 @@
                             <span class="text-green-700 font-semibold text-sm">For Assessment</span>
                         </template>
                         <template x-if="student.status === 'ENROLLED'">
-                            <span class="text-indigo-600 font-semibold text-sm">Assessed</span>
+                            <span class="text-indigo-600 font-semibold text-sm">Assessment Completed</span>
                         </template>
                     </div>
 

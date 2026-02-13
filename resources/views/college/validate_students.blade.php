@@ -159,7 +159,7 @@
                         $isCleared = $currentEnrollment && $currentEnrollment->cleared_for_enrollment;
                     @endphp
                     @if($isEnrolled)
-                        <span class="text-indigo-600 font-semibold text-sm">Assessed</span>
+                        <span class="text-indigo-600 font-semibold text-sm">Assessment Completed</span>
 
                     @elseif(!$isAdvised)
                         <span class="text-gray-400 italic text-sm">Waiting for adviser</span>
