@@ -114,6 +114,7 @@ const proceedBtn = document.getElementById('proceedPayment');
 
 let selectedStudent = null;
 let FEES = @json($fees);
+let PAID_FEES = [];
 
 function updateProceedBtnState() {
     const hasStudent = !!selectedStudent;
@@ -189,13 +190,19 @@ function loadStudentDetails(studentId) {
         .then(res => res.json())
         .then(data => {
             selectedStudent = data.student;
-            FEES = data.fees || FEES;
+            FEES = data.fees || [];
+
+            PAID_FEES = (data.paid_fee_ids || []).map(id => Number(id));
 
             document.getElementById('cardStudentId').textContent = selectedStudent.student_id;
-            document.getElementById('cardName').textContent = selectedStudent.first_name + ' ' + selectedStudent.last_name;
-            document.getElementById('cardCourse').textContent = selectedStudent.course ?? '—';
-            document.getElementById('cardYearSection').textContent = selectedStudent.year_level + ' - ' + selectedStudent.section;
-            document.getElementById('cardEmail').textContent = selectedStudent.email ?? '—';
+            document.getElementById('cardName').textContent =
+                selectedStudent.first_name + ' ' + selectedStudent.last_name;
+            document.getElementById('cardCourse').textContent =
+                selectedStudent.course ?? '—';
+            document.getElementById('cardYearSection').textContent =
+                selectedStudent.year_level + ' - ' + selectedStudent.section;
+            document.getElementById('cardEmail').textContent =
+                selectedStudent.email ?? '—';
 
             studentCard.classList.remove('hidden');
             renderFees();
@@ -215,17 +222,33 @@ function renderFees() {
     FEES.forEach(fee => {
         const div = document.createElement('div');
         div.className = 'flex items-center justify-between text-sm';
+
         const amount = parseFloat(fee.amount) || 0;
         const isMandatory = fee.requirement_level === 'mandatory';
-        const checkedAttr = isMandatory ? 'checked' : '';
+        const isPaid = PAID_FEES.includes(Number(fee.id));
+
+        const checkedAttr = isMandatory && !isPaid ? 'checked' : '';
+        const disabledAttr = isPaid ? 'disabled' : '';
 
         div.innerHTML = `
-            <label class="flex items-center gap-2">
-                <input type="checkbox" data-id="${fee.id}" data-amount="${amount}" class="feeCheckbox" ${checkedAttr}>
-                ${fee.fee_name} <span class="text-xs text-gray-400">(${fee.requirement_level})</span>
+            <label class="flex items-center gap-2 ${isPaid ? 'text-gray-400' : ''}">
+                <input 
+                    type="checkbox" 
+                    data-id="${fee.id}" 
+                    data-amount="${amount}" 
+                    class="feeCheckbox" 
+                    ${checkedAttr}
+                    ${disabledAttr}
+                >
+                ${fee.fee_name}
+                <span class="text-xs text-gray-400">
+                    (${fee.requirement_level})
+                </span>
+                ${isPaid ? '<span class="text-xs text-green-600 font-semibold ml-1">(PAID)</span>' : ''}
             </label>
             <span>₱ ${amount.toFixed(2)}</span>
         `;
+
         feesList.appendChild(div);
     });
 

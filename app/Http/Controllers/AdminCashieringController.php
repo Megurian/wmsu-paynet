@@ -33,7 +33,7 @@ class AdminCashieringController extends Controller
         $activeSem = Semester::where('is_active', true)->first();
 
         $students = Student::whereHas('enrollments', function($q) use ($activeSY, $activeSem) {
-            $q->where('status', 'FOR_PAYMENT_VALIDATION')
+            $q->whereIn('status', ['FOR_PAYMENT_VALIDATION', 'ENROLLED'])
               ->where('school_year_id', $activeSY->id)
               ->where('semester_id', $activeSem->id);
         })
@@ -55,16 +55,31 @@ class AdminCashieringController extends Controller
 
         $student = Student::with(['enrollments' => function($q) use ($activeSY,$activeSem){
             $q->where('school_year_id',$activeSY->id)
-              ->where('semester_id',$activeSem->id);
+            ->where('semester_id',$activeSem->id);
         }])->findOrFail($studentId);
 
-        $enrollment = $student->enrollments->first();
+        $activeSY = SchoolYear::where('is_active', true)->first();
+        $activeSem = Semester::where('is_active', true)->first();
+
+        $enrollment = StudentEnrollment::where('student_id', $student->id)
+            ->where('school_year_id', $activeSY->id)
+            ->where('semester_id', $activeSem->id)
+            ->first();
 
         $fees = Fee::where('status', 'APPROVED')
             ->where('fee_scope', 'college')
             ->where('college_id', auth()->user()->college_id)
             ->whereNull('organization_id')
             ->get();
+
+        $paidFeeIds = Payment::where('enrollment_id', $enrollment?->id)
+            ->with('fees')
+            ->get()
+            ->pluck('fees')
+            ->flatten()
+            ->pluck('id')
+            ->unique()
+            ->values();
 
         return response()->json([
             'student' => [
@@ -77,12 +92,14 @@ class AdminCashieringController extends Controller
                 'year_level' => $enrollment?->yearLevel->name ?? null,
                 'section' => $enrollment?->section->name ?? null,
             ],
-            'fees' => $fees
+            'fees' => $fees,
+            'paid_fee_ids' => $paidFeeIds
         ]);
     }
 
     public function collectPayment(Request $request)
     {
+        
         $request->validate([
             'student_id' => 'required|exists:students,id',
             'fee_ids' => 'required|array',
@@ -91,9 +108,13 @@ class AdminCashieringController extends Controller
         ]);
 
         $student = Student::findOrFail($request->student_id);
+        $activeSY = SchoolYear::where('is_active', true)->first();
+        $activeSem = Semester::where('is_active', true)->first();
+
         $enrollment = StudentEnrollment::where('student_id', $student->id)
-                        ->where('status','FOR_PAYMENT_VALIDATION')
-                        ->firstOrFail();
+            ->where('school_year_id', $activeSY->id)
+            ->where('semester_id', $activeSem->id)
+            ->firstOrFail();
 
         $fees = Fee::whereIn('id', $request->fee_ids)->get();
         $totalAmount = $fees->sum('amount');
@@ -105,6 +126,20 @@ class AdminCashieringController extends Controller
         $change = $request->cash_received - $totalAmount;
         $lastId = Payment::max('id') + 1;
         $transactionId = 'TRX' . now()->format('Ymd') . str_pad($lastId, 5, '0', STR_PAD_LEFT);
+
+        $alreadyPaid = \DB::table('fee_payment')
+        ->join('payments', 'fee_payment.payment_id', '=', 'payments.id')
+        ->where('payments.enrollment_id', $enrollment->id)
+        ->pluck('fee_payment.fee_id')
+        ->toArray();
+
+        $duplicate = array_intersect($request->fee_ids, $alreadyPaid);
+
+        if (!empty($duplicate)) {
+            return response()->json([
+                'message' => 'One or more selected fees were already paid.'
+            ], 422);
+        }
 
         $payment = Payment::create([
             'student_id' => $student->id,
@@ -121,8 +156,7 @@ class AdminCashieringController extends Controller
         }
 
         $enrollment->update([
-            'is_paid' => true,
-            'status' => 'PAID'
+            'is_paid' => true
         ]);
 
         return response()->json([

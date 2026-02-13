@@ -258,6 +258,8 @@ Route::middleware(['auth','role:assessor,student_coordinator'])->group(function(
         ->name('college.students.validate.bulk');
 });
 
+
+
 Route::middleware(['auth', 'role:admin'])->group(function () {
      Route::get('/college/cashiering', [AdminCashieringController::class, 'index'])->name('admin.cashiering');
     Route::get('/admin/cashiering/search', [AdminCashieringController::class, 'searchAdvisedStudents']);
