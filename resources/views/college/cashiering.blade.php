@@ -33,7 +33,6 @@
                         <p class="text-gray-500">Student ID</p>
                         <p id="cardStudentId" class="font-medium"></p>
                     </div>
-
                     <div>
                         <p class="text-gray-500">Name</p>
                         <p id="cardName" class="font-medium"></p>
