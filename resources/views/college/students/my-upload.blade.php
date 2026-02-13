@@ -4,7 +4,9 @@
 @section('page-title', 'My Students Upload')
 
 @section('content')
-
+@php
+    $isCleared =  false;
+@endphp
 <div x-data="myStudentsUpload()" x-init="">
     {{-- Import Modal --}}
     <div x-show="showImportModal" x-cloak class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
@@ -316,10 +318,10 @@
                             </form>
                         </template>
                         <template x-if="student.status === 'FOR_PAYMENT_VALIDATION'">
-                            <span class="text-yellow-700 italic text-sm">Pending payment</span>
+                            <span class="text-green-700 font-semibold text-sm">For Assessment</span>
                         </template>
                         <template x-if="student.status === 'ENROLLED'">
-                            <span class="text-indigo-600 font-semibold text-sm">Enrolled</span>
+                            <span class="text-indigo-600 font-semibold text-sm">Assessed</span>
                         </template>
                     </div>
 
@@ -345,17 +347,17 @@
                         <!-- Payment -->
                         <div class="flex items-center space-x-1">
                             <div class="w-5 h-5 flex items-center justify-center rounded-full"
-                                :class="student.isPaid ? 'bg-green-600' : 'bg-gray-200'">
-                                <template x-if="student.isPaid">
+                                :class="student.isCleared ? 'bg-green-600' : 'bg-gray-200'">
+                                <template x-if="student.isCleared">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
                                     </svg>
                                 </template>
-                                <template x-if="!student.isPaid">
+                                <template x-if="!student.isCleared">
                                     <span class="text-[8px] font-semibold text-gray-500">P</span>
                                 </template>
                             </div>
-                            <span class="text-[10px]" :class="student.isPaid ? 'text-green-600 font-semibold' : 'text-gray-400'">Payment</span>
+                            <span class="text-[10px]" :class="student.isCleared ? 'text-green-600 font-semibold' : 'text-gray-400'">Payment</span>
                         </div>
 
                         <div class="flex-1 border-t-2 border-dashed" :class="student.status === 'FOR_PAYMENT_VALIDATION' || student.status === 'ENROLLED' ? 'border-green-300' : 'border-gray-300'"></div>
@@ -369,10 +371,10 @@
                                     </svg>
                                 </template>
                                 <template x-if="student.status !== 'ENROLLED'">
-                                    <span class="text-[8px] font-semibold text-gray-500">E</span>
+                                    <span class="text-[8px] font-semibold text-gray-500">A</span>
                                 </template>
                             </div>
-                            <span class="text-[10px]" :class="student.status === 'ENROLLED' ? 'text-indigo-600 font-semibold' : 'text-gray-400'">Enrollment</span>
+                            <span class="text-[10px]" :class="student.status === 'ENROLLED' ? 'text-indigo-600 font-semibold' : 'text-gray-400'">Assessment</span>
                         </div>
                     </div>
                 </div>
