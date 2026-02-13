@@ -102,8 +102,6 @@ class ValidateStudentsController extends Controller
 
 
 
-
-
     public function store(Request $request, $studentId)
     {
         abort_unless(Auth::user()->isAssessor(), 403);
@@ -219,8 +217,6 @@ class ValidateStudentsController extends Controller
 
     public function markPaid(Student $student)
     {
-        
-
          abort_unless(Auth::user()->isStudentCoordinator(), 403);
 
         $activeSY = SchoolYear::where('is_active', true)->first();
