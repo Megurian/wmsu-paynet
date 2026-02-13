@@ -17,7 +17,7 @@
     <div class="header">
         <h2>COLLEGE NAME</h2>
         <p>Digital Payment Receipt</p>
-        <p>Transaction ID: {{ $payment->id }}</p>
+        <p>Transaction ID: {{ $payment->transaction_id }}</p>
         <p>Date: {{ $payment->created_at->format('M d, Y H:i') }}</p>
     </div>
 

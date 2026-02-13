@@ -26,7 +26,6 @@ class AdminCashieringController extends Controller
         return view('college.cashiering', compact('fees'));
     }
 
-    // --- Search Students for Autocomplete
     public function searchAdvisedStudents(Request $request)
     {
         $query = $request->query('q');
@@ -49,7 +48,6 @@ class AdminCashieringController extends Controller
         return response()->json($students);
     }
 
-    // --- Get Student Details + Fees
     public function getStudentDetails($studentId)
     {
         $activeSY = SchoolYear::where('is_active', true)->first();
@@ -83,7 +81,6 @@ class AdminCashieringController extends Controller
         ]);
     }
 
-    // --- Collect Payment
     public function collectPayment(Request $request)
     {
         $request->validate([
@@ -106,6 +103,8 @@ class AdminCashieringController extends Controller
         }
 
         $change = $request->cash_received - $totalAmount;
+        $lastId = Payment::max('id') + 1;
+        $transactionId = 'TRX' . now()->format('Ymd') . str_pad($lastId, 5, '0', STR_PAD_LEFT);
 
         $payment = Payment::create([
             'student_id' => $student->id,
@@ -114,6 +113,7 @@ class AdminCashieringController extends Controller
             'cash_received' => $request->cash_received,
             'change' => $change,
             'collected_by' => auth()->id(),
+            'transaction_id' => $transactionId,
         ]);
 
         foreach ($fees as $fee) {
@@ -125,12 +125,12 @@ class AdminCashieringController extends Controller
             'status' => 'PAID'
         ]);
 
-        
         return response()->json([
             'message'=>'Payment collected successfully.',
             'total'=>$totalAmount,
             'change'=>$change,
             'payment_id' => $payment->id,
+            'transaction_id' => $transactionId,
         ]);
     }
 
@@ -138,13 +138,11 @@ class AdminCashieringController extends Controller
     {
         $payment = Payment::with(['student', 'fees', 'collector'])->findOrFail($paymentId);
 
-        // Load Blade view for receipt HTML
         $html = view('college.receipt-pdf', compact('payment'))->render();
 
-        $mpdf = new Mpdf(['format' => 'A4']);
+        $mpdf = new \Mpdf\Mpdf(['format' => 'A4']);
         $mpdf->WriteHTML($html);
 
-        // Output PDF inline in browser
-        return $mpdf->Output("receipt-{$payment->id}.pdf", 'I');
+        return $mpdf->Output("receipt-{$payment->transaction_id}.pdf", 'I');
     }
 }

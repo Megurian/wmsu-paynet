@@ -12,9 +12,7 @@
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
         <div class="bg-white border rounded-lg p-4 space-y-4">
-
             <div>
                 <label class="text-sm font-medium text-gray-700">Search Student</label>
                 <input
@@ -22,8 +20,7 @@
                     id="studentSearch"
                     placeholder="Name or Student ID"
                     class="mt-1 w-full border rounded-md px-3 py-2 text-sm focus:ring-indigo-600 focus:border-indigo-600"
-                    autocomplete="off"
-                >
+                    autocomplete="off" >
                 <ul id="searchResults"
                     class="border rounded mt-1 bg-white hidden max-h-48 overflow-auto text-sm"></ul>
             </div>
