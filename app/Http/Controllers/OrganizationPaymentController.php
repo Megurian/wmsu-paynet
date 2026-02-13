@@ -67,17 +67,24 @@ public function getStudentFees($studentId)
     $student = Student::with(['enrollments' => function($q) {
         $activeSY = SchoolYear::where('is_active', true)->first();
         $activeSem = Semester::where('is_active', true)->first();
+
         $q->where('school_year_id', $activeSY->id)
           ->where('semester_id', $activeSem->id)
           ->whereIn('status',['FOR_PAYMENT_VALIDATION','ENROLLED']);
-    }, 'enrollments.course', 'enrollments.yearLevel', 'enrollments.section'])->findOrFail($studentId);
+    }, 'enrollments.course', 'enrollments.yearLevel', 'enrollments.section'])
+    ->findOrFail($studentId);
 
     $activeEnrollment = $student->enrollments->first();
 
-    // Use the logged-in user's organization to fetch fees
-    $userOrgId = auth()->user()->organization_id;
+    $userOrg = auth()->user()->organization;
 
-    $fees = Fee::where('organization_id', $userOrgId)
+    $organizationIds = [$userOrg->id];
+
+    if ($userOrg->mother_organization_id) {
+        $organizationIds[] = $userOrg->mother_organization_id;
+    }
+
+    $fees = Fee::whereIn('organization_id', $organizationIds)
                 ->where('status', 'approved')
                 ->orderBy('created_at', 'desc')
                 ->get();

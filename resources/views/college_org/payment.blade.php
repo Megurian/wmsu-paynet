@@ -60,7 +60,7 @@
             </div>
         </div>
 
-        <div id="cashierPanel" class="hidden bg-white border rounded-lg p-4 flex flex-col justify-between">
+        <div id="cashierPanel" class="bg-white border rounded-lg p-4 flex flex-col justify-between">
 
             <div class="space-y-4">
 
@@ -148,7 +148,6 @@ searchInput.addEventListener('input', function () {
         });
 });
 
-// --- LOAD STUDENT + FEES ---
 function loadStudentDetails(studentId) {
     fetch(`/college/students/${studentId}/fees`)
         .then(res => res.json())
@@ -165,10 +164,13 @@ function loadStudentDetails(studentId) {
             document.getElementById('cardEmail').textContent = data.student.email ?? '—';
 
             studentCard.classList.remove('hidden');
-            cashierPanel.classList.remove('hidden');
 
             renderFees();
             resetPayment();
+
+            // Enable cash input since a student is selected
+            cashInput.disabled = false;
+            updateProceedBtnState();
         });
 }
 
@@ -228,8 +230,14 @@ function resetPayment() {
     changeAmountEl.textContent = '0.00';
     document.querySelectorAll('.feeCheckbox').forEach(cb => cb.checked = cb.hasAttribute('checked'));
     calculateTotal();
-}
 
+    // Disable cash input if no student selected
+    if (!SELECTED_STUDENT) {
+        cashInput.disabled = true;
+        proceedBtn.disabled = true;
+        feesList.innerHTML = `<p class="text-gray-500 text-sm">Select a student to load fees.</p>`;
+    }
+}
 function updateProceedBtnState() {
     const hasStudent = !!SELECTED_STUDENT;
     const hasFees = document.querySelectorAll('.feeCheckbox:checked').length > 0;
