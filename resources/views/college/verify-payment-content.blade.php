@@ -54,7 +54,7 @@
             <div :class="fee.payments.length ? 'bg-green-50' : 'bg-yellow-50'" class="border rounded-xl p-4 shadow-sm flex justify-between items-center">
                 <div>
                     <p class="font-medium" x-text="fee.fee_name"></p>
-                    <p class="text-xs text-gray-500" x-text="fee.organization.name"></p>
+                     <span x-text="fee.organization ? fee.organization.name : 'College / No organization'"></span>
                     <p class="text-xs text-gray-400 italic" x-text="fee.requirement_level ? fee.requirement_level.charAt(0).toUpperCase() + fee.requirement_level.slice(1) : ''"></p>
                 </div>
                 <div class="text-right">

@@ -289,7 +289,7 @@
                 @csrf
                 <button class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-500"
                 onclick="return confirm('Confirm this Student for Enrollment?')">
-                    Clear Student for Enrollment
+                    Clear Student for Assessment
                 </button>
             </form>
         </div>
@@ -361,6 +361,7 @@ function paymentVerification() {
         studentContact: '',
         studentReligion: '',
         markPaidUrl: '',
+        fees: [],
 
         openPaymentModal(id, studentNo, name, course, year, section, email, contact, religion) {
             this.studentId = id;
