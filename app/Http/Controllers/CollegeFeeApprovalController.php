@@ -12,19 +12,22 @@ class CollegeFeeApprovalController extends Controller
         $collegeId = auth()->user()->college_id;
         $tab = $request->get('tab', 'pending');
 
-        $pendingFees = Fee::where('fee_scope', 'college')
+        $baseQuery = Fee::with(['organization.motherOrganization'])
+            ->where('fee_scope', 'college')
             ->where('college_id', $collegeId)
+            ->where('approval_level', 'dean');
+
+        $pendingFees = (clone $baseQuery)
             ->where('status', 'pending')
-            ->where('approval_level', 'dean')
+            ->orderByDesc('created_at')
             ->get();
 
-        $approvedFees = Fee::where('fee_scope', 'college')
-            ->where('college_id', $collegeId)
+        $allFees = (clone $baseQuery)
             ->where('status', 'approved')
-            ->where('approval_level', 'dean')
+            ->orderByDesc('approved_at')
             ->get();
 
-        return view('college.fees.approval', compact('pendingFees', 'approvedFees', 'tab'));
+        return view('college.fees.approval', compact('pendingFees', 'allFees', 'tab'));
     }
 
     public function approve(Fee $fee)

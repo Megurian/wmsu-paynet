@@ -32,7 +32,38 @@
                 <div class="flex-1">
                     <h3 class="text-lg font-semibold text-gray-800">{{ $fee->fee_name }}</h3>
                     <p class="text-sm text-gray-500 mt-1">Amount: <span class="font-medium">₱{{ number_format($fee->amount, 2) }}</span></p>
-                    <p class="text-sm text-gray-500"> <span class="capitalize font-medium">{{ $fee->requirement_level }}</span></p>
+                    <p class="text-sm text-gray-500">
+                        <span class="capitalize font-medium">{{ $fee->requirement_level }}</span>
+                    </p>
+
+                    {{-- SOURCE DISPLAY --}}
+                    <p class="text-sm text-gray-600 mt-1">
+                        From:
+                        @if($fee->organization)
+
+                            {{-- If it has a mother org (meaning this is an office) --}}
+                            @if($fee->organization->motherOrganization)
+                                <span class="font-semibold">
+                                    {{ $fee->organization->name }}
+                                </span>
+                                <span class="text-gray-400">
+                                    (Office under {{ $fee->organization->motherOrganization->name }})
+                                </span>
+
+                            {{-- Regular organization --}}
+                            @else
+                                <span class="font-semibold">
+                                    {{ $fee->organization->name }}
+                                </span>
+                            @endif
+
+                        {{-- College fee by student coordinator --}}
+                        @else
+                            <span class="font-semibold text-blue-700">
+                                College Fee (Student Coordinator)
+                            </span>
+                        @endif
+                    </p>
                     <p class="text-sm text-gray-400 mt-1">Submitted on: {{ $fee->created_at->format('M d, Y') }}</p>
                 </div>
 
@@ -59,12 +90,33 @@
             </div>
         @endforelse
     @elseif($tab === 'approved')
-        @forelse($approvedFees as $fee)
+        @forelse($allFees as $fee)
             <div class="bg-white shadow rounded-lg p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div class="flex-1">
                     <h3 class="text-lg font-semibold text-gray-800">{{ $fee->fee_name }}</h3>
                     <p class="text-sm text-gray-500 mt-1">Amount: <span class="font-medium">₱{{ number_format($fee->amount, 2) }}</span></p>
                     <p class="text-sm text-gray-500"> <span class="capitalize font-medium">{{ $fee->requirement_level }}</span></p>
+                    <p class="text-sm text-gray-600 mt-1">
+                        @if($fee->organization)
+                            @if($fee->organization->motherOrganization)
+                                <span class="font-semibold">
+                                    {{ $fee->organization->name }}
+                                </span>
+                                <span class="text-gray-400">
+                                    (Office under {{ $fee->organization->motherOrganization->name }})
+                                </span>
+                            @else
+                                <span class="font-semibold">
+                                    {{ $fee->organization->name }}
+                                </span>
+                            @endif
+
+                        @else
+                            <span class="font-semibold text-blue-700">
+                                College Fee (Student Coordinator)
+                            </span>
+                        @endif
+                    </p>
                     <p class="text-sm text-gray-400 mt-1">
                         Approved on: {{ optional(\Illuminate\Support\Carbon::parse($fee->approved_at))->format('M d, Y') }}
                     </p>
