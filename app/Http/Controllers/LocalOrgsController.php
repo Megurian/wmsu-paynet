@@ -8,6 +8,7 @@ use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use App\Models\Fee;
 
 class LocalOrgsController extends Controller
 {
@@ -24,6 +25,25 @@ class LocalOrgsController extends Controller
         return view('college.local_organizations.create');
     }
 
+
+public function show($id)
+{
+    $organization = Organization::where(function ($query) {
+            $query->where('college_id', Auth::user()->college_id);
+        })
+        ->where('id', $id)
+        ->firstOrFail();
+
+    $fees = $organization->fees()->latest()->get();
+    $users = $organization->users()->orderBy('last_name')->get();
+
+    return view(
+        'college.local_organizations.show',
+        compact('organization', 'fees', 'users')
+    );
+}
+
+
     public function store(Request $request)
     {
         $request->validate([
@@ -39,8 +59,8 @@ class LocalOrgsController extends Controller
         ]);
 
         DB::transaction(function () use ($request) {
-            $logoPath = $request->hasFile('logo') 
-                ? $request->file('logo')->store('org_logos', 'public') 
+            $logoPath = $request->hasFile('logo')
+                ? $request->file('logo')->store('org_logos', 'public')
                 : null;
 
             $org = Organization::create([

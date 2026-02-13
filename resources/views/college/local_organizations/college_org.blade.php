@@ -71,6 +71,13 @@
                        class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition text-sm font-medium">
                         Edit
                     </a> --}}
+
+                    <div class="flex gap-3">
+                        <a href="{{ route('college.local_organizations.show', $org->id) }}"
+                        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium">
+                            View
+                        </a>
+                    </div>
                 @else
                     <span class="text-gray-400 italic text-sm">No actions available</span>
                 @endif
