@@ -50,14 +50,12 @@
                                     (Office under {{ $fee->organization->motherOrganization->name }})
                                 </span>
 
-                            {{-- Regular organization --}}
                             @else
                                 <span class="font-semibold">
                                     {{ $fee->organization->name }}
                                 </span>
                             @endif
 
-                        {{-- College fee by student coordinator --}}
                         @else
                             <span class="font-semibold text-blue-700">
                                 College Fee (Student Coordinator)
@@ -67,7 +65,6 @@
                     <p class="text-sm text-gray-400 mt-1">Submitted on: {{ $fee->created_at->format('M d, Y') }}</p>
                 </div>
 
-                <!-- Action Buttons -->
                 <div class="flex gap-2 md:gap-3">
                     <form method="POST" action="{{ route('college.fees.approve', $fee) }}">
                         @csrf
@@ -98,17 +95,13 @@
                     <p class="text-sm text-gray-500"> <span class="capitalize font-medium">{{ $fee->requirement_level }}</span></p>
                     <p class="text-sm text-gray-600 mt-1">
                         @if($fee->organization)
-                            @if($fee->organization->motherOrganization)
-                                <span class="font-semibold">
-                                    {{ $fee->organization->name }}
-                                </span>
-                                <span class="text-gray-400">
-                                    (Office under {{ $fee->organization->motherOrganization->name }})
-                                </span>
+                            @if($fee->organization && $fee->organization->motherOrganization)
+                                <span class="font-semibold">{{ $fee->organization->name }}</span>
+                                <span class="text-gray-400">(Office under {{ $fee->organization->motherOrganization->name }})</span>
+                            @elseif($fee->organization)
+                                <span class="font-semibold">{{ $fee->organization->name }}</span>
                             @else
-                                <span class="font-semibold">
-                                    {{ $fee->organization->name }}
-                                </span>
+                                <span class="font-semibold text-blue-700">College Fee (Student Coordinator)</span>
                             @endif
 
                         @else
