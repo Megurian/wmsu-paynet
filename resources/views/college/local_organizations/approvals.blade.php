@@ -15,13 +15,13 @@
 
 <div class="flex space-x-2 mb-6">
     <a href="{{ route('college.local_organizations.approvals', ['tab' => 'pending']) }}"
-       class="px-4 py-2 rounded-full text-sm font-medium transition
-       {{ $tab === 'pending' ? 'bg-red-800 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300' }}">
-        Pending Approval
-        <span class="ml-2 inline-block bg-white text-red-800 font-semibold text-xs px-2 py-0.5 rounded-full">
-            {{ $tab === 'pending' ? $orgs->count() : '' }}
-        </span>
-    </a>
+   class="px-4 py-2 rounded-full text-sm font-medium transition
+   {{ $tab === 'pending' ? 'bg-red-800 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300' }}">
+    Pending Approval
+    <span class="ml-2 inline-block bg-white text-red-800 font-semibold text-xs px-2 py-0.5 rounded-full">
+        {{ $pendingCount }}
+    </span>
+</a>
 
     <a href="{{ route('college.local_organizations.approvals', ['tab' => 'all']) }}"
        class="px-4 py-2 rounded-full text-sm font-medium transition
