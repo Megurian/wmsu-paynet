@@ -50,16 +50,22 @@
         <hr class="border-gray-200">
 
         <div class="space-y-3 max-h-80 overflow-y-auto">
-            <!-- Example payment entries, repeat as needed -->
-            <div class="border rounded-xl p-4 shadow-sm flex justify-between">
-                <div>
-                    <p class="font-medium">CSC Fee</p>
-                    <p class="text-xs text-gray-500">University Student Council</p>
+            <template x-for="fee in fees" :key="fee.id">
+                <div :class="fee.payments.length ? 'bg-green-50' : 'bg-yellow-50'" class="border rounded-xl p-4 shadow-sm flex justify-between items-center">
+                    <div>
+                        <p class="font-medium" x-text="fee.fee_name"></p>
+                        <p class="text-xs text-gray-500" x-text="fee.organization.name"></p>
+                        <p class="text-xs text-gray-400 italic" x-text="fee.requirement_level ? fee.requirement_level.charAt(0).toUpperCase() + fee.requirement_level.slice(1) : ''"></p>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-semibold" x-text="`₱ ${parseFloat(fee.amount).toFixed(2)}`"></p>
+                        <p class="text-sm font-medium" :class="fee.payments.length ? 'text-green-600' : 'text-yellow-700'" x-text="fee.payments.length ? 'Paid' : 'Pending'"></p>
+                    </div>
                 </div>
-                <div class="text-right">
-                    <p class="font-semibold">₱ —</p>
-                    <p class="text-green-600 text-sm font-medium">Paid</p>
-                </div>
+            </template>
+
+            <div x-show="fees && fees.length === 0" class="text-center text-gray-500 italic py-4">
+                No fees assigned for this student.
             </div>
         </div>
     </div>

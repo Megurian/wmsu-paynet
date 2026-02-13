@@ -260,11 +260,12 @@ Route::get('/college/local_organizations/approvals', [CollegeOrgApprovalControll
         ->name('college.local_organizations.reject');
 });
 
-Route::middleware(['auth','role:assessor,student_coordinator'])->group(function(){
+    Route::middleware(['auth','role:assessor,student_coordinator'])->group(function(){
     Route::get('students/validate', [ValidateStudentsController::class, 'index'])->name('college.students.validate');
     Route::post('students/validate/{student}', [ValidateStudentsController::class, 'store'])->name('college.students.validate.store');
     Route::post('/college/students/validate/bulk', [ValidateStudentsController::class, 'bulkValidate'])
         ->name('college.students.validate.bulk');
+    Route::get('/college/students/{student}/fees', [ValidateStudentsController::class, 'getFeesForStudent']);
 });
 
 

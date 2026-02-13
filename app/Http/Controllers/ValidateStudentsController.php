@@ -259,5 +259,19 @@ class ValidateStudentsController extends Controller
         return back()->with('status', 'Student cleared for enrollment.');
     }
 
+   public function getFeesForStudent(Student $student)
+    {
+        $collegeId = Auth::user()->college_id;
+
+        $organizations = \App\Models\Organization::where('college_id', $collegeId)
+            ->orWhereHas('motherOrganization', fn($q) => $q->where('college_id', $collegeId))
+            ->get();
+
+        $fees = \App\Models\Fee::whereIn('organization_id', $organizations->pluck('id'))
+            ->with(['organization', 'payments' => fn($q) => $q->where('student_id', $student->id)])
+            ->get();
+
+        return response()->json($fees);
+    }
 }
 

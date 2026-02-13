@@ -374,6 +374,13 @@ function paymentVerification() {
             this.studentReligion = religion;
             this.markPaidUrl = `/college/students/${id}/mark-paid`;
             this.showPaymentModal = true;
+            fetch(`/college/students/${id}/fees`)
+                .then(res => res.json())
+                .then(data => {
+                    this.fees = data;
+                });
+
+            this.showPaymentModal = true;
         },
         close() {
             this.showPaymentModal = false;
