@@ -8,7 +8,6 @@ use App\Http\Controllers\CollegeAcademicController;
 use App\Http\Controllers\CollegeStudentController;
 use App\Http\Controllers\CollegeHistoryController;
 use App\Http\Controllers\ValidateStudentsController;
-use App\Http\Controllers\OrganizationPaymentController;
 use App\Http\Controllers\UniversityOrgFeesController;
 use App\Http\Controllers\UniversityOrgOfficesController;
 use App\Http\Controllers\CollegeUserController;
@@ -19,6 +18,8 @@ use App\Http\Controllers\CollegeFeeApprovalController;
 use App\Http\Controllers\AdminCashieringController;
 use App\Http\Controllers\LocalOrgsController;
 use App\Http\Controllers\CollegeOrgApprovalController;
+use App\Http\Controllers\OrganizationPaymentController;
+
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 
@@ -149,10 +150,14 @@ Route::middleware(['auth', 'role:college_org'])->group(function () {
      Route::get('/college_org/records', function () {
         return view('college_org.records');
     })->name('college_org.records');
-   Route::get('/college/students/search', [OrganizationPaymentController::class, 'searchStudents'])
-     ->name('college.students.search');
-});
+    // Route::get('/college/students/search', [OrganizationPaymentController::class, 'searchStudents'])
+    //  ->name('college.students.search');
 
+    Route::get('/college/students/search', [OrganizationPaymentController::class,'searchStudents']);
+    Route::get('/college/students/{student}/fees', [OrganizationPaymentController::class,'getStudentFees']);
+    Route::post('/college_org/payment/collect', [OrganizationPaymentController::class,'collectPayment']);
+   
+});
 
 Route::middleware(['auth','role:adviser'])->group(function(){
     Route::get('/college/students/my-upload', [AdviserStudentUploadController::class, 'index'])
