@@ -237,6 +237,27 @@ class ValidateStudentsController extends Controller
         return back()->with('status', 'Payment marked as completed.');
     }
 
+    public function clearForEnrollment(Student $student)
+    {
+        abort_unless(Auth::user()->isStudentCoordinator(), 403);
+
+        $activeSY = SchoolYear::where('is_active', true)->first();
+        $activeSem = Semester::where('is_active', true)->first();
+
+        $enrollment = StudentEnrollment::where([
+            'student_id' => $student->id,
+            'school_year_id' => $activeSY->id,
+            'semester_id' => $activeSem->id,
+        ])->firstOrFail();
+
+        $enrollment->update([
+            'cleared_for_enrollment' => true,
+            'cleared_by' => Auth::id(),
+            'cleared_at' => now(),
+        ]);
+
+        return back()->with('status', 'Student cleared for enrollment.');
+    }
 
 }
 

@@ -155,13 +155,16 @@
 
             <div class="flex flex-col items-end md:w-1/3 space-y-2">
                 <div>
+                    @php
+                        $isCleared = $currentEnrollment && $currentEnrollment->cleared_for_enrollment;
+                    @endphp
                     @if($isEnrolled)
                         <span class="text-indigo-600 font-semibold text-sm">Enrolled</span>
 
                     @elseif(!$isAdvised)
                         <span class="text-gray-400 italic text-sm">Waiting for adviser</span>
 
-                    @elseif(!$isPaid)
+                    @elseif(!$isCleared)
                         @if(auth()->user()->isStudentCoordinator())
                            <button
                                 type="button"
@@ -220,8 +223,8 @@
                     <div class="flex-1 border-t-2 border-dashed {{ $isAdvised ? 'border-blue-300' : 'border-gray-300' }}"></div>
 
                     <div class="flex items-center space-x-1">
-                        <div class="w-5 h-5 flex items-center justify-center rounded-full {{ $isPaid ? 'bg-green-600' : 'bg-gray-200' }} text-white">
-                            @if($isPaid)
+                        <div class="w-5 h-5 flex items-center justify-center rounded-full {{ $isCleared ? 'bg-green-600' : 'bg-gray-200' }} text-white">
+                            @if($isCleared)
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
                                 </svg>
@@ -229,10 +232,10 @@
                                 <span class="text-[8px] font-semibold text-gray-500">P</span>
                             @endif
                         </div>
-                        <span class="text-[10px] {{ $isPaid ? 'text-green-600 font-semibold' : 'text-gray-400' }}">Payment</span>
+                        <span class="text-[10px] {{ $isCleared ? 'text-green-600 font-semibold' : 'text-gray-400' }}">Payment</span>
                     </div>
 
-                    <div class="flex-1 border-t-2 border-dashed {{ $isPaid ? 'border-green-300' : 'border-gray-300' }}"></div>
+                    <div class="flex-1 border-t-2 border-dashed {{ $isCleared ? 'border-green-300' : 'border-gray-300' }}"></div>
 
                     <div class="flex items-center space-x-1">
                         <div class="w-5 h-5 flex items-center justify-center rounded-full {{ $isEnrolled ? 'bg-indigo-600' : 'bg-gray-200' }} text-white">
@@ -267,7 +270,6 @@
         @click.away="close()"
         class="bg-white rounded-xl shadow-xl w-full max-w-6xl max-h-[95vh] "
     >
-
         <!-- Header -->
         <div class="px-6 py-4 border-b flex justify-between items-start">
             <h3 class="text-xl font-bold text-gray-800">Verify Payment</h3>
