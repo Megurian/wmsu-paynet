@@ -122,7 +122,7 @@ let FEES = [];
 let PAID_FEES = [];
 let SELECTED_STUDENT = null;
 
-// --- SEARCH STUDENT ---
+
 searchInput.addEventListener('input', function () {
     const query = this.value.trim();
     if (!query) return hideStudentCard();
@@ -168,7 +168,6 @@ function loadStudentDetails(studentId) {
             renderFees();
             resetPayment();
 
-            // Enable cash input since a student is selected
             cashInput.disabled = false;
             updateProceedBtnState();
         });
@@ -231,7 +230,6 @@ function resetPayment() {
     document.querySelectorAll('.feeCheckbox').forEach(cb => cb.checked = cb.hasAttribute('checked'));
     calculateTotal();
 
-    // Disable cash input if no student selected
     if (!SELECTED_STUDENT) {
         cashInput.disabled = true;
         proceedBtn.disabled = true;
@@ -267,7 +265,9 @@ proceedBtn.addEventListener('click', () => {
     .then(res => res.ok ? res.json() : res.json().then(d=>{throw d}))
     .then(data => {
         alert(data.message || 'Payment collected successfully.');
-        window.open(`/college_org/payment/receipt/${data.payment_id}`,'_blank');
+        window.open(`{{ route('college_org.payment.receipt', ':id') }}`
+            .replace(':id', data.payment_id),
+        '_blank');
 
         SELECTED_STUDENT = null;
         FEES = [];
