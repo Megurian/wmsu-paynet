@@ -8,21 +8,37 @@ use Illuminate\Support\Facades\Auth;
 
 class CollegeOrgApprovalController extends Controller
 {
-    public function index()
-    {
-        $studentOrgs = Organization::where('college_id', Auth::user()->college_id)
+    public function index(Request $request)
+{
+    $tab = $request->get('tab', 'pending');
+    $collegeId = Auth::user()->college_id;
+
+    $pendingCount = Organization::where('college_id', $collegeId)
+        ->whereNull('mother_organization_id')
+        ->where('status', 'pending')
+        ->count();
+
+    if ($tab === 'pending') {
+        $orgs = Organization::where('college_id', $collegeId)
             ->whereNull('mother_organization_id')
+            ->where('status', 'pending')
+            ->get();
+    } else {
+        $studentOrgs = Organization::where('college_id', $collegeId)
+            ->whereNull('mother_organization_id')
+            ->where('status', 'approved')
             ->get();
 
-        $motherOrgOffices = Organization::where('college_id', Auth::user()->college_id)
+        $motherOrgOffices = Organization::where('college_id', $collegeId)
             ->whereNotNull('mother_organization_id')
             ->with('motherOrganization')
             ->get();
 
         $orgs = $studentOrgs->concat($motherOrgOffices);
-
-        return view('college.local_organizations.approvals', compact('orgs'));
     }
+
+    return view('college.local_organizations.approvals', compact('orgs', 'tab', 'pendingCount'));
+}
 
     public function approve(Organization $organization)
     {

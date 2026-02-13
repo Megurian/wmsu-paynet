@@ -12,9 +12,7 @@
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
         <div class="bg-white border rounded-lg p-4 space-y-4">
-
             <div>
                 <label class="text-sm font-medium text-gray-700">Search Student</label>
                 <input
@@ -22,8 +20,7 @@
                     id="studentSearch"
                     placeholder="Name or Student ID"
                     class="mt-1 w-full border rounded-md px-3 py-2 text-sm focus:ring-indigo-600 focus:border-indigo-600"
-                    autocomplete="off"
-                >
+                    autocomplete="off" >
                 <ul id="searchResults"
                     class="border rounded mt-1 bg-white hidden max-h-48 overflow-auto text-sm"></ul>
             </div>
@@ -36,7 +33,6 @@
                         <p class="text-gray-500">Student ID</p>
                         <p id="cardStudentId" class="font-medium"></p>
                     </div>
-
                     <div>
                         <p class="text-gray-500">Name</p>
                         <p id="cardName" class="font-medium"></p>
@@ -116,27 +112,54 @@ const changeAmountEl = document.getElementById('changeAmount');
 const proceedBtn = document.getElementById('proceedPayment');
 
 let selectedStudent = null;
-let FEES = @json($fees); 
+let FEES = @json($fees);
+let PAID_FEES = [];
 
-document.addEventListener('DOMContentLoaded', () => {
-    renderFees();
-    resetPayment();
-});
+function updateProceedBtnState() {
+    const hasStudent = !!selectedStudent;
+    const hasFees = document.querySelectorAll('.feeCheckbox:checked').length > 0;
+    const total = parseFloat(totalAmountEl.textContent) || 0;
+    const cash = parseFloat(cashInput.value) || 0;
+    const sufficientCash = cash >= total;
 
-// --- STUDENT SEARCH ---
+    proceedBtn.disabled = !(hasStudent && hasFees && sufficientCash);
+}
+
+function calculateTotal() {
+    let total = 0;
+    document.querySelectorAll('.feeCheckbox:checked').forEach(cb => {
+        total += parseFloat(cb.dataset.amount);
+    });
+    totalAmountEl.textContent = total.toFixed(2);
+    calculateChange();
+    updateProceedBtnState();
+}
+
+function calculateChange() {
+    const total = parseFloat(totalAmountEl.textContent) || 0;
+    const cash = parseFloat(cashInput.value) || 0;
+    const change = cash - total;
+    changeAmountEl.textContent = change >= 0 ? change.toFixed(2) : '0.00';
+    updateProceedBtnState();
+}
+
+function resetPayment() {
+    cashInput.value = '';
+    changeAmountEl.textContent = '0.00';
+    document.querySelectorAll('.feeCheckbox').forEach(cb => {
+        cb.checked = cb.hasAttribute('checked'); 
+    });
+    calculateTotal();
+}
+
 searchInput.addEventListener('input', function () {
     const query = this.value.trim();
     if (!query) {
         resultsList.innerHTML = '';
         resultsList.classList.add('hidden');
-
         selectedStudent = null;
-        document.getElementById('cardStudentId').textContent = '';
-        document.getElementById('cardName').textContent = '';
-        document.getElementById('cardCourse').textContent = '';
-        document.getElementById('cardYearSection').textContent = '';
-        document.getElementById('cardEmail').textContent = '';
         studentCard.classList.add('hidden');
+        updateProceedBtnState();
         return;
     }
 
@@ -166,21 +189,30 @@ function loadStudentDetails(studentId) {
         .then(res => res.json())
         .then(data => {
             selectedStudent = data.student;
-            FEES = data.fees || FEES; 
+            FEES = data.fees || [];
+
+            PAID_FEES = (data.paid_fee_ids || []).map(id => Number(id));
+
             document.getElementById('cardStudentId').textContent = selectedStudent.student_id;
-            document.getElementById('cardName').textContent = selectedStudent.first_name + ' ' + selectedStudent.last_name;
-            document.getElementById('cardCourse').textContent = selectedStudent.course ?? '—';
-            document.getElementById('cardYearSection').textContent = selectedStudent.year_level + ' - ' + selectedStudent.section;
-            document.getElementById('cardEmail').textContent = selectedStudent.email ?? '—';
+            document.getElementById('cardName').textContent =
+                selectedStudent.first_name + ' ' + selectedStudent.last_name;
+            document.getElementById('cardCourse').textContent =
+                selectedStudent.course ?? '—';
+            document.getElementById('cardYearSection').textContent =
+                selectedStudent.year_level + ' - ' + selectedStudent.section;
+            document.getElementById('cardEmail').textContent =
+                selectedStudent.email ?? '—';
 
             studentCard.classList.remove('hidden');
             renderFees();
             resetPayment();
+            cashierPanel.classList.remove('hidden');
         });
 }
 
 function renderFees() {
     feesList.innerHTML = '';
+
     if (FEES.length === 0) {
         feesList.innerHTML = `<p class="text-gray-500 text-sm">No approved fees available.</p>`;
         return;
@@ -189,66 +221,56 @@ function renderFees() {
     FEES.forEach(fee => {
         const div = document.createElement('div');
         div.className = 'flex items-center justify-between text-sm';
-        const amount = parseFloat(fee.amount) || 0;
 
+        const amount = parseFloat(fee.amount) || 0;
         const isMandatory = fee.requirement_level === 'mandatory';
-        const checkedAttr = isMandatory ? 'checked' : '';
+        const isPaid = PAID_FEES.includes(Number(fee.id));
+
+        const checkedAttr = isMandatory && !isPaid ? 'checked' : '';
+        const disabledAttr = isPaid ? 'disabled' : '';
 
         div.innerHTML = `
-            <label class="flex items-center gap-2">
-                <input type="checkbox" data-amount="${amount}" class="feeCheckbox" ${checkedAttr}>
-                ${fee.fee_name} <span class="text-xs text-gray-400">(${fee.requirement_level})</span>
+            <label class="flex items-center gap-2 ${isPaid ? 'text-gray-400' : ''}">
+                <input 
+                    type="checkbox" 
+                    data-id="${fee.id}" 
+                    data-amount="${amount}" 
+                    class="feeCheckbox" 
+                    ${checkedAttr}
+                    ${disabledAttr}
+                >
+                ${fee.fee_name}
+                <span class="text-xs text-gray-400">
+                    (${fee.requirement_level})
+                </span>
+                ${isPaid ? '<span class="text-xs text-green-600 font-semibold ml-1">(PAID)</span>' : ''}
             </label>
             <span>₱ ${amount.toFixed(2)}</span>
         `;
+
         feesList.appendChild(div);
     });
 
-    calculateTotal();
-
-    document.querySelectorAll('.feeCheckbox').forEach(cb => cb.addEventListener('change', calculateTotal));
-}
-
-// CALCULATE TOTAL 
-function calculateTotal() {
-    let total = 0;
-    document.querySelectorAll('.feeCheckbox:checked').forEach(cb => {
-        total += parseFloat(cb.dataset.amount);
+    document.querySelectorAll('.feeCheckbox').forEach(cb => {
+        cb.addEventListener('change', calculateTotal);
     });
-    totalAmountEl.textContent = total.toFixed(2);
-    calculateChange();
+
+    calculateTotal();
 }
 
-// CALCULATE CHANGE 
-function calculateChange() {
-    const total = parseFloat(totalAmountEl.textContent) || 0;
-    const cash = parseFloat(cashInput.value) || 0;
-    const change = cash - total;
-    changeAmountEl.textContent = change >= 0 ? change.toFixed(2) : '0.00';
-}
+cashInput.addEventListener('input', calculateChange);
 
-// RESET PAYMENT 
-function resetPayment() {
-    totalAmountEl.textContent = '0.00';
-    changeAmountEl.textContent = '0.00';
-    cashInput.value = '';
-    document.querySelectorAll('.feeCheckbox').forEach(cb => cb.checked = false);
-}
-
-// --- PROCEED PAYMENT 
 proceedBtn.addEventListener('click', () => {
-    const selectedFees = Array.from(document.querySelectorAll('.feeCheckbox:checked')).map(cb => parseInt(cb.dataset.amount));
+    if (!selectedStudent) { alert('Select a student first.'); return; }
 
-    if (selectedFees.length === 0) { 
-        alert('Select at least one fee.'); 
-        return; 
-    }
-    if (parseFloat(cashInput.value) < parseFloat(totalAmountEl.textContent)) { 
-        alert('Cash received is less than total.'); 
-        return; 
-    }
+    const cashReceived = parseFloat(cashInput.value) || 0;
+    const selectedFees = Array.from(document.querySelectorAll('.feeCheckbox:checked'))
+        .map(cb => parseInt(cb.dataset.id));
 
-    fetch('/admin/cashiering/collect-payment', {
+    if (selectedFees.length === 0) { alert('Select at least one fee.'); return; }
+    if (cashReceived < parseFloat(totalAmountEl.textContent)) { alert('Cash received is less than total.'); return; }
+
+    fetch('/admin/cashiering/collect', {
         method: 'POST',
         headers: { 
             'Content-Type': 'application/json', 
@@ -256,21 +278,30 @@ proceedBtn.addEventListener('click', () => {
         },
         body: JSON.stringify({
             student_id: selectedStudent.id,
-            fee_ids: FEES.filter(f => document.querySelector(`.feeCheckbox[data-amount='${parseFloat(f.amount)}']`).checked).map(f => f.id)
+            fee_ids: selectedFees,
+            cash_received: cashReceived
         })
     })
-    .then(res => res.json())
+    .then(res => {
+        if (!res.ok) return res.json().then(data => { throw data; });
+        return res.json();
+    })
     .then(data => {
         alert(data.message || 'Payment collected successfully.');
+
+        window.open(`/admin/cashiering/receipt/pdf/${data.payment_id}`, '_blank');
+
         selectedStudent = null;
-        FEES = [];
+        FEES = @json($fees);
         searchInput.value = '';
         studentCard.classList.add('hidden');
-        cashierPanel.classList.add('hidden');
+        resetPayment();
+        updateProceedBtnState();
+    })
+    .catch(err => {
+        alert(err.message || 'Something went wrong.');
     });
 });
-
-cashInput.addEventListener('input', calculateChange);
 
 document.addEventListener('click', function (e) {
     if (!searchInput.contains(e.target) && !resultsList.contains(e.target)) {

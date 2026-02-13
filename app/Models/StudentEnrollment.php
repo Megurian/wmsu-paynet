@@ -30,6 +30,7 @@ class StudentEnrollment extends Model
         'status',
          'is_paid',
         'paid_at', 
+        'cleared_for_enrollment',
     ];
 
     public function student() {

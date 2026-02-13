@@ -14,11 +14,17 @@ class CollegeFeeApprovalController extends Controller
 
         $baseQuery = Fee::with(['organization.motherOrganization'])
             ->where('fee_scope', 'college')
-            ->where('college_id', $collegeId)
-            ->where('approval_level', 'dean');
+            ->where('college_id', $collegeId);
 
         $pendingFees = (clone $baseQuery)
             ->where('status', 'pending')
+            ->where(function ($q) {
+                $q->where('approval_level', 'dean')
+                ->orWhereNull('organization_id'); 
+            })
+            ->whereDoesntHave('organization', function ($q) {
+                $q->whereNotNull('mother_organization_id');
+            })
             ->orderByDesc('created_at')
             ->get();
 

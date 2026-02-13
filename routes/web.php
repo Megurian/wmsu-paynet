@@ -8,7 +8,6 @@ use App\Http\Controllers\CollegeAcademicController;
 use App\Http\Controllers\CollegeStudentController;
 use App\Http\Controllers\CollegeHistoryController;
 use App\Http\Controllers\ValidateStudentsController;
-use App\Http\Controllers\OrganizationPaymentController;
 use App\Http\Controllers\UniversityOrgFeesController;
 use App\Http\Controllers\UniversityOrgOfficesController;
 use App\Http\Controllers\CollegeUserController;
@@ -19,6 +18,8 @@ use App\Http\Controllers\CollegeFeeApprovalController;
 use App\Http\Controllers\AdminCashieringController;
 use App\Http\Controllers\LocalOrgsController;
 use App\Http\Controllers\CollegeOrgApprovalController;
+use App\Http\Controllers\OrganizationPaymentController;
+
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 
@@ -146,13 +147,21 @@ Route::middleware(['auth', 'role:college_org'])->group(function () {
     Route::get('/college_org/payment', function () {
         return view('college_org.payment');
     })->name('college_org.payment');
-     Route::get('/college_org/records', function () {
-        return view('college_org.records');
-    })->name('college_org.records');
-   Route::get('/college/students/search', [OrganizationPaymentController::class, 'searchStudents'])
-     ->name('college.students.search');
-});
+    Route::get(
+        '/college_org/records',
+        [OrganizationPaymentController::class, 'records']
+    )->name('college_org.records');
+    // Route::get('/college/students/search', [OrganizationPaymentController::class, 'searchStudents'])
+    //  ->name('college.students.search');
 
+    Route::get('/college/students/search', [OrganizationPaymentController::class,'searchStudents']);
+    Route::get('/college/students/{student}/fees', [OrganizationPaymentController::class,'getStudentFees']);
+    Route::post('/college_org/payment/collect', [OrganizationPaymentController::class,'collectPayment']);
+    Route::get(
+    '/college_org/receipt/pdf/{payment}',
+    [OrganizationPaymentController::class, 'downloadReceipt']
+)->name('college_org.payment.receipt');
+});
 
 Route::middleware(['auth','role:adviser'])->group(function(){
     Route::get('/college/students/my-upload', [AdviserStudentUploadController::class, 'index'])
@@ -241,7 +250,7 @@ Route::middleware(['auth', 'role:admin,college,student_coordinator,adviser,asses
         return response()->download($file, 'student_template.xlsx');
     })->name('college.students.import.template');
     Route::post('college/students/import', [ValidateStudentsController::class, 'import'])->name('college.students.import');
-Route::get('/college/local_organizations/approvals', [CollegeOrgApprovalController::class, 'index'])
+    Route::get('/college/local_organizations/approvals', [CollegeOrgApprovalController::class, 'index'])
         ->name('college.local_organizations.approvals');
 
     Route::post('/college/local_organizations/{organization}/approve', [CollegeOrgApprovalController::class, 'approve'])
@@ -249,22 +258,27 @@ Route::get('/college/local_organizations/approvals', [CollegeOrgApprovalControll
 
     Route::post('/college/local_organizations/{organization}/reject', [CollegeOrgApprovalController::class, 'reject'])
         ->name('college.local_organizations.reject');
+        Route::post('/college/students/{student}/clear-for-enrollment', [ValidateStudentsController::class, 'clearForEnrollment'])
+    ->name('college.students.clear-for-enrollment');
 });
 
-Route::middleware(['auth','role:assessor,student_coordinator'])->group(function(){
+    Route::middleware(['auth','role:assessor,student_coordinator'])->group(function(){
     Route::get('students/validate', [ValidateStudentsController::class, 'index'])->name('college.students.validate');
     Route::post('students/validate/{student}', [ValidateStudentsController::class, 'store'])->name('college.students.validate.store');
     Route::post('/college/students/validate/bulk', [ValidateStudentsController::class, 'bulkValidate'])
         ->name('college.students.validate.bulk');
+    Route::get('/college/students/{student}/fees', [ValidateStudentsController::class, 'getFeesForStudent']);
 });
 
-Route::middleware(['auth', 'role:admin'])->group(function () {
-    Route::get('college/cashiering', [AdminCashieringController::class, 'index'])
-        ->name('admin.cashiering');
 
+
+Route::middleware(['auth', 'role:admin'])->group(function () {
+     Route::get('/college/cashiering', [AdminCashieringController::class, 'index'])->name('admin.cashiering');
     Route::get('/admin/cashiering/search', [AdminCashieringController::class, 'searchAdvisedStudents']);
     Route::get('/admin/cashiering/student/{student}', [AdminCashieringController::class, 'getStudentDetails']);
     Route::post('/admin/cashiering/collect', [AdminCashieringController::class, 'collectPayment']);
+    Route::get('/admin/cashiering/receipt/pdf/{payment}', [AdminCashieringController::class, 'downloadReceipt'])
+    ->name('cashiering.receipt.pdf');
 });
 
 Route::middleware(['auth','role:student_coordinator'])->group(function(){
@@ -289,7 +303,9 @@ Route::middleware(['auth','role:student_coordinator'])->group(function(){
 
     Route::post('/college/local_organizations', [LocalOrgsController::class, 'store'])
         ->name('college.local_organizations.store');
-    
+    Route::get('/college/local-organizations/{id}', 
+    [LocalOrgsController::class, 'show']
+)->name('college.local_organizations.show');
 });
 
 

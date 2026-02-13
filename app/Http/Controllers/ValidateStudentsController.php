@@ -39,16 +39,16 @@ class ValidateStudentsController extends Controller
             })
             ->with(['enrollments' => function ($q) {
                 $q->orderBy('school_year_id', 'desc')
-                ->orderBy('semester_id', 'desc')
-                ->orderBy('id', 'desc')
-                ->limit(1);
+                    ->orderBy('semester_id', 'desc')
+                    ->orderBy('id', 'desc')
+                    ->limit(1);
             }]);
 
         $studentsQuery->whereHas('enrollments', function ($e) use ($request) {
             $e->whereIn('id', function ($q) {
                 $q->selectRaw('MAX(id)')
-                ->from('student_enrollments')
-                ->groupBy('student_id');
+                    ->from('student_enrollments')
+                    ->groupBy('student_id');
             });
 
             if ($request->course) {
@@ -75,10 +75,10 @@ class ValidateStudentsController extends Controller
         $previousEnrollments = StudentEnrollment::whereIn('student_id', $students->pluck('id'))
             ->where(function ($q) use ($activeSY, $activeSem) {
                 $q->where('school_year_id', '<', $activeSY->id)
-                ->orWhere(function ($q2) use ($activeSY, $activeSem) {
-                    $q2->where('school_year_id', $activeSY->id)
-                        ->where('semester_id', '<', $activeSem->id);
-                });
+                    ->orWhere(function ($q2) use ($activeSY, $activeSem) {
+                        $q2->where('school_year_id', $activeSY->id)
+                            ->where('semester_id', '<', $activeSem->id);
+                    });
             })
             ->orderBy('school_year_id', 'desc')
             ->orderBy('semester_id', 'desc')
@@ -96,11 +96,16 @@ class ValidateStudentsController extends Controller
         $sections = Section::where('college_id', $collegeId)->get();
 
         return view('college.validate_students', compact(
-            'students', 'activeSY', 'activeSem', 'courses', 'years', 'sections', 'activeEnrollments', 'previousEnrollments'
+            'students',
+            'activeSY',
+            'activeSem',
+            'courses',
+            'years',
+            'sections',
+            'activeEnrollments',
+            'previousEnrollments'
         ));
     }
-
-
 
 
 
@@ -140,9 +145,9 @@ class ValidateStudentsController extends Controller
     public function bulkValidate(Request $request)
     {
         abort_unless(Auth::user()->isAssessor(), 403);
-         if (!$request->has('selected_students')) {
-        return back(); // ignore if no students selected (could be a markPaid request)
-    }
+        if (!$request->has('selected_students')) {
+            return back(); // ignore if no students selected (could be a markPaid request)
+        }
         $collegeId = Auth::user()->college_id;
         $activeSY = SchoolYear::where('is_active', true)->first();
         $activeSem = Semester::where('is_active', true)->first();
@@ -219,9 +224,7 @@ class ValidateStudentsController extends Controller
 
     public function markPaid(Student $student)
     {
-        
-
-         abort_unless(Auth::user()->isStudentCoordinator(), 403);
+        abort_unless(Auth::user()->isStudentCoordinator(), 403);
 
         $activeSY = SchoolYear::where('is_active', true)->first();
         $activeSem = Semester::where('is_active', true)->first();
@@ -241,6 +244,51 @@ class ValidateStudentsController extends Controller
         return back()->with('status', 'Payment marked as completed.');
     }
 
+    public function clearForEnrollment(Student $student)
+    {
+        abort_unless(Auth::user()->isStudentCoordinator(), 403);
 
+        $activeSY = SchoolYear::where('is_active', true)->first();
+        $activeSem = Semester::where('is_active', true)->first();
+
+        $enrollment = StudentEnrollment::where([
+            'student_id' => $student->id,
+            'school_year_id' => $activeSY->id,
+            'semester_id' => $activeSem->id,
+        ])->firstOrFail();
+
+        $enrollment->update([
+            'cleared_for_enrollment' => true,
+            'cleared_by' => Auth::id(),
+            'cleared_at' => now(),
+        ]);
+
+        return back()->with('status', 'Student cleared for enrollment.');
+    }
+
+    public function getFeesForStudent(Student $student)
+    {
+        $collegeId = Auth::user()->college_id;
+        $organizationIds = \App\Models\Organization::where('college_id', $collegeId)
+            ->orWhereHas('motherOrganization', fn($q) => $q->where('college_id', $collegeId))
+            ->pluck('id');
+
+        $orgFees = \App\Models\Fee::whereIn('organization_id', $organizationIds)
+            ->where('status', 'APPROVED') 
+            ->with([
+                'organization',
+                'payments' => fn($q) => $q->where('student_id', $student->id)
+            ]);
+        $collegeFees = \App\Models\Fee::where('college_id', $collegeId)
+            ->whereNull('organization_id')
+            ->where('status', 'APPROVED')
+            ->with([
+                'organization', 
+                'payments' => fn($q) => $q->where('student_id', $student->id)
+            ]);
+
+        $fees = $orgFees->union($collegeFees)->get();
+
+        return response()->json($fees);
+    }
 }
-
