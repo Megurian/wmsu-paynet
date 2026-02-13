@@ -156,8 +156,10 @@ Route::middleware(['auth', 'role:college_org'])->group(function () {
     Route::get('/college/students/search', [OrganizationPaymentController::class,'searchStudents']);
     Route::get('/college/students/{student}/fees', [OrganizationPaymentController::class,'getStudentFees']);
     Route::post('/college_org/payment/collect', [OrganizationPaymentController::class,'collectPayment']);
-    Route::get('/college_org/receipt/{payment}', [OrganizationPaymentController::class, 'receipt']
-    )->name('college_org.payment.receipt');
+    Route::get(
+    '/college_org/receipt/pdf/{payment}',
+    [OrganizationPaymentController::class, 'downloadReceipt']
+)->name('college_org.payment.receipt');
 });
 
 Route::middleware(['auth','role:adviser'])->group(function(){

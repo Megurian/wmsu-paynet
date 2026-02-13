@@ -8,7 +8,7 @@ use App\Models\Student;
 use App\Models\SchoolYear;
 use App\Models\Semester;
 use App\Models\Fee;
-
+use Mpdf\Mpdf;
 use App\Models\StudentEnrollment;
 use App\Models\Payment;
 use Illuminate\Support\Facades\DB;
@@ -172,17 +172,33 @@ class OrganizationPaymentController extends Controller
         ]);
     }
 
-    public function receipt(Payment $payment)
-    {
-        $payment->load([
-            'student',
-            'fees',
-            'enrollment.course',
-            'enrollment.yearLevel',
-            'enrollment.section',
-            'collector'
-        ]);
+    public function downloadReceipt(Payment $payment)
+{
+    $payment->load([
+        'student',
+        'fees',
+        'enrollment.course',
+        'enrollment.yearLevel',
+        'enrollment.section',
+        'collector'
+    ]);
 
-        return view('college_org.receipt', compact('payment'));
-    }
+    $html = view('college_org.receipt_pdf', compact('payment'))->render();
+
+    $mpdf = new Mpdf([
+        'mode' => 'utf-8',
+        'format' => 'A4',
+    ]);
+
+    $mpdf->WriteHTML($html);
+
+    return response(
+        $mpdf->Output('receipt-'.$payment->transaction_id.'.pdf', 'S'),
+        200,
+        [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="receipt-'.$payment->transaction_id.'.pdf"'
+        ]
+    );
+}
 }
