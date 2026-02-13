@@ -74,7 +74,10 @@ public function getStudentFees($studentId)
 
     $activeEnrollment = $student->enrollments->first();
 
-    $fees = Fee::where('organization_id', $student->organization_id)
+    // Use the logged-in user's organization to fetch fees
+    $userOrgId = auth()->user()->organization_id;
+
+    $fees = Fee::where('organization_id', $userOrgId)
                 ->where('status', 'approved')
                 ->orderBy('created_at', 'desc')
                 ->get();

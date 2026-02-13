@@ -60,7 +60,6 @@
             </div>
         </div>
 
-        <!-- CASHIER PANEL -->
         <div id="cashierPanel" class="hidden bg-white border rounded-lg p-4 flex flex-col justify-between">
 
             <div class="space-y-4">
@@ -106,6 +105,7 @@
     </div>
 </div>
 
+
 <script>
 const searchInput = document.getElementById('studentSearch');
 const resultsList = document.getElementById('searchResults');
@@ -122,22 +122,16 @@ let FEES = [];
 let PAID_FEES = [];
 let SELECTED_STUDENT = null;
 
-// STUDENT SEARCH
+// --- SEARCH STUDENT ---
 searchInput.addEventListener('input', function () {
     const query = this.value.trim();
-    if (!query) {
-        resultsList.innerHTML = '';
-        resultsList.classList.add('hidden');
-        studentCard.classList.add('hidden');
-        cashierPanel.classList.add('hidden');
-        return;
-    }
+    if (!query) return hideStudentCard();
 
     fetch(`/college/students/search?q=${encodeURIComponent(query)}`)
         .then(res => res.json())
         .then(data => {
             resultsList.innerHTML = '';
-            if (data.length === 0) { resultsList.classList.add('hidden'); return; }
+            if (data.length === 0) return resultsList.classList.add('hidden');
 
             data.forEach(student => {
                 const li = document.createElement('li');
@@ -154,14 +148,14 @@ searchInput.addEventListener('input', function () {
         });
 });
 
-// LOAD STUDENT + FEES
+// --- LOAD STUDENT + FEES ---
 function loadStudentDetails(studentId) {
     fetch(`/college/students/${studentId}/fees`)
         .then(res => res.json())
         .then(data => {
             SELECTED_STUDENT = data.student;
             FEES = data.fees || [];
-            PAID_FEES = (data.paid_fee_ids || []).map(id => Number(id));
+            PAID_FEES = (data.paid_fee_ids || []).map(Number);
 
             document.getElementById('cardStudentId').textContent = data.student.student_id;
             document.getElementById('cardName').textContent = `${data.student.first_name} ${data.student.last_name}`;
@@ -178,39 +172,28 @@ function loadStudentDetails(studentId) {
         });
 }
 
-// RENDER FEES
 function renderFees() {
     feesList.innerHTML = '';
     if(FEES.length === 0){
-        feesList.innerHTML = `<p class="text-gray-500 text-sm">No approved fees.</p>`;
+        feesList.innerHTML = `<p class="text-gray-500 text-sm">No approved fees for this organization.</p>`;
         return;
     }
 
     FEES.forEach(fee => {
-        const div = document.createElement('div');
-        div.className = 'flex items-center justify-between text-sm';
-
         const amount = parseFloat(fee.amount) || 0;
         const isMandatory = fee.requirement_level === 'mandatory';
         const isPaid = PAID_FEES.includes(Number(fee.id));
-
         const checkedAttr = isMandatory && !isPaid ? 'checked' : '';
         const disabledAttr = isPaid ? 'disabled' : '';
 
+        const div = document.createElement('div');
+        div.className = 'flex items-center justify-between text-sm';
         div.innerHTML = `
             <label class="flex items-center gap-2 ${isPaid ? 'text-gray-400' : ''}">
-                <input 
-                    type="checkbox" 
-                    data-id="${fee.id}" 
-                    data-amount="${amount}" 
-                    class="feeCheckbox" 
-                    ${checkedAttr}
-                    ${disabledAttr}
-                >
+                <input type="checkbox" data-id="${fee.id}" data-amount="${amount}" class="feeCheckbox"
+                    ${checkedAttr} ${disabledAttr}>
                 ${fee.fee_name}
-                <span class="text-xs text-gray-400">
-                    (${fee.requirement_level})
-                </span>
+                <span class="text-xs text-gray-400">(${fee.requirement_level})</span>
                 ${isPaid ? '<span class="text-xs text-green-600 font-semibold ml-1">(PAID)</span>' : ''}
             </label>
             <span>₱ ${amount.toFixed(2)}</span>
@@ -222,7 +205,7 @@ function renderFees() {
     calculateTotal();
 }
 
-// CALCULATE TOTAL + CHANGE
+// --- CALCULATE TOTAL ---
 function calculateTotal() {
     let total = 0;
     document.querySelectorAll('.feeCheckbox:checked').forEach(cb => total += parseFloat(cb.dataset.amount));
@@ -230,6 +213,7 @@ function calculateTotal() {
     calculateChange();
 }
 
+// --- CALCULATE CHANGE ---
 function calculateChange() {
     const total = parseFloat(totalAmountEl.textContent) || 0;
     const cash = parseFloat(cashInput.value) || 0;
@@ -238,6 +222,7 @@ function calculateChange() {
     updateProceedBtnState();
 }
 
+// --- RESET PAYMENT ---
 function resetPayment() {
     cashInput.value = '';
     changeAmountEl.textContent = '0.00';
@@ -255,7 +240,7 @@ function updateProceedBtnState() {
 
 cashInput.addEventListener('input', calculateChange);
 
-// PROCEED PAYMENT
+// --- PROCEED PAYMENT ---
 proceedBtn.addEventListener('click', () => {
     if(!SELECTED_STUDENT){ alert('Select a student first.'); return; }
 
@@ -268,22 +253,14 @@ proceedBtn.addEventListener('click', () => {
 
     fetch('/college_org/payment/collect', {
         method:'POST',
-        headers:{
-            'Content-Type':'application/json',
-            'X-CSRF-TOKEN':'{{ csrf_token() }}'
-        },
-        body: JSON.stringify({
-            student_id: SELECTED_STUDENT.id,
-            fee_ids: selectedFees,
-            cash_received: cashReceived
-        })
+        headers:{ 'Content-Type':'application/json','X-CSRF-TOKEN':'{{ csrf_token() }}' },
+        body: JSON.stringify({ student_id: SELECTED_STUDENT.id, fee_ids: selectedFees, cash_received: cashReceived })
     })
     .then(res => res.ok ? res.json() : res.json().then(d=>{throw d}))
     .then(data => {
         alert(data.message || 'Payment collected successfully.');
         window.open(`/college_org/payment/receipt/${data.payment_id}`,'_blank');
 
-        // RESET UI
         SELECTED_STUDENT = null;
         FEES = [];
         searchInput.value = '';
@@ -299,5 +276,12 @@ document.addEventListener('click', function(e){
         resultsList.classList.add('hidden');
     }
 });
+
+function hideStudentCard() {
+    resultsList.innerHTML = '';
+    resultsList.classList.add('hidden');
+    studentCard.classList.add('hidden');
+    cashierPanel.classList.add('hidden');
+}
 </script>
 @endsection
