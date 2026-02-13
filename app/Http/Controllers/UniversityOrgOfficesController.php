@@ -70,6 +70,7 @@ class UniversityOrgOfficesController extends Controller
             'logo' => $validated['logo'] ?? null,
             'college_id' => $college?->id,
             'mother_organization_id' => $motherOrgId,
+            'status' => null, 
         ]);
 
         // Create the admin user (assign to college_org role)

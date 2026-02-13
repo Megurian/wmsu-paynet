@@ -84,6 +84,8 @@ class CollegeOrgFeesController extends Controller
             return redirect()->route('college_org.fees')->with('error', 'Organization not found.');
         }
 
+        $approvalLevel = $organization->motherOrganization ? 'osa' : 'dean';
+
         $data = [
             'organization_id' => $organization->id,
             'user_id' => Auth::id(),
@@ -94,6 +96,9 @@ class CollegeOrgFeesController extends Controller
             'remittance_percent' => $request->remittance_percent ?? null,
             'requirement_level' => $request->requirement_level,
             'status' => 'pending',
+            'fee_scope' => 'college',
+            'college_id' => $organization->college_id,
+            'approval_level' => $approvalLevel,
         ];
 
         if ($request->requirement_level === 'mandatory' && !$request->hasFile('resolution_file')) {
@@ -110,7 +115,8 @@ class CollegeOrgFeesController extends Controller
 
         \App\Models\Fee::create($data);
 
-        return redirect()->route('college_org.fees')->with('success', 'Fee created successfully and is pending OSA approval');
+        $approvalMsg = $approvalLevel === 'osa' ? 'OSA' : 'Dean';
+        return redirect()->route('college_org.fees')->with('success', "Fee created successfully and is pending $approvalMsg approval.");
     }
 
     public function show(\App\Models\Fee $fee)

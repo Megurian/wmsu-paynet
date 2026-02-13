@@ -124,7 +124,10 @@
             <tbody>
                 @forelse($filteredFees as $fee)
                     <tr>
-                        <td class="border px-4 py-2">{{ $fee->organization->name }} ({{ $fee->organization->org_code }})</td>
+                       <td class="border px-4 py-2">
+    {{ optional($fee->organization)->name ?? 'N/A' }} 
+    ({{ optional($fee->organization)->org_code ?? '-' }})
+</td>
                         <td class="border px-4 py-2">{{ $fee->fee_name }}</td>
                         <td class="border px-4 py-2">₱{{ number_format($fee->amount, 2) }}</td>
                         <td class="border px-4 py-2 capitalize">{{ $fee->requirement_level }}</td>

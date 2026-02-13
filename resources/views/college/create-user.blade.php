@@ -56,6 +56,7 @@
                     <option value="student_coordinator">Student Coordinator</option>
                     <option value="adviser">Adviser</option>
                     <option value="assessor">Assessor</option>
+                    <option value="admin">Admin</option>
                 </select>
             </div>
             <!-- Adviser Course -->
