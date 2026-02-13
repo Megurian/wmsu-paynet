@@ -64,10 +64,10 @@ class OrganizationPaymentController extends Controller
 
     public function getStudentFees($studentId)
     {
-        $student = Student::with(['enrollments' => function ($q) {
-            $activeSY = SchoolYear::where('is_active', true)->first();
-            $activeSem = Semester::where('is_active', true)->first();
+        $activeSY = SchoolYear::where('is_active', true)->first();
+        $activeSem = Semester::where('is_active', true)->first();
 
+        $student = Student::with(['enrollments' => function ($q) use ($activeSY, $activeSem) {
             $q->where('school_year_id', $activeSY->id)
                 ->where('semester_id', $activeSem->id)
                 ->whereIn('status', ['FOR_PAYMENT_VALIDATION', 'ENROLLED']);
@@ -75,6 +75,10 @@ class OrganizationPaymentController extends Controller
             ->findOrFail($studentId);
 
         $activeEnrollment = $student->enrollments->first();
+
+        if (!$activeEnrollment) {
+            return response()->json(['message' => 'Student not enrolled.'], 404);
+        }
 
         $userOrg = auth()->user()->organization;
 
@@ -89,6 +93,12 @@ class OrganizationPaymentController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
+        $paidFeeIds = DB::table('fee_payment')
+            ->join('payments', 'fee_payment.payment_id', '=', 'payments.id')
+            ->where('payments.enrollment_id', $activeEnrollment->id)
+            ->pluck('fee_payment.fee_id')
+            ->toArray();
+
         return response()->json([
             'student' => [
                 'id' => $student->id,
@@ -100,7 +110,8 @@ class OrganizationPaymentController extends Controller
                 'year' => $activeEnrollment?->yearLevel?->name,
                 'section' => $activeEnrollment?->section?->name,
             ],
-            'fees' => $fees
+            'fees' => $fees,
+            'paid_fee_ids' => $paidFeeIds  
         ]);
     }
 

@@ -190,7 +190,7 @@ function renderFees() {
         const div = document.createElement('div');
         div.className = 'flex items-center justify-between text-sm';
         div.innerHTML = `
-            <label class="flex items-center gap-2 ${isPaid ? 'text-gray-400' : ''}">
+            <label class="flex items-center gap-2 ${isPaid ? 'text-gray-400 ' : ''}">
                 <input type="checkbox" data-id="${fee.id}" data-amount="${amount}" class="feeCheckbox"
                     ${checkedAttr} ${disabledAttr}>
                 ${fee.fee_name}
