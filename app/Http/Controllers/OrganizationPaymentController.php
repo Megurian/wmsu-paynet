@@ -173,32 +173,63 @@ class OrganizationPaymentController extends Controller
     }
 
     public function downloadReceipt(Payment $payment)
-{
-    $payment->load([
-        'student',
-        'fees',
-        'enrollment.course',
-        'enrollment.yearLevel',
-        'enrollment.section',
-        'collector'
-    ]);
+    {
+        $payment->load([
+            'student',
+            'fees',
+            'enrollment.course',
+            'enrollment.yearLevel',
+            'enrollment.section',
+            'collector'
+        ]);
 
-    $html = view('college_org.receipt_pdf', compact('payment'))->render();
+        $html = view('college_org.receipt_pdf', compact('payment'))->render();
 
-    $mpdf = new Mpdf([
-        'mode' => 'utf-8',
-        'format' => 'A4',
-    ]);
+        $mpdf = new Mpdf([
+            'mode' => 'utf-8',
+            'format' => 'A4',
+        ]);
 
-    $mpdf->WriteHTML($html);
+        $mpdf->WriteHTML($html);
 
-    return response(
-        $mpdf->Output('receipt-'.$payment->transaction_id.'.pdf', 'S'),
-        200,
-        [
-            'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'inline; filename="receipt-'.$payment->transaction_id.'.pdf"'
-        ]
-    );
-}
+        if (!$payment->fees->contains('organization_id', auth()->user()->organization->id)) {
+            abort(403);
+        }
+
+        return response(
+            $mpdf->Output('receipt-' . $payment->transaction_id . '.pdf', 'S'),
+            200,
+            [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="receipt-' . $payment->transaction_id . '.pdf"'
+            ]
+        );
+    }
+
+    public function records(Request $request)
+    {
+        $user = auth()->user();
+
+        $activeSY = SchoolYear::where('is_active', true)->first();
+        $activeSem = Semester::where('is_active', true)->first();
+
+        $payments = Payment::with([
+            'student',
+            'fees',
+            'enrollment.course',
+            'enrollment.yearLevel',
+            'enrollment.section'
+        ])
+            ->whereHas('fees', function ($q) use ($user) {
+                $q->where('organization_id', $user->organization->id);
+            })
+            ->whereHas('enrollment', function ($q) use ($activeSY, $activeSem) {
+                $q->where('school_year_id', $activeSY->id)
+                    ->where('semester_id', $activeSem->id);
+            })
+            ->latest()
+            ->get();
+
+        return view('college_org.records', compact('payments'));
+    }
 }
