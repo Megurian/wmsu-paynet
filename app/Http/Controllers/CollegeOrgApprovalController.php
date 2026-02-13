@@ -8,20 +8,32 @@ use Illuminate\Support\Facades\Auth;
 
 class CollegeOrgApprovalController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $studentOrgs = Organization::where('college_id', Auth::user()->college_id)
-            ->whereNull('mother_organization_id')
-            ->get();
+        $tab = $request->get('tab', 'pending');
 
-        $motherOrgOffices = Organization::where('college_id', Auth::user()->college_id)
-            ->whereNotNull('mother_organization_id')
-            ->with('motherOrganization')
-            ->get();
+        $collegeId = Auth::user()->college_id;
 
-        $orgs = $studentOrgs->concat($motherOrgOffices);
+        if ($tab === 'pending') {
+            $orgs = Organization::where('college_id', $collegeId)
+                ->whereNull('mother_organization_id')
+                ->where('status', 'pending')
+                ->get();
+        } else {
+            $studentOrgs = Organization::where('college_id', $collegeId)
+                ->whereNull('mother_organization_id')
+                ->where('status', 'approved')
+                ->get();
 
-        return view('college.local_organizations.approvals', compact('orgs'));
+            $motherOrgOffices = Organization::where('college_id', $collegeId)
+                ->whereNotNull('mother_organization_id')
+                ->with('motherOrganization')
+                ->get();
+
+            $orgs = $studentOrgs->concat($motherOrgOffices);
+        }
+
+        return view('college.local_organizations.approvals', compact('orgs', 'tab'));
     }
 
     public function approve(Organization $organization)
