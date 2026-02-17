@@ -15,7 +15,10 @@ class LocalOrgsController extends Controller
     public function index()
     {
         $collegeId = Auth::user()->college_id;
-        $orgs = Organization::where('college_id', $collegeId)->get();
+
+        $orgs = Organization::with('users')
+            ->where('college_id', $collegeId)
+            ->get();
 
         return view('college.local_organizations.college_org', compact('orgs'));
     }
@@ -24,25 +27,6 @@ class LocalOrgsController extends Controller
     {
         return view('college.local_organizations.create');
     }
-
-
-public function show($id)
-{
-    $organization = Organization::where(function ($query) {
-            $query->where('college_id', Auth::user()->college_id);
-        })
-        ->where('id', $id)
-        ->firstOrFail();
-
-    $fees = $organization->fees()->latest()->get();
-    $users = $organization->users()->orderBy('last_name')->get();
-
-    return view(
-        'college.local_organizations.show',
-        compact('organization', 'fees', 'users')
-    );
-}
-
 
     public function store(Request $request)
     {
@@ -73,7 +57,6 @@ public function show($id)
                 'logo' => $logoPath,
             ]);
 
-            // Create initial admin
             User::create([
                 'first_name' => $request->first_name,
                 'middle_name' => $request->middle_name,
@@ -89,5 +72,25 @@ public function show($id)
 
         return redirect()->route('college.local_organizations')
             ->with('success', 'Organization submitted for dean approval and initial admin created.');
+    }
+
+    public function show(Organization $org)
+    {
+        $fees = Fee::where('organization_id', $org->id)
+            ->where('status', 'approved')
+            ->get();
+
+        $users = User::where('organization_id', $org->id)->get();
+
+        return view('college.local_organizations.show', compact('org', 'fees', 'users'));
+    }
+
+    public function cancelSubmission(Organization $org)
+    {
+        if ($org->status === 'pending') {
+            $org->delete();
+            return redirect()->route('college.local_organizations')->with('success', 'Submission canceled successfully.');
+        }
+        return redirect()->back()->with('error', 'Cannot cancel this submission.');
     }
 }

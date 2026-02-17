@@ -149,7 +149,7 @@ searchInput.addEventListener('input', function () {
 });
 
 function loadStudentDetails(studentId) {
-    fetch(`/college/students/${studentId}/fees`)
+    fetch(`/college_org/students/${studentId}/fees`)
         .then(res => res.json())
         .then(data => {
             SELECTED_STUDENT = data.student;

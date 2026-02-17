@@ -79,7 +79,6 @@ class OrganizationPaymentController extends Controller
         if (!$activeEnrollment) {
             return response()->json(['message' => 'Student not enrolled.'], 404);
         }
-
         $userOrg = auth()->user()->organization;
 
         $organizationIds = [$userOrg->id];

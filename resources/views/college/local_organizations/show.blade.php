@@ -4,127 +4,111 @@
 @section('page-title', 'Organization Details')
 
 @section('content')
+<div class="max-w-4xl mx-auto space-y-4 mt-2">
+    <div class="text-left">
+        <a href="{{ route('college.local_organizations') }}" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition font-medium">
+            Back to Organizations
+        </a>
+    </div>
 
-<div class="mb-6">
-    <a href="{{ route('college.local_organizations') }}"
-       class="text-sm text-gray-600 hover:text-gray-800">
-        ← Back to Organizations
-    </a>
-</div>
-
-{{-- ORGANIZATION INFO --}}
-<div class="bg-white shadow-md rounded-xl p-6 mb-8">
-@if($organization)
-    <div class="flex flex-col md:flex-row md:items-center gap-6">
-
-       @if(optional($organization)->logo)
-            <img src="{{ asset('storage/'.$organization->logo) }}"
-                 class="w-24 h-24 rounded-lg object-cover border">
+    <div class="bg-white shadow-md rounded-xl p-6 flex items-center space-x-6">
+        @if($org->logo)
+        <img src="{{ asset('storage/' . $org->logo) }}" alt="{{ $org->name }} Logo" class="w-32 h-32 rounded-full object-cover border border-gray-200">
+        @else
+        <div class="w-32 h-32 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 border border-gray-200">
+            No Logo
+        </div>
         @endif
 
-        <div>
-            <h2 class="text-2xl font-bold text-gray-800">
-                {{ $organization->name }}
-            </h2>
-
-            <p class="text-gray-500 mt-1">
-                Organization Code:
-                <span class="font-medium text-gray-700">
-                    {{ $organization->org_code }}
+        <div class="flex-1 space-y-3">
+            <div class="flex justify-between items-center ">
+                <h2 class="text-2xl font-bold text-gray-800">{{ $org->name }}</h2>
+                <span class="px-3 py-1 text-xs font-medium rounded-full 
+                    @if(is_null($org->mother_organization_id)) bg-blue-100 text-blue-700
+                    @else bg-purple-100 text-purple-700 @endif">
+                    @if(is_null($org->mother_organization_id)) College Organization
+                    @else Office @endif
                 </span>
-            </p>
-
-            <div class="mt-3 flex gap-2 flex-wrap">
-                @if($organization->status === 'approved')
-                    <span class="px-3 py-1 bg-green-100 text-green-700 text-xs rounded-full font-medium">
-                        Approved
-                    </span>
-                @elseif($organization->status === 'pending')
-                    <span class="px-3 py-1 bg-yellow-100 text-yellow-700 text-xs rounded-full font-medium">
-                        Pending
-                    </span>
-                @elseif($organization->status === 'rejected')
-                    <span class="px-3 py-1 bg-red-100 text-red-700 text-xs rounded-full font-medium">
-                        Rejected
-                    </span>
+            </div>
+            <span class="text-purple-700 font-bold ">
+                @if(!is_null($org->mother_organization_id))
+                {{ $org->motherOrganization->name ?? 'N/A' }}
                 @endif
+            </span>
+            <p class="text-gray-500">
+                <span class="font-medium text-gray-700">{{ $org->org_code }}</span>
+            </p>
+            <div class="flex flex-wrap gap-2 mt-2 items-center">
+                <span class="px-3 py-1 text-xs font-medium rounded-full
+                    @if($org->status === 'pending') bg-yellow-100 text-yellow-700
+                    @elseif($org->status === 'approved') bg-green-100 text-green-700
+                    @elseif($org->status === 'rejected') bg-red-100 text-red-700
+                    @endif">
+                    @if($org->status === 'pending') Pending Approval
+                    @elseif($org->status === 'approved' && $org->approved_at) 
+                    <span >
+                        Approved on {{ \Carbon\Carbon::parse($org->approved_at)->format('M d, Y') }}
+                    </span>
+                    @elseif($org->status === 'rejected') Rejected
+                    @endif
+                </span>
             </div>
         </div>
     </div>
-@endif
-</div>
 
-{{-- FEES SECTION --}}
-<div class="mb-10">
-    <h3 class="text-lg font-semibold text-gray-800 mb-4">
-        Organization Fees
-    </h3>
-
-    @if($fees->count())
-        <div class="space-y-4">
+    <div x-data="{ open: true }" class="bg-white shadow-md rounded-xl w-full">
+        <button @click="open = !open" class="w-full flex justify-between items-center px-6 py-4 font-medium text-gray-800 hover:bg-gray-100 rounded-t-xl focus:outline-none">
+            <span>Approved Fees ({{ $fees->count() }})</span>
+            <svg :class="{ 'rotate-180': open }" class="w-5 h-5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+        </button>
+        <div x-show="open" class="px-6 pb-4 space-y-2">
+            @if($fees->count())
             @foreach($fees as $fee)
-                <div class="bg-white shadow rounded-lg p-4">
-                    <div class="flex justify-between items-center">
-                        <div>
-                            <h4 class="font-semibold text-gray-800">
-                                {{ $fee->fee_name }}
-                            </h4>
-                            <p class="text-sm text-gray-500">
-                                {{ $fee->purpose }}
-                            </p>
-                        </div>
-
-                        <div class="text-right">
-                            <p class="font-semibold text-gray-700">
-                                ₱{{ number_format($fee->amount, 2) }}
-                            </p>
-
-                            <span class="text-xs px-2 py-1 rounded-full
-                                {{ $fee->requirement_level === 'mandatory'
-                                    ? 'bg-red-100 text-red-700'
-                                    : 'bg-blue-100 text-blue-700' }}">
-                                {{ ucfirst($fee->requirement_level) }}
-                            </span>
-                        </div>
-                    </div>
+            <div class="p-4 border border-gray-200 rounded-lg">
+                <div class="flex justify-between items-center">
+                    <span class="font-medium">{{ $fee->fee_name }}</span>
+                    <span class="text-sm text-gray-500">{{ \Carbon\Carbon::parse($fee->date)->format('M d, Y') }}</span>
                 </div>
+                <div class="mt-1 text-gray-600 text-sm">
+                    Amount: ₱{{ number_format($fee->amount, 2) }}<br>
+                    Requirement: {{ $fee->requirement_level ?? 'N/A' }}<br>
+                    Description: {{ $fee->description ?? 'N/A' }}
+                </div>
+            </div>
             @endforeach
+            @else
+            <p class="text-gray-400">No approved fees for this organization.</p>
+            @endif
         </div>
-    @else
-        <p class="text-gray-500">No fees created for this organization.</p>
-    @endif
-</div>
+    </div>
 
-{{-- USERS SECTION --}}
-<div>
-    <h3 class="text-lg font-semibold text-gray-800 mb-4">
-        User Accounts
-    </h3>
-
-    @if($users->count())
-        <div class="space-y-4">
+    <div x-data="{ open: true }" class="bg-white shadow-md rounded-xl w-full">
+        <button @click="open = !open" class="w-full flex justify-between items-center px-6 py-4 font-medium text-gray-800 hover:bg-gray-100 rounded-t-xl focus:outline-none">
+            <span>User Accounts ({{ $users->count() }})</span>
+            <svg :class="{ 'rotate-180': open }" class="w-5 h-5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+        </button>
+        <div x-show="open" class="px-6 pb-4 space-y-2">
+            @if($users->count())
             @foreach($users as $user)
-                <div class="bg-white shadow rounded-lg p-4 flex justify-between items-center">
-                    <div>
-                        <p class="font-medium text-gray-800">
-                            {{ $user->last_name }},
-                            {{ $user->first_name }}
-                            {{ $user->middle_name }}
-                        </p>
-                        <p class="text-sm text-gray-500">
-                            {{ $user->email }}
-                        </p>
-                    </div>
-
-                    <span class="text-xs px-3 py-1 bg-gray-100 text-gray-700 rounded-full">
-                        {{ ucfirst($user->role) }}
-                    </span>
+            <div class="p-4 border border-gray-200 rounded-lg">
+                <div class="flex justify-between items-center">
+                    <span class="font-medium">{{ $user->first_name }} {{ $user->last_name }} {{ $user->suffix }}</span>
+                    <span class="text-sm text-gray-500">{{ $user->email }}</span>
                 </div>
+                <div class="mt-1 text-gray-600 text-sm">
+                    {{ ucwords(str_replace('_', ' ', $user->role)) }}<br>
+                </div>
+            </div>
             @endforeach
+            @else
+            <p class="text-gray-400">No users found for this organization.</p>
+            @endif
         </div>
-    @else
-        <p class="text-gray-500">No users assigned to this organization.</p>
-    @endif
-</div>
+    </div>
 
+</div>
 @endsection
