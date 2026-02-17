@@ -74,11 +74,27 @@
                 </div>
             </div>
 
-            <div class="flex gap-3">
-                <a href="{{ route('college.local_organizations.show', $org->id) }}" 
-                    class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium">
-                    View Organization details
-                </a>
+            <div class="relative" x-data="{ open: false }">
+                <button @click="open = !open" class="p-2 rounded-full hover:bg-gray-100 focus:outline-none">
+                    <svg class="w-6 h-6 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                </button>
+
+                <div x-show="open" @click.away="open = false" class="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-50">
+                    @if($org->status === 'pending')
+                    <a href="" class="block px-4 py-2 text-gray-700 hover:bg-gray-100">
+                        Edit Submission
+                    </a>
+                    <span class="block px-4 py-2 text-gray-400 cursor-not-allowed">
+                        View 
+                    </span>
+                    @else
+                    <a href="{{ route('college.local_organizations.show', $org->id) }}" class="block px-4 py-2 text-gray-700 hover:bg-gray-100">
+                        View 
+                    </a>
+                    @endif
+                </div>
             </div>
 
         </div>
