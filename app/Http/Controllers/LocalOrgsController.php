@@ -74,17 +74,9 @@ class LocalOrgsController extends Controller
     /**
      * Show organization details.
      */
-public function show($id)
-{
-    $collegeId = Auth::user()->college_id;
 
-    $organization = Organization::where('college_id', $collegeId)
-        ->with(['motherOrganization', 'users', 'fees'])
-        ->findOrFail($id); 
-
-    $fees = $organization->fees()->latest()->get();
-    $users = $organization->users()->orderBy('last_name')->get();
-
-    return view('college.local_organizations.show', compact('organization', 'fees', 'users'));
-}
+    public function show(Organization $org)
+    {
+        return view('college.local_organizations.show', compact('org'));
+    }
 }

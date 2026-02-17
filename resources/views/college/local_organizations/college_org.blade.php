@@ -26,51 +26,59 @@
 
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
 
-            <div class="flex-1">
-                <h3 class="text-xl font-semibold text-gray-800">{{ $org->name }}</h3>
-                <p class="text-sm text-gray-500 mt-1">
-                    Organization Code: <span class="font-medium text-gray-700">{{ $org->org_code }}</span>
-                </p>
+            <div class="flex items-center gap-4 flex-1">
+                @if($org->logo)
+                <img src="{{ asset('storage/' . $org->logo) }}" alt="{{ $org->name }} Logo" class="w-16 h-16 rounded-full object-cover border border-gray-200">
+                @else
+                <div class="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 border border-gray-200">
+                    No Logo
+                </div>
+                @endif
 
-                <div class="mt-3 flex flex-wrap gap-2 items-center">
-                    @if(is_null($org->mother_organization_id))
-                    <span class="px-3 py-1 bg-blue-100 text-blue-700 text-xs rounded-full font-medium">
-                        College Organization
-                    </span>
-                    @else
-                    <span class="px-3 py-1 bg-purple-100 text-purple-700 text-xs rounded-full font-medium">
-                        Office
-                    </span>
-                    <span class="text-sm text-gray-600">
-                        <span class="font-medium">{{ $org->motherOrganization->name ?? 'N/A' }}</span>
-                    </span>
-                    @endif
+                <div>
+                    <h3 class="text-xl font-semibold text-gray-800">{{ $org->name }}</h3>
+                    <p class="text-sm text-gray-500 mt-1">
+                        Organization Code: <span class="font-medium text-gray-700">{{ $org->org_code }}</span>
+                    </p>
 
-                    @if($org->status)
-                    @if($org->status === 'pending')
-                    <span class="px-3 py-1 bg-yellow-100 text-yellow-700 text-xs rounded-full font-medium">
-                        Pending Approval
-                    </span>
-                    @elseif($org->status === 'approved')
-                    <span class="px-3 py-1 bg-green-100 text-green-700 text-xs rounded-full font-medium">
-                        Approved
-                    </span>
-                    @elseif($org->status === 'rejected')
-                    <span class="px-3 py-1 bg-red-100 text-red-700 text-xs rounded-full font-medium">
-                        Rejected
-                    </span>
-                    @endif
-                    @endif
+                    <div class="mt-3 flex flex-wrap gap-2 items-center">
+                        @if(is_null($org->mother_organization_id))
+                        <span class="px-3 py-1 bg-blue-100 text-blue-700 text-xs rounded-full font-medium">
+                            College Organization
+                        </span>
+                        @else
+                        <span class="px-3 py-1 bg-purple-100 text-purple-700 text-xs rounded-full font-medium">
+                            Office
+                        </span>
+                        <span class="text-sm text-gray-600">
+                            <span class="font-medium">{{ $org->motherOrganization->name ?? 'N/A' }}</span>
+                        </span>
+                        @endif
+
+                        @if($org->status)
+                        @if($org->status === 'pending')
+                        <span class="px-3 py-1 bg-yellow-100 text-yellow-700 text-xs rounded-full font-medium">
+                            Pending Approval
+                        </span>
+                        @elseif($org->status === 'approved')
+                        <span class="px-3 py-1 bg-green-100 text-green-700 text-xs rounded-full font-medium">
+                            Approved
+                        </span>
+                        @elseif($org->status === 'rejected')
+                        <span class="px-3 py-1 bg-red-100 text-red-700 text-xs rounded-full font-medium">
+                            Rejected
+                        </span>
+                        @endif
+                        @endif
+                    </div>
                 </div>
             </div>
 
             <div class="flex gap-3">
-                <div class="flex gap-3">
-                   <a href="{{ route('college.local_organizations.show', $org->id) }}" 
-   class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium">
-    View
-</a>
-                </div>
+                <a href="{{ route('college.local_organizations.show', $org->id) }}" 
+                    class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium">
+                    View Organization details
+                </a>
             </div>
 
         </div>

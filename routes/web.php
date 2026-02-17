@@ -307,9 +307,8 @@ Route::middleware(['auth','role:student_coordinator'])->group(function(){
 
     Route::post('/college/local_organizations', [LocalOrgsController::class, 'store'])
         ->name('college.local_organizations.store');
-         // In routes/web.php (inside college role group)
-Route::get('/college/local_organizations/{id}', [LocalOrgsController::class, 'show'])
-    ->name('college.local_organizations.show');
+
+        Route::get('college/local_organizations/{org}', [LocalOrgsController::class, 'show'])->name('college.local_organizations.show');
 
 });
 
