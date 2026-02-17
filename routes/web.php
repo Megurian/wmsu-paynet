@@ -243,13 +243,14 @@ Route::middleware(['auth', 'role:admin,college,student_coordinator,adviser,asses
      Route::put('info/logo', [CollegeUserController::class, 'updateCollegeLogo'])->name('college.info.updateLogo');
     Route::put('info/name', [CollegeUserController::class, 'updateCollegeName'])->name('college.info.updateName');
     Route::get('/college/students/import/template', function () {
-        $file = storage_path('app/templates/student_template.xlsx'); 
+        \App\Services\StudentTemplateGenerator::generateIfNotExists();
+        $file = storage_path('app/private/templates/student_template.csv');
 
         if (!file_exists($file)) {
             abort(404, 'Template not found.');
         }
 
-        return response()->download($file, 'student_template.xlsx');
+        return response()->download($file, 'student_template.csv');
     })->name('college.students.import.template');
     Route::post('college/students/import', [ValidateStudentsController::class, 'import'])->name('college.students.import');
     Route::get('/college/local_organizations/approvals', [CollegeOrgApprovalController::class, 'index'])
