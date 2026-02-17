@@ -25,25 +25,6 @@ class LocalOrgsController extends Controller
         return view('college.local_organizations.create');
     }
 
-
-public function show($id)
-{
-    $organization = Organization::where(function ($query) {
-            $query->where('college_id', Auth::user()->college_id);
-        })
-        ->where('id', $id)
-        ->firstOrFail();
-
-    $fees = $organization->fees()->latest()->get();
-    $users = $organization->users()->orderBy('last_name')->get();
-
-    return view(
-        'college.local_organizations.show',
-        compact('organization', 'fees', 'users')
-    );
-}
-
-
     public function store(Request $request)
     {
         $request->validate([
@@ -73,7 +54,6 @@ public function show($id)
                 'logo' => $logoPath,
             ]);
 
-            // Create initial admin
             User::create([
                 'first_name' => $request->first_name,
                 'middle_name' => $request->middle_name,
@@ -90,4 +70,21 @@ public function show($id)
         return redirect()->route('college.local_organizations')
             ->with('success', 'Organization submitted for dean approval and initial admin created.');
     }
+
+    /**
+     * Show organization details.
+     */
+public function show($id)
+{
+    $collegeId = Auth::user()->college_id;
+
+    $organization = Organization::where('college_id', $collegeId)
+        ->with(['motherOrganization', 'users', 'fees'])
+        ->findOrFail($id); 
+
+    $fees = $organization->fees()->latest()->get();
+    $users = $organization->users()->orderBy('last_name')->get();
+
+    return view('college.local_organizations.show', compact('organization', 'fees', 'users'));
+}
 }

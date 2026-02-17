@@ -155,7 +155,9 @@ Route::middleware(['auth', 'role:college_org'])->group(function () {
     //  ->name('college.students.search');
 
     Route::get('/college/students/search', [OrganizationPaymentController::class,'searchStudents']);
-    Route::get('/college/students/{student}/fees', [OrganizationPaymentController::class,'getStudentFees']);
+   Route::get('/college_org/students/{student}/fees',
+    [OrganizationPaymentController::class,'getStudentFees'])
+    ->name('college_org.students.fees');
     Route::post('/college_org/payment/collect', [OrganizationPaymentController::class,'collectPayment']);
     Route::get(
     '/college_org/receipt/pdf/{payment}',
@@ -260,6 +262,8 @@ Route::middleware(['auth', 'role:admin,college,student_coordinator,adviser,asses
         ->name('college.local_organizations.reject');
         Route::post('/college/students/{student}/clear-for-enrollment', [ValidateStudentsController::class, 'clearForEnrollment'])
     ->name('college.students.clear-for-enrollment');
+    
+       
 });
 
     Route::middleware(['auth','role:assessor,student_coordinator'])->group(function(){
@@ -267,7 +271,7 @@ Route::middleware(['auth', 'role:admin,college,student_coordinator,adviser,asses
     Route::post('students/validate/{student}', [ValidateStudentsController::class, 'store'])->name('college.students.validate.store');
     Route::post('/college/students/validate/bulk', [ValidateStudentsController::class, 'bulkValidate'])
         ->name('college.students.validate.bulk');
-    Route::get('/college/students/{student}/fees', [ValidateStudentsController::class, 'getFeesForStudent']);
+     Route::get('/college/students/{student}/fees', [ValidateStudentsController::class, 'getFeesForStudent']);
 });
 
 
@@ -303,9 +307,10 @@ Route::middleware(['auth','role:student_coordinator'])->group(function(){
 
     Route::post('/college/local_organizations', [LocalOrgsController::class, 'store'])
         ->name('college.local_organizations.store');
-    Route::get('/college/local-organizations/{id}', 
-    [LocalOrgsController::class, 'show']
-)->name('college.local_organizations.show');
+         // In routes/web.php (inside college role group)
+Route::get('/college/local_organizations/{id}', [LocalOrgsController::class, 'show'])
+    ->name('college.local_organizations.show');
+
 });
 
 

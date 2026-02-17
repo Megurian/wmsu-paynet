@@ -6,8 +6,7 @@
 @section('content')
 
 <div class="mb-6 flex justify-end">
-    <a href="{{ route('college.local_organizations.create') }}" 
-       class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-blue-700 transition font-medium text-sm">
+    <a href="{{ route('college.local_organizations.create') }}" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-blue-700 transition font-medium text-sm">
         Create New Organization
     </a>
 </div>
@@ -35,52 +34,43 @@
 
                 <div class="mt-3 flex flex-wrap gap-2 items-center">
                     @if(is_null($org->mother_organization_id))
-                        <span class="px-3 py-1 bg-blue-100 text-blue-700 text-xs rounded-full font-medium">
-                            College Organization
-                        </span>
+                    <span class="px-3 py-1 bg-blue-100 text-blue-700 text-xs rounded-full font-medium">
+                        College Organization
+                    </span>
                     @else
-                        <span class="px-3 py-1 bg-purple-100 text-purple-700 text-xs rounded-full font-medium">
-                            Office
-                        </span>
-                        <span class="text-sm text-gray-600">
-                             <span class="font-medium">{{ $org->motherOrganization->name ?? 'N/A' }}</span>
-                        </span>
+                    <span class="px-3 py-1 bg-purple-100 text-purple-700 text-xs rounded-full font-medium">
+                        Office
+                    </span>
+                    <span class="text-sm text-gray-600">
+                        <span class="font-medium">{{ $org->motherOrganization->name ?? 'N/A' }}</span>
+                    </span>
                     @endif
 
                     @if($org->status)
-                        @if($org->status === 'pending')
-                            <span class="px-3 py-1 bg-yellow-100 text-yellow-700 text-xs rounded-full font-medium">
-                                Pending Approval
-                            </span>
-                        @elseif($org->status === 'approved')
-                            <span class="px-3 py-1 bg-green-100 text-green-700 text-xs rounded-full font-medium">
-                                Approved
-                            </span>
-                        @elseif($org->status === 'rejected')
-                            <span class="px-3 py-1 bg-red-100 text-red-700 text-xs rounded-full font-medium">
-                                Rejected
-                            </span>
-                        @endif
+                    @if($org->status === 'pending')
+                    <span class="px-3 py-1 bg-yellow-100 text-yellow-700 text-xs rounded-full font-medium">
+                        Pending Approval
+                    </span>
+                    @elseif($org->status === 'approved')
+                    <span class="px-3 py-1 bg-green-100 text-green-700 text-xs rounded-full font-medium">
+                        Approved
+                    </span>
+                    @elseif($org->status === 'rejected')
+                    <span class="px-3 py-1 bg-red-100 text-red-700 text-xs rounded-full font-medium">
+                        Rejected
+                    </span>
+                    @endif
                     @endif
                 </div>
             </div>
 
             <div class="flex gap-3">
-                @if(is_null($org->mother_organization_id))
-                    {{-- <a href="{{ route('college.local_organizations.edit', $org) }}" 
-                       class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition text-sm font-medium">
-                        Edit
-                    </a> --}}
-
-                    <div class="flex gap-3">
-                        <a href="{{ route('college.local_organizations.show', $org->id) }}"
-                        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium">
-                            View
-                        </a>
-                    </div>
-                @else
-                    <span class="text-gray-400 italic text-sm">No actions available</span>
-                @endif
+                <div class="flex gap-3">
+                   <a href="{{ route('college.local_organizations.show', $org->id) }}" 
+   class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium">
+    View
+</a>
+                </div>
             </div>
 
         </div>
