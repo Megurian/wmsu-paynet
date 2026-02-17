@@ -44,9 +44,10 @@ class CollegeOrgApprovalController extends Controller
     {
         if ($organization->status === 'pending' && is_null($organization->mother_organization_id)) {
             $organization->update(['status' => 'approved']);
+            $organization->approved_at = now(); 
+            $organization->save();
             return back()->with('success', 'Organization approved.');
         }
-
         return back()->with('error', 'Only pending student-coordinator organizations can be approved.');
     }
 
