@@ -71,12 +71,16 @@ class LocalOrgsController extends Controller
             ->with('success', 'Organization submitted for dean approval and initial admin created.');
     }
 
-    /**
-     * Show organization details.
-     */
-
     public function show(Organization $org)
     {
-        return view('college.local_organizations.show', compact('org'));
+        // Load approved fees for this organization
+        $fees = Fee::where('organization_id', $org->id)
+                    ->where('status', 'approved')
+                    ->get();
+
+        // Load users under this organization
+        $users = User::where('organization_id', $org->id)->get();
+
+        return view('college.local_organizations.show', compact('org', 'fees', 'users'));
     }
 }
