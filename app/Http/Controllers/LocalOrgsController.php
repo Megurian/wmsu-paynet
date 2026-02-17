@@ -15,7 +15,10 @@ class LocalOrgsController extends Controller
     public function index()
     {
         $collegeId = Auth::user()->college_id;
-        $orgs = Organization::where('college_id', $collegeId)->get();
+
+        $orgs = Organization::with('users')
+            ->where('college_id', $collegeId)
+            ->get();
 
         return view('college.local_organizations.college_org', compact('orgs'));
     }
@@ -73,14 +76,21 @@ class LocalOrgsController extends Controller
 
     public function show(Organization $org)
     {
-        // Load approved fees for this organization
         $fees = Fee::where('organization_id', $org->id)
-                    ->where('status', 'approved')
-                    ->get();
+            ->where('status', 'approved')
+            ->get();
 
-        // Load users under this organization
         $users = User::where('organization_id', $org->id)->get();
 
         return view('college.local_organizations.show', compact('org', 'fees', 'users'));
+    }
+
+    public function cancelSubmission(Organization $org)
+    {
+        if ($org->status === 'pending') {
+            $org->delete();
+            return redirect()->route('college.local_organizations')->with('success', 'Submission canceled successfully.');
+        }
+        return redirect()->back()->with('error', 'Cannot cancel this submission.');
     }
 }
