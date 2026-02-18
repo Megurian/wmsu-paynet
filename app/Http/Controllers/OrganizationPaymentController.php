@@ -83,14 +83,28 @@ class OrganizationPaymentController extends Controller
 
         $organizationIds = [$userOrg->id];
 
+        // Only children (orgs that have a mother_organization_id) may inherit their mother's fees.
         if ($userOrg->mother_organization_id) {
             $organizationIds[] = $userOrg->mother_organization_id;
         }
 
-        $fees = Fee::whereIn('organization_id', $organizationIds)
-            ->where('status', 'approved')
-            ->orderBy('created_at', 'desc')
-            ->get();
+        // Build base query: include fees belonging to this organization and — only when allowed — university-wide fees.
+        $feesQuery = Fee::where('status', 'approved')
+            ->where(function($q) use ($organizationIds, $userOrg) {
+                $q->whereIn('organization_id', $organizationIds);
+
+                // Special exception: only children of USC may see fees created by OSA (organization with org_code 'OSA')
+                if ($userOrg->motherOrganization?->org_code === 'USC') {
+                    $osaId = \App\Models\Organization::where('org_code', 'OSA')->value('id');
+                    if ($osaId) {
+                        $q->orWhere('organization_id', $osaId);
+                    }
+                }
+            })
+            ->orderBy('created_at', 'desc');
+
+        // Ensure uniqueness (in case a fee matches multiple conditions)
+        $fees = $feesQuery->get()->unique('id')->values();
 
         $paidFeeIds = DB::table('fee_payment')
             ->join('payments', 'fee_payment.payment_id', '=', 'payments.id')

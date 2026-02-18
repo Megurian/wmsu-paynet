@@ -18,6 +18,7 @@ class Fee extends Model
         'amount',
         'remittance_percent',
         'requirement_level',
+        'recurrence',
         'accreditation_file',
         'resolution_file',
         'status',

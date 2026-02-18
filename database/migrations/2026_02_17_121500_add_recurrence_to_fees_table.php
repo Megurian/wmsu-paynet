@@ -11,8 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('payments', function (Blueprint $table) {
-           $table->string('transaction_id')->unique()->after('id');
+        Schema::table('fees', function (Blueprint $table) {
+            $table->enum('recurrence', ['one_time', 'semestrial', 'annual'])->default('one_time')->after('amount');
         });
     }
 
@@ -21,8 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('payments', function (Blueprint $table) {
-           $table->dropColumn('transaction_id');
+        Schema::table('fees', function (Blueprint $table) {
+            $table->dropColumn('recurrence');
         });
     }
 };

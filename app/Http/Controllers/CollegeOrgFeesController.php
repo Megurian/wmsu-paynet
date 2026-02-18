@@ -84,8 +84,8 @@ class CollegeOrgFeesController extends Controller
             return redirect()->route('college_org.fees')->with('error', 'Organization not found.');
         }
 
-        $approvalLevel = $organization->motherOrganization ? 'osa' : 'dean';
-
+        // All college-local fees start with dean approval.
+        // Fees created by `college_org` (and child offices) require Dean -> OSA approval flow.
         $data = [
             'organization_id' => $organization->id,
             'user_id' => Auth::id(),
@@ -95,10 +95,11 @@ class CollegeOrgFeesController extends Controller
             'amount' => $request->amount,
             'remittance_percent' => $request->remittance_percent ?? null,
             'requirement_level' => $request->requirement_level,
+            'recurrence' => $request->recurrence,
             'status' => 'pending',
             'fee_scope' => 'college',
             'college_id' => $organization->college_id,
-            'approval_level' => $approvalLevel,
+            'approval_level' => 'dean',
         ];
 
         if ($request->requirement_level === 'mandatory' && !$request->hasFile('resolution_file')) {
@@ -115,8 +116,8 @@ class CollegeOrgFeesController extends Controller
 
         \App\Models\Fee::create($data);
 
-        $approvalMsg = $approvalLevel === 'osa' ? 'OSA' : 'Dean';
-        return redirect()->route('college_org.fees')->with('success', "Fee created successfully and is pending $approvalMsg approval.");
+        // For college organization submissions the workflow is: Dean → OSA
+        return redirect()->route('college_org.fees')->with('success', 'Fee created successfully and is pending Dean approval (then OSA).');
     }
 
     public function show(\App\Models\Fee $fee)
@@ -172,6 +173,7 @@ class CollegeOrgFeesController extends Controller
         $fee->amount = $request->amount;
         $fee->remittance_percent = $request->remittance_percent ?? null;
         $fee->requirement_level = $request->requirement_level;
+        $fee->recurrence = $request->recurrence;
 
         if ($request->hasFile('accreditation_file')) {
             if ($fee->accreditation_file) \Illuminate\Support\Facades\Storage::disk('public')->delete($fee->accreditation_file);

@@ -26,13 +26,15 @@
     <h3 class="text-xl font-semibold mb-4">Fees</h3>
     <p class="text-gray-500 italic">Fees information for this organization will appear here.</p>
 
-    <table class="w-full text-left border-collapse mt-4">
+
+    <div class="mt-8">
+        <table class="w-full text-left border-collapse mt-2">
         <thead>
             <tr class="bg-gray-100">
                 <th class="border px-4 py-2">Fee Name</th>
-                <th class="border px-4 py-2">Purpose</th>
                 <th class="border px-4 py-2">Amount</th>
                 <th class="border px-4 py-2">Requirement</th>
+                <th class="border px-4 py-2">Recurrence</th>
                 <th class="border px-4 py-2">Status</th>
                 <th class="border px-4 py-2">Actions</th>
             </tr>
@@ -41,12 +43,12 @@
             @forelse($fees as $fee)
                 <tr>
                     <td class="border px-4 py-2">{{ $fee->fee_name }}</td>
-                    <td class="border px-4 py-2">{{ $fee->purpose }}</td>
                     <td class="border px-4 py-2">₱{{ number_format($fee->amount, 2) }}</td>
                     <td class="border px-4 py-2 capitalize">{{ $fee->requirement_level }}</td>
+                    <td class="border px-4 py-2">{{ ucwords(str_replace('_', ' ', $fee->recurrence ?? 'one_time')) }}</td>
                     <td class="border px-4 py-2 capitalize">{{ $fee->status }}</td>
                     <td class="border px-4 py-2">
-                        <a href="{{ route('university_org.fees.show', $fee->id) }}" class="inline-flex items-center px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">View Details</a>
+                        <a href="{{ route('university_org.fees.show', $fee->id) }}" class="inline-flex items-center px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">View</a>
                         @if($fee->status !== 'approved')
                             <a href="{{ route('university_org.fees.edit', $fee->id) }}" class="ml-2 inline-flex items-center px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600">Edit</a>
                             <form method="POST" action="{{ route('university_org.fees.destroy', $fee->id) }}" class="inline-block ml-2" onsubmit="return confirm('Are you sure you want to delete this fee? This action cannot be undone.')">
@@ -65,6 +67,7 @@
                 </tr>
             @endforelse
         </tbody>
-    </table>
+        </table>
+    </div>
 </div>
 @endsection

@@ -107,6 +107,15 @@
                 </div>
 
                 <div>
+                    <label for="recurrence" class="block text-sm font-medium text-gray-700 mb-1">Fee Recurrence</label>
+                    <select id="recurrence" name="recurrence" required class="w-full border rounded px-3 py-2">
+                        <option value="one_time">One Time</option>
+                        <option value="semestrial">Semestrial</option>
+                        <option value="annual">Annual</option>
+                    </select>
+                </div>
+
+                <div>
                     <div class="flex items-center gap-2">
                         <span class="block text-sm font-medium text-gray-700 mb-1">Requirement Level</span>
                         <!-- Tooltip icon -->
@@ -260,8 +269,10 @@ function validateStep1() {
 function validateStep2() {
     const amount = parseFloat(document.getElementById('amount').value);
     const req = document.querySelector('input[name="requirement_level"]:checked');
+    const rec = document.getElementById('recurrence') ? document.getElementById('recurrence').value : null;
     if (isNaN(amount) || amount < 0) { alert('Please enter a valid Amount (0 or more).'); return false; }
     if (!req) { alert('Please select Requirement Level (Mandatory or Optional).'); return false; }
+    if (!rec) { alert('Please select Fee Recurrence.'); return false; }
     return true;
 }
 

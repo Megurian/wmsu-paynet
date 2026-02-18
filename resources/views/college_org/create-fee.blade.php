@@ -84,6 +84,16 @@
                 </div>
 
                 <div>
+                    <label for="recurrence" class="block text-sm font-medium text-gray-700 mb-1">Recurrence</label>
+                    <select id="recurrence" name="recurrence" required class="w-full border rounded px-3 py-2">
+                        <option value="one_time" {{ old('recurrence') == 'one_time' ? 'selected' : '' }}>One Time</option>
+                        <option value="semestrial" {{ old('recurrence') == 'semestrial' ? 'selected' : '' }}>Semestrial</option>
+                        <option value="annual" {{ old('recurrence') == 'annual' ? 'selected' : '' }}>Annual</option>
+                    </select>
+                    @error('recurrence') <p class="text-red-600 text-sm mt-1">{{ $message }}</p> @enderror
+                </div>
+
+                <div>
                     <div class="flex items-center gap-2">
                         <span class="block text-sm font-medium text-gray-700 mb-1">Requirement Level</span>
                         <button type="button" id="requirement-help" class="ml-2 text-gray-400 hover:text-gray-600" onclick="openRequirementModal()" title="Why choose Mandatory vs Optional?">?</button>
@@ -209,8 +219,10 @@ function validateStep1() {
 function validateStep2() {
     const amount = parseFloat(document.getElementById('amount').value);
     const req = document.querySelector('input[name="requirement_level"]:checked');
+    const rec = document.getElementById('recurrence') ? document.getElementById('recurrence').value : null;
     if (isNaN(amount) || amount < 0) { alert('Please enter a valid Amount (0 or more).'); return false; }
     if (!req) { alert('Please select Requirement Level (Mandatory or Optional).'); return false; }
+    if (!rec) { alert('Please select Fee Recurrence.'); return false; }
     return true;
 }
 

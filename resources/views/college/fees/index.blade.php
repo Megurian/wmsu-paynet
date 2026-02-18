@@ -12,42 +12,69 @@
     </a>
 </div>
 
-<div class="bg-white shadow rounded-lg p-6">
+<div class="bg-white shadow rounded-lg">
     @if($fees->isEmpty())
-        <p class="text-gray-500 text-center py-6">No fees found. Click "Add Fee" to create one.</p>
+        <div class="text-center text-gray-500 py-8">
+            No fees found. Click the "Add Fee" button to create one.
+        </div>
     @else
-        <ul class="space-y-4">
+        <div class="divide-y">
             @foreach($fees as $fee)
-                <li class="border border-gray-200 rounded-lg p-4 flex flex-col md:flex-row md:justify-between md:items-center">
-                    <div class="flex flex-col space-y-1">
+                <div class="p-4 hover:bg-gray-50 transition flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <!-- Fee Info -->
+                    <div class="flex-1">
                         <h3 class="text-lg font-semibold text-gray-800">{{ $fee->fee_name }}</h3>
-                        <p class="text-gray-600">
-                            ₱ {{ number_format($fee->amount, 2) }} • 
-                            <span class="font-medium">
-                                {{ ucfirst($fee->requirement_level) }}
-                            </span>
+                        <p class="text-sm text-gray-600 mt-1">Amount: <span class="font-medium">₱{{ number_format($fee->amount, 2) }}</span></p>
+                        <p class="text-sm text-gray-600">
+                            <span class="capitalize font-medium">{{ $fee->requirement_level }}</span>
                         </p>
-                        <p class="text-gray-500 text-sm">{{ $fee->description ?? 'No description provided.' }}</p>
+
+                        {{-- SOURCE DISPLAY (inherited fees) --}}
+                        <p class="text-sm text-gray-600 mt-2">
+                            From:
+                            @if($fee->organization)
+                                {{-- If it has a mother org (meaning this is an office) --}}
+                                @if($fee->organization->motherOrganization)
+                                    <span class="font-semibold">
+                                        {{ $fee->organization->name }}
+                                    </span>
+                                    <span class="text-gray-400">
+                                        (Office under {{ $fee->organization->motherOrganization->name }})
+                                    </span>
+                                @else
+                                    <span class="font-semibold">
+                                        {{ $fee->organization->name }}
+                                    </span>
+                                @endif
+                            @else
+                                <span class="font-semibold text-blue-700">
+                                    College Fee (Student Coordinator)
+                                </span>
+                            @endif
+                        </p>
+
+                        <p class="text-sm text-gray-400 mt-1">Created: {{ $fee->created_at->format('M d, Y') }}</p>
                     </div>
 
-                    <div class="mt-3 md:mt-0 flex space-x-2 items-center">
+                    <!-- Status Badge -->
+                    <div class="flex items-center gap-2">
                         @if($fee->status === 'approved')
-                            <span class="inline-block bg-green-100 text-green-800 text-xs font-semibold px-2 py-1 rounded-full">
+                            <span class="inline-block bg-green-100 text-green-800 text-xs font-semibold px-3 py-1 rounded-full">
                                 Approved
                             </span>
                         @elseif($fee->status === 'pending')
-                            <span class="inline-block bg-yellow-100 text-yellow-800 text-xs font-semibold px-2 py-1 rounded-full">
-                                Pending Approval
+                            <span class="inline-block bg-yellow-100 text-yellow-800 text-xs font-semibold px-3 py-1 rounded-full">
+                                Pending
                             </span>
                         @elseif($fee->status === 'rejected')
-                            <span class="inline-block bg-red-100 text-red-800 text-xs font-semibold px-2 py-1 rounded-full">
+                            <span class="inline-block bg-red-100 text-red-800 text-xs font-semibold px-3 py-1 rounded-full">
                                 Rejected
                             </span>
                         @endif
                     </div>
-                </li>
+                </div>
             @endforeach
-        </ul>
+        </div>
     @endif
 </div>
 @endsection

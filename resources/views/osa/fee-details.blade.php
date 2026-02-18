@@ -41,6 +41,10 @@
                 <p class="text-gray-700 capitalize">{{ $fee->requirement_level }}</p>
             </div>
             <div>
+                <h3 class="font-medium">Recurrence</h3>
+                <p class="text-gray-700">{{ ucwords(str_replace('_', ' ', $fee->recurrence ?? 'one_time')) }}</p>
+            </div>
+            <div>
                 <h3 class="font-medium">Status</h3>
                 <p id="fee-status" class="text-gray-700 capitalize">{{ $fee->status }}</p>
             </div>
