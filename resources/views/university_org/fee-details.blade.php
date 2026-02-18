@@ -35,7 +35,7 @@
         </div>
     @endif
 
-    <div class="grid grid-cols-1 gap-4">
+<div class="grid grid-cols-1 gap-4">
         <div>
             <h3 class="font-medium">Purpose</h3>
             <p class="text-gray-700">{{ $fee->purpose }}</p>
@@ -56,6 +56,8 @@
                 <p class="text-gray-700">{{ $fee->remittance_percent !== null ? number_format($fee->remittance_percent, 2) . '%' : '—' }}</p>
             </div>
             <div>
+                <h3 class="font-medium">Recurrence</h3>
+                <p class="text-gray-700">{{ ucwords(str_replace('_', ' ', $fee->recurrence ?? 'one_time')) }}</p>
             </div>
         </div>
 

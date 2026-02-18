@@ -33,7 +33,7 @@ class UniversityOrgFeesController extends Controller
         }
 
         // load appeals for display if needed
-        $fee->load('appeals');
+        $fee->load('appeals', 'organization');
 
         return view('university_org.fee-details', compact('organization', 'fee'));
     }
@@ -80,6 +80,7 @@ class UniversityOrgFeesController extends Controller
         $fee->amount = $request->amount;
         $fee->remittance_percent = $request->remittance_percent ?? null;
         $fee->requirement_level = $request->requirement_level;
+        $fee->recurrence = $request->recurrence;
 
         if ($request->hasFile('accreditation_file')) {
             // delete old if exists
@@ -194,6 +195,8 @@ class UniversityOrgFeesController extends Controller
             'amount' => $request->amount,
             'remittance_percent' => $request->remittance_percent ?? null,
             'requirement_level' => $request->requirement_level,
+            'recurrence' => $request->recurrence,
+            'fee_scope' => 'university-wide',
             'status' => 'pending',
         ];
 
@@ -223,4 +226,6 @@ class UniversityOrgFeesController extends Controller
         return redirect()->route('university_org.fees')
             ->with('success', 'Fee created successfully and is pending OSA approval!');
     }
+
+    
 }

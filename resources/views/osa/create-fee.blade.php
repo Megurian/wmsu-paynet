@@ -57,10 +57,20 @@
         <div class="mb-4">
             <label class="block text-sm font-medium text-gray-700 mb-1">Requirement Level</label>
             <select name="requirement_level" required class="w-full border rounded px-3 py-2">
-                <option value="mandatory">Mandatory</option>
-                <option value="optional">Optional</option>
+                <option value="mandatory" {{ old('requirement_level') == 'mandatory' ? 'selected' : '' }}>Mandatory</option>
+                <option value="optional" {{ old('requirement_level') == 'optional' ? 'selected' : '' }}>Optional</option>
             </select>
             @error('requirement_level') <p class="text-red-600 text-sm mt-1">{{ $message }}</p> @enderror
+        </div>
+
+        <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Fee Recurrence</label>
+            <select name="recurrence" required class="w-full border rounded px-3 py-2">
+                <option value="one_time" {{ old('recurrence') == 'one_time' ? 'selected' : '' }}>One Time</option>
+                <option value="semestrial" {{ old('recurrence') == 'semestrial' ? 'selected' : '' }}>Semestrial</option>
+                <option value="annual" {{ old('recurrence') == 'annual' ? 'selected' : '' }}>Annual</option>
+            </select>
+            @error('recurrence') <p class="text-red-600 text-sm mt-1">{{ $message }}</p> @enderror
         </div>
 
         <div class="mb-4">

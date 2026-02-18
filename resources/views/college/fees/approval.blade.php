@@ -66,19 +66,7 @@
                 </div>
 
                 <div class="flex gap-2 md:gap-3">
-                    <form method="POST" action="{{ route('college.fees.approve', $fee) }}">
-                        @csrf
-                        <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition">
-                            Approve
-                        </button>
-                    </form>
-
-                    <form method="POST" action="{{ route('college.fees.reject', $fee) }}">
-                        @csrf
-                        <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition">
-                            Reject
-                        </button>
-                    </form>
+                    <a href="{{ route('college.fees.show', $fee->id) }}" class="inline-flex items-center px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">View</a>
                 </div>
             </div>
         @empty

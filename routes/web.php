@@ -182,6 +182,9 @@ Route::middleware(['auth','role:college'])->group(function () {
     Route::get('/college/fees/approval', [CollegeFeeApprovalController::class, 'index'])
         ->name('college.fees.approval');
 
+    Route::get('/college/fees/{fee}', [CollegeFeeApprovalController::class, 'show'])
+        ->name('college.fees.show');
+
     Route::post('/college/fees/{fee}/approve', [CollegeFeeApprovalController::class, 'approve'])
         ->name('college.fees.approve');
 
