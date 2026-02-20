@@ -156,7 +156,9 @@ class AdminCashieringController extends Controller
         }
 
         $enrollment->update([
-            'is_paid' => true
+            'is_paid' => true,
+            'status' => 'PAID',
+            'paid_at' => now(),
         ]);
 
         return response()->json([

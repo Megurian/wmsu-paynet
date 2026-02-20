@@ -31,11 +31,11 @@ class OrganizationPaymentController extends Controller
         $activeSY = SchoolYear::where('is_active', true)->first();
         $activeSem = Semester::where('is_active', true)->first();
 
-        $students = Student::where('college_id', $collegeId)
-            ->whereHas('enrollments', function ($q) use ($activeSY, $activeSem) {
+        $students = Student::whereHas('enrollments', function ($q) use ($activeSY, $activeSem, $collegeId) {
                 $q->whereIn('status', ['FOR_PAYMENT_VALIDATION', 'ENROLLED'])
                     ->where('school_year_id', $activeSY->id)
-                    ->where('semester_id', $activeSem->id);
+                    ->where('semester_id', $activeSem->id)
+                    ->where('college_id', $collegeId);
             })
             ->where(function ($q) use ($query) {
                 $q->where('student_id', 'like', "%{$query}%")
@@ -93,8 +93,8 @@ class OrganizationPaymentController extends Controller
             ->where(function($q) use ($organizationIds, $userOrg) {
                 $q->whereIn('organization_id', $organizationIds);
 
-                // Special exception: only children of USC may see fees created by OSA (organization with org_code 'OSA')
-                if ($userOrg->motherOrganization?->org_code === 'USC') {
+                // Special exception: only children of mother orgs that inherit OSA fees may see fees created by OSA
+                if ($userOrg->motherOrganization?->inherits_osa_fees) {
                     $osaId = \App\Models\Organization::where('org_code', 'OSA')->value('id');
                     if ($osaId) {
                         $q->orWhere('organization_id', $osaId);

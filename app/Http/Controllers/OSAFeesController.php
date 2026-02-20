@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Fee;
 use App\Models\Organization;
+use App\Models\Document;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -135,15 +136,38 @@ class OSAFeesController extends Controller
             'status' => 'approved',
         ];
 
-        // Store legal basis into resolution_file column
+        // Store legal basis as a Resolution of Collection document
         if ($request->hasFile('legal_basis_file')) {
-            $path = $request->file('legal_basis_file')->store('fees/legal_basis', 'public');
-            $data['resolution_file'] = $path;
+            $file = $request->file('legal_basis_file');
+            $fileName = time() . '_' . $file->getClientOriginalName();
+            $path = $file->storeAs("documents/{$org->id}", $fileName, 'public');
+            $doc = Document::create([
+                'organization_id' => $org->id,
+                'document_type' => 'Resolution of Collection',
+                'file_path' => $path,
+                'file_name' => $fileName,
+                'file_size' => $file->getSize(),
+                'original_file_name' => $file->getClientOriginalName(),
+                'uploaded_by' => Auth::id(),
+            ]);
+            $data['resolution_document_id'] = $doc->id;
         }
 
         // Accreditation is optional and not required for OSA
         if ($request->hasFile('accreditation_file')) {
-            $data['accreditation_file'] = $request->file('accreditation_file')->store('fees/accreditation', 'public');
+            $file = $request->file('accreditation_file');
+            $fileName = time() . '_' . $file->getClientOriginalName();
+            $path = $file->storeAs("documents/{$org->id}", $fileName, 'public');
+            $doc = Document::create([
+                'organization_id' => $org->id,
+                'document_type' => 'Accreditation Certification',
+                'file_path' => $path,
+                'file_name' => $fileName,
+                'file_size' => $file->getSize(),
+                'original_file_name' => $file->getClientOriginalName(),
+                'uploaded_by' => Auth::id(),
+            ]);
+            $data['accreditation_document_id'] = $doc->id;
         }
 
         Fee::create($data);

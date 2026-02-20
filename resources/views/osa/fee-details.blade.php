@@ -52,16 +52,29 @@
 
         <div>
             <h3 class="font-medium">Supporting Documents</h3>
-            <div class="mt-2">
-                @if($fee->accreditation_file)
-                    <a href="{{ asset('storage/' . $fee->accreditation_file) }}" target="_blank" class="text-blue-600 hover:underline">Download Certificate of Accreditation</a>
+            <div class="mt-2 space-y-2">
+                @if($fee->accreditationDocument)
+                    <div>
+                        <span class="text-sm text-gray-600">Accreditation Certification:</span>
+                        <a href="{{ \Illuminate\Support\Facades\Storage::url($fee->accreditationDocument->file_path) }}" target="_blank" class="text-blue-600 hover:underline">{{ $fee->accreditationDocument->original_file_name }}</a>
+                    </div>
                 @else
-                    <p class="text-gray-500">No Certificate of Accreditation uploaded.</p>
+                    <p class="text-gray-500 text-sm">No Certificate of Accreditation uploaded.</p>
                 @endif
 
-                @if($fee->resolution_file)
-                    <div class="mt-2">
-                        <a href="{{ asset('storage/' . $fee->resolution_file) }}" target="_blank" class="text-blue-600 hover:underline">Download Resolution of Collection</a>
+                @if($fee->resolutionDocument)
+                    <div>
+                        <span class="text-sm text-gray-600">Resolution of Collection:</span>
+                        <a href="{{ \Illuminate\Support\Facades\Storage::url($fee->resolutionDocument->file_path) }}" target="_blank" class="text-blue-600 hover:underline">{{ $fee->resolutionDocument->original_file_name }}</a>
+                    </div>
+                @else
+                    <p class="text-gray-500 text-sm">No Resolution of Collection uploaded.</p>
+                @endif
+
+                @if($fee->supportingDocument)
+                    <div>
+                        <span class="text-sm text-gray-600">Supporting Document:</span>
+                        <a href="{{ \Illuminate\Support\Facades\Storage::url($fee->supportingDocument->file_path) }}" target="_blank" class="text-blue-600 hover:underline">{{ $fee->supportingDocument->original_file_name }}</a>
                     </div>
                 @endif
             </div>

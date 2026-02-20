@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Organization extends Model
 {
     // Allow assigning a mother organization when creating an office
-    protected $fillable = ['name', 'org_code', 'role', 'status', 'college_id', 'logo', 'mother_organization_id'];
+    protected $fillable = ['name', 'org_code', 'role', 'status', 'college_id', 'logo', 'mother_organization_id', 'inherits_osa_fees'];
 
     // Eager-load common relations
     protected $with = ['admin', 'college'];
@@ -50,5 +50,13 @@ class Organization extends Model
     public function fees()
     {
         return $this->hasMany(Fee::class);
+    }
+
+    /**
+     * Get the documents associated with this organization.
+     */
+    public function documents()
+    {
+        return $this->hasMany(Document::class);
     }
 }

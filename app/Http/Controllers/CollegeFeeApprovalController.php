@@ -49,9 +49,9 @@ class CollegeFeeApprovalController extends Controller
                 ->whereIn('organization_id', $motherOrgIds)
                 ->get();
 
-            // Special-case: include OSA fees if any child is a child of USC (they inherit OSA fees)
-            $hasUSCChild = $childOrgs->firstWhere('motherOrganization.org_code', 'USC');
-            if ($hasUSCChild) {
+            // Special-case: include OSA fees if any child's mother org inherits OSA fees
+            $hasOsaInheritingChild = $childOrgs->firstWhere('motherOrganization.inherits_osa_fees', true);
+            if ($hasOsaInheritingChild) {
                 $osaId = \App\Models\Organization::where('org_code', 'OSA')->value('id');
                 if ($osaId) {
                     $osaFees = \App\Models\Fee::with(['organization.motherOrganization'])
