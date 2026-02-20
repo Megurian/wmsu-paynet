@@ -128,4 +128,22 @@ class OSAOrganizationsController extends Controller
         return redirect()->route('osa.organizations')->with('status', 'Organization deleted successfully!');
     }
 
+    /**
+     * Toggle OSA fee inheritance for an organization
+     */
+    public function toggleOsaInheritance($id)
+    {
+        $organization = Organization::findOrFail($id);
+
+        $organization->update([
+            'inherits_osa_fees' => !$organization->inherits_osa_fees
+        ]);
+
+        $message = $organization->inherits_osa_fees 
+            ? 'Organization now inherits OSA fees.'
+            : 'Organization no longer inherits OSA fees.';
+
+        return redirect()->route('osa.organizations')->with('status', $message);
+    }
+
 }

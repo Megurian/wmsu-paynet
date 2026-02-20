@@ -74,6 +74,7 @@ Route::middleware(['auth', 'role:osa', CheckActiveSchoolYear::class])->group(fun
     Route::post('/osa/organizations', [OSAOrganizationsController::class, 'store'])->name('osa.organizations.store');
     Route::get('/osa/organizations/{id}', [OSAOrganizationsController::class, 'show'])->name('osa.organizations.show');
     Route::delete('/osa/organizations/{id}', [OSAOrganizationsController::class, 'destroy'])->name('osa.organizations.destroy');
+    Route::post('/osa/organizations/{id}/toggle-osa-inheritance', [OSAOrganizationsController::class, 'toggleOsaInheritance'])->name('osa.organizations.toggle-osa-inheritance');
     
     //OSA COLLEGE PAGE ROUTES
     Route::get('/osa/college', [OSACollegeController::class, 'index'])->name('osa.college');

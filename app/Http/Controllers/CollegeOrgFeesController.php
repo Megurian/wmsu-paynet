@@ -18,14 +18,14 @@ class CollegeOrgFeesController extends Controller
         // Collect approved fees according to rules:
         // - Always include this organization's approved fees.
         // - Include fees from this org's direct mother organization (if any), both mandatory and optional.
-        // - ONLY if the mother organization is 'USC' (org_code == 'USC'), also include approved fees created by OSA.
+        // - If the mother organization inherits OSA fees, also include approved fees created by OSA.
         $mother = $organization->motherOrganization;
         $motherId = $mother?->id;
 
         // Determine OSA org id if exists
         $osaId = \App\Models\Organization::where('org_code', 'OSA')->value('id');
 
-        $isChildOfUSC = ($mother && $mother->org_code === 'USC');
+        $motherInheritsOsaFees = ($mother && $mother->inherits_osa_fees);
 
         // Local fees for this organization (all statuses)
         $localFees = $organization->fees()->with('organization')->orderBy('created_at', 'desc')->get();
@@ -33,18 +33,18 @@ class CollegeOrgFeesController extends Controller
         // Inherited fees: approved fees from mother org, and OSA if applicable (exclude local to avoid duplication)
         $inheritedFees = collect();
 
-        // Only query inherited fees when there is a direct mother org or the college is a child of USC (include OSA)
-        if ($motherId || ($isChildOfUSC && $osaId)) {
+        // Only query inherited fees when there is a direct mother org or the mother org inherits OSA fees
+        if ($motherId || ($motherInheritsOsaFees && $osaId)) {
             $inheritedQuery = Fee::with('organization')
                 ->where('status', 'approved')
-                ->where(function($q) use ($motherId, $isChildOfUSC, $osaId) {
+                ->where(function($q) use ($motherId, $motherInheritsOsaFees, $osaId) {
                     // Direct mother org's fees (if present)
                     if ($motherId) {
                         $q->where('organization_id', $motherId);
                     }
 
-                    // If this college is a child of USC, include OSA fees as well
-                    if ($isChildOfUSC && $osaId) {
+                    // If the mother org inherits OSA fees, include OSA fees as well
+                    if ($motherInheritsOsaFees && $osaId) {
                         $q->orWhere('organization_id', $osaId);
                     }
                 })
@@ -125,7 +125,7 @@ class CollegeOrgFeesController extends Controller
         $organization = Auth::user()->organization;
         $allowedOrgIds = [$organization->id];
         if ($organization->motherOrganization) $allowedOrgIds[] = $organization->motherOrganization->id;
-        if ($organization->motherOrganization && $organization->motherOrganization->org_code === 'USC') {
+        if ($organization->motherOrganization && $organization->motherOrganization->inherits_osa_fees) {
             $osaId = \App\Models\Organization::where('org_code', 'OSA')->value('id');
             if ($osaId) $allowedOrgIds[] = $osaId;
         }

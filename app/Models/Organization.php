@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Organization extends Model
 {
     // Allow assigning a mother organization when creating an office
-    protected $fillable = ['name', 'org_code', 'role', 'status', 'college_id', 'logo', 'mother_organization_id'];
+    protected $fillable = ['name', 'org_code', 'role', 'status', 'college_id', 'logo', 'mother_organization_id', 'inherits_osa_fees'];
 
     // Eager-load common relations
     protected $with = ['admin', 'college'];
