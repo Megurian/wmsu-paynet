@@ -161,6 +161,10 @@
                     {{ request()->routeIs('university_org.offices') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
                     <span>Offices</span>
                 </a>
+                <a href="{{ route('university_org.documents.index') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('university_org.documents.*') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span>Documents</span>
+                </a>
                 <a href="{{ route('university_org.remittance') }}" class="block px-4 py-2 rounded-md transition
                     {{ request()->routeIs('university_org.remittance') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
                     <span>Remittance</span>
@@ -192,6 +196,10 @@
                 <a href="{{ route('college_org.fees') }}" class="block px-4 py-2 rounded-md transition
                     {{ request()->routeIs('college_org.fees') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
                     <span>Fees</span>
+                </a>
+                <a href="{{ route('college_org.documents.index') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('college_org.documents.*') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span>Documents</span>
                 </a>
                 <a href="{{ route('college_org.payment') }}" class="block px-4 py-2 rounded-md transition
                     {{ request()->routeIs('college_org.payment') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">

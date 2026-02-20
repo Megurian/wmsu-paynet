@@ -19,6 +19,7 @@ use App\Http\Controllers\AdminCashieringController;
 use App\Http\Controllers\LocalOrgsController;
 use App\Http\Controllers\CollegeOrgApprovalController;
 use App\Http\Controllers\OrganizationPaymentController;
+use App\Http\Controllers\DocumentController;
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
@@ -126,6 +127,12 @@ Route::middleware(['auth', 'role:university_org'])->group(function () {
     // AJAX validation endpoints for organizations (live uniqueness checks)
     Route::post('/university-org/organizations/check-code', [UniversityOrgOfficesController::class, 'checkCode'])->name('university_org.organizations.checkCode');
     Route::post('/university-org/organizations/check-email', [UniversityOrgOfficesController::class, 'checkEmail'])->name('university_org.organizations.checkEmail');
+
+    // Documents routes
+    Route::get('/university-org/documents', [DocumentController::class, 'index'])->name('university_org.documents.index')->defaults('role', 'university_org');
+    Route::post('/university-org/documents', [DocumentController::class, 'store'])->name('university_org.documents.store')->defaults('role', 'university_org');
+    Route::get('/university-org/documents/{document}/preview', [DocumentController::class, 'preview'])->name('university_org.documents.preview');
+    Route::delete('/university-org/documents/{document}', [DocumentController::class, 'destroy'])->name('university_org.documents.destroy');
 });
 
 Route::middleware(['auth', 'role:college_org'])->group(function () {
@@ -164,6 +171,12 @@ Route::middleware(['auth', 'role:college_org'])->group(function () {
     '/college_org/receipt/pdf/{payment}',
     [OrganizationPaymentController::class, 'downloadReceipt']
 )->name('college_org.payment.receipt');
+
+    // Documents routes
+    Route::get('/college_org/documents', [DocumentController::class, 'index'])->name('college_org.documents.index')->defaults('role', 'college_org');
+    Route::post('/college_org/documents', [DocumentController::class, 'store'])->name('college_org.documents.store')->defaults('role', 'college_org');
+    Route::get('/college_org/documents/{document}/preview', [DocumentController::class, 'preview'])->name('college_org.documents.preview');
+    Route::delete('/college_org/documents/{document}', [DocumentController::class, 'destroy'])->name('college_org.documents.destroy');
 });
 
 Route::middleware(['auth','role:adviser'])->group(function(){

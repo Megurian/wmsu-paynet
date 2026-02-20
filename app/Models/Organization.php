@@ -51,4 +51,12 @@ class Organization extends Model
     {
         return $this->hasMany(Fee::class);
     }
+
+    /**
+     * Get the documents associated with this organization.
+     */
+    public function documents()
+    {
+        return $this->hasMany(Document::class);
+    }
 }
