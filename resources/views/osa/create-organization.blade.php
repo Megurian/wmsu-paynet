@@ -42,7 +42,7 @@
                 <select name="college_id" class="w-full border border-gray-300 px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400">
                     <option value="">-- Choose College --</option>
                     @foreach($colleges as $college)
-                        <option value="{{ $college->id }}" {{ old('college_id')==$college->id?'selected':'' }}>{{ $college->name }}</option>
+                        <option value="{{ $college->id }}" data-code="{{ $college->college_code }}" {{ old('college_id')==$college->id?'selected':'' }}>{{ $college->name }}</option>
                     @endforeach
                 </select>
             </div>
@@ -490,6 +490,17 @@ document.addEventListener('DOMContentLoaded', function(){
     const role = document.getElementById('org-role').value;
     document.getElementById('college-select').classList.toggle('hidden', role!=='college_org');
 
+    // if page loaded with a college selected, apply its prefix to the org code input
+    const collegeSelectEl = document.querySelector('[name="college_id"]');
+    if (role === 'college_org' && collegeSelectEl && collegeSelectEl.value && codeInput) {
+        const opt = collegeSelectEl.options[collegeSelectEl.selectedIndex];
+        const dataCode = opt?.dataset?.code || '';
+        const prefix = dataCode ? dataCode.trim().toUpperCase() + '-' : (opt?.textContent || '').split(/\s+/).filter(Boolean).map(w=>w[0]).join('').toUpperCase() + '-';
+        const stripped = (codeInput.value || '').replace(/^[A-Z0-9]+-\s*/i, '');
+        codeInput.value = prefix + stripped;
+        codeInput.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
     toggleCreateDisabled();
 });
 
@@ -528,12 +539,58 @@ if (removeLogo) {
 
 const roleSelect = document.getElementById('org-role');
 const collegeSelectWrapper = document.getElementById('college-select');
+const collegeSelect = document.querySelector('[name="college_id"]');
+
+// build a prefix from selected college (use data-code if present, otherwise derive acronym)
+function getCollegePrefix() {
+    if (!collegeSelect || !collegeSelect.value) return '';
+    const opt = collegeSelect.options[collegeSelect.selectedIndex];
+    const code = opt?.dataset?.code || '';
+    if (code && code.trim()) return code.trim().toUpperCase() + '-';
+    const name = opt?.textContent || '';
+    const acronym = name.split(/\s+/).filter(Boolean).map(w => w[0]).join('').toUpperCase();
+    return acronym ? acronym + '-' : '';
+}
+function stripCollegePrefix(val) {
+    return (val || '').replace(/^[A-Z0-9]+-\s*/i, '');
+}
+function applyCollegePrefixToCode() {
+    if (!codeInput) return;
+    const prefix = getCollegePrefix();
+    const stripped = stripCollegePrefix(codeInput.value || '');
+    if (!prefix) {
+        codeInput.value = stripped;
+    } else {
+        codeInput.value = prefix + stripped;
+    }
+    setTimeout(() => { codeInput.selectionStart = codeInput.selectionEnd = codeInput.value.length; }, 0);
+    codeInput.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+if (collegeSelect) {
+    collegeSelect.addEventListener('change', function () {
+        if (roleSelect && roleSelect.value === 'college_org' && this.value) {
+            applyCollegePrefixToCode();
+        } else {
+            if (codeInput) {
+                codeInput.value = stripCollegePrefix(codeInput.value || '');
+                codeInput.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+        }
+        toggleCreateDisabled();
+    });
+}
 
 roleSelect.addEventListener('change', function () {
     if (this.value === 'college_org') {
         collegeSelectWrapper.classList.remove('hidden');
+        if (collegeSelect && collegeSelect.value) applyCollegePrefixToCode();
     } else {
         collegeSelectWrapper.classList.add('hidden');
+        if (codeInput) {
+            codeInput.value = stripCollegePrefix(codeInput.value || '');
+            codeInput.dispatchEvent(new Event('input', { bubbles: true }));
+        }
     }
     const roleFb = document.getElementById('roleFeedback');
     if (roleFb) roleFb.textContent = '';

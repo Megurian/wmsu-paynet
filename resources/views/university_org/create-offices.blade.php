@@ -178,11 +178,14 @@ function setupOrgPrefix() {
     const prefixInput = document.getElementById('org-prefix');
     const suffixInput = document.getElementById('org-suffix');
     const fullInput = document.getElementById('org-full');
+    const codeInput = document.getElementById('org_code_input');
 
     if (!prefixInput || !suffixInput || !fullInput) return;
 
     const selectedOption = collegeSelect && collegeSelect.selectedOptions[0];
     const collegeName = selectedOption ? (selectedOption.dataset.name || selectedOption.text) : '';
+    // prefer data-code if provided, otherwise use option value
+    const collegeCode = selectedOption ? (selectedOption.dataset.code || selectedOption.value || '') : '';
 
     const prefix = collegeName ? `${collegeName} - ` : '';
     prefixInput.value = prefix;
@@ -195,6 +198,23 @@ function setupOrgPrefix() {
             suffixInput.value = fullInput.value;
             fullInput.value = prefix + suffixInput.value;
         }
+    }
+
+    // Apply college-code prefix to organization code input (format: "CSSPE-" with NO spaces)
+    if (codeInput) {
+        let codePrefix = '';
+        if (collegeCode && collegeCode.trim()) {
+            codePrefix = collegeCode.trim().toUpperCase() + '-';
+        } else if (collegeName) {
+            // fallback: derive acronym from college name
+            const acronym = collegeName.split(/\s+/).filter(Boolean).map(w => w[0]).join('').toUpperCase();
+            codePrefix = acronym ? acronym + '-' : '';
+        }
+        const stripped = (codeInput.value || '').replace(/^[A-Z0-9]+-\s*/i, '');
+        codeInput.value = codePrefix ? codePrefix + stripped : stripped;
+        // move caret to end and trigger input handlers
+        setTimeout(() => { codeInput.selectionStart = codeInput.selectionEnd = codeInput.value.length; }, 0);
+        codeInput.dispatchEvent(new Event('input', { bubbles: true }));
     }
 
     // Ensure full value is synced now
