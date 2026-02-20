@@ -270,6 +270,7 @@ Route::middleware(['auth', 'role:admin,college,student_coordinator,adviser,asses
         return response()->download($file, 'student_template.csv');
     })->name('college.students.import.template');
     Route::post('college/students/import', [ValidateStudentsController::class, 'import'])->name('college.students.import');
+    Route::post('college/students/import/preview', [ValidateStudentsController::class, 'previewImport'])->name('college.students.import.preview');
     Route::get('/college/local_organizations/approvals', [CollegeOrgApprovalController::class, 'index'])
         ->name('college.local_organizations.approvals');
 

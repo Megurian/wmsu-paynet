@@ -10,40 +10,41 @@ class Student extends Model
     use HasFactory;
 
     protected $fillable = [
-        'college_id',
-        'course_id',
-        'year_level_id',
-        'section_id',
+        'student_id',
         'last_name',
         'first_name',
         'middle_name',
+        'suffix',
         'contact',
         'email',
-        'student_id',
-        'suffix',
-         'religion'
+        'religion'
     ];
-
-    public function course() {
-        return $this->belongsTo(Course::class);
-    }
-
-    public function yearLevel() {
-        return $this->belongsTo(YearLevel::class);
-    }
-
-    public function section() {
-        return $this->belongsTo(Section::class);
-    }
 
     public function enrollments()
     {
         return $this->hasMany(StudentEnrollment::class);
     }
-    public function previousEnrollments()
+
+    /**
+     * Get the student's current enrollment record.
+     */
+    public function currentEnrollment()
     {
-        return $this->hasMany(StudentEnrollment::class);
+        // Try to get the enrollment for the active school year/semester
+        return $this->hasOne(StudentEnrollment::class)
+            ->whereHas('schoolYear', function ($query) {
+                $query->where('is_active', true);
+            })
+            ->whereHas('semester', function ($query) {
+                $query->where('is_active', true);
+            });
     }
 
-
+    /**
+     * Get the most recent enrollment record regardless of active status.
+     */
+    public function latestEnrollment()
+    {
+        return $this->hasOne(StudentEnrollment::class)->latestOfMany();
+    }
 }

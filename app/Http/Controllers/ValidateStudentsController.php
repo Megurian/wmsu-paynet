@@ -14,6 +14,7 @@ use App\Models\Section;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\TemplateExport;
 use App\Imports\StudentsImport;
+use App\Imports\StudentsImportPreview;
 
 class ValidateStudentsController extends Controller
 {
@@ -25,11 +26,24 @@ class ValidateStudentsController extends Controller
         $activeSY = SchoolYear::where('is_active', true)->first();
         $activeSem = Semester::where('is_active', true)->first();
 
-        $latestEnrollmentSub = \DB::table('student_enrollments')
-            ->selectRaw('MAX(id) as latest_id')
-            ->groupBy('student_id');
+        $studentsQuery = Student::whereHas('enrollments', function ($e) use ($collegeId, $request) {
+                $e->whereIn('id', function ($q) {
+                    $q->selectRaw('MAX(id)')
+                        ->from('student_enrollments')
+                        ->groupBy('student_id');
+                })
+                ->where('college_id', $collegeId);
 
-        $studentsQuery = Student::where('college_id', $collegeId)
+                if ($request->course) {
+                    $e->where('course_id', $request->course);
+                }
+                if ($request->year) {
+                    $e->where('year_level_id', $request->year);
+                }
+                if ($request->section) {
+                    $e->where('section_id', $request->section);
+                }
+            })
             ->when($request->search, function ($q) use ($request) {
                 $q->where(function ($sub) use ($request) {
                     $sub->where('student_id', 'like', "%{$request->search}%")
@@ -43,24 +57,6 @@ class ValidateStudentsController extends Controller
                     ->orderBy('id', 'desc')
                     ->limit(1);
             }]);
-
-        $studentsQuery->whereHas('enrollments', function ($e) use ($request) {
-            $e->whereIn('id', function ($q) {
-                $q->selectRaw('MAX(id)')
-                    ->from('student_enrollments')
-                    ->groupBy('student_id');
-            });
-
-            if ($request->course) {
-                $e->where('course_id', $request->course);
-            }
-            if ($request->year) {
-                $e->where('year_level_id', $request->year);
-            }
-            if ($request->section) {
-                $e->where('section_id', $request->section);
-            }
-        });
 
         $students = $studentsQuery->orderBy('last_name')
             ->orderBy('first_name')
@@ -135,8 +131,8 @@ class ValidateStudentsController extends Controller
                 'year_level_id' => $request->year_level_id[$student->id],
                 'section_id'    => $request->section_id[$student->id],
                 'status'        => 'ENROLLED',
-                'validated_by'  => Auth::id(),
-                'validated_at'  => now(),
+                'assessed_by'   => Auth::id(),
+                'assessed_at'   => now(),
             ]
         );
         return back()->with('status', 'Student validated successfully.');
@@ -168,17 +164,17 @@ class ValidateStudentsController extends Controller
             StudentEnrollment::updateOrCreate(
                 [
                     'student_id'     => $studentId,
-                    'college_id'     => $collegeId,
                     'school_year_id' => $activeSY->id,
                     'semester_id'    => $activeSem->id,
                 ],
                 [
+                    'college_id'     => $collegeId,
                     'course_id'      => $request->course_id[$studentId],
                     'year_level_id'  => $request->year_level_id[$studentId],
                     'section_id'     => $request->section_id[$studentId],
                     'status' => 'ENROLLED',
-                    'validated_by' => Auth::id(),
-                    'validated_at' => now(),
+                    'assessed_by' => Auth::id(),
+                    'assessed_at' => now(),
                 ]
             );
         }
@@ -217,9 +213,84 @@ class ValidateStudentsController extends Controller
             'student_file' => 'required|file|mimes:xlsx,xls,csv',
         ]);
 
-        Excel::import(new StudentsImport, $request->file('student_file'));
+        $importer = new StudentsImport();
+        Excel::import($importer, $request->file('student_file'));
 
-        return redirect()->back()->with('success', 'Students imported successfully.');
+        $result = $importer->getResult();
+
+        $message = "{$result['created']} new student(s) added, {$result['updated']} updated.";
+        if ($result['skipped'] > 0) {
+            $message .= " {$result['skipped']} row(s) skipped (student ID exists with a different last name).";
+        }
+
+        return redirect()->back()->with('import_success', $message)
+            ->with('import_skipped', $result['skipped_rows']);
+    }
+
+    public function previewImport(Request $request)
+    {
+        $request->validate([
+            'student_file' => 'required|file|mimes:xlsx,xls,csv',
+        ]);
+
+        $collegeId = Auth::user()->college_id;
+
+        // Read file into collection using Maatwebsite (first sheet, with heading row)
+        $collection = Excel::toCollection(new \App\Imports\StudentsImportPreview(), $request->file('student_file'));
+        $rows = $collection->first() ?? collect();
+
+        $existing_match    = [];   // student_id + last_name both match → will be updated
+        $existing_mismatch = [];   // student_id matches but last_name differs → will be skipped
+        $new_count         = 0;
+
+        foreach ($rows as $row) {
+            $row = collect($row)->mapWithKeys(fn($v, $k) => [strtolower(str_replace(' ', '_', $k)) => $v]);
+
+            $studentId = trim($row['student_id'] ?? '');
+            $lastName  = trim($row['last_name']  ?? '');
+
+            if (!$studentId || !$lastName) {
+                continue;
+            }
+
+            $existing = \App\Models\Student::where('student_id', $studentId)->first();
+
+            if ($existing) {
+                // Check if this student has an enrollment in the current college
+                $inCollege = $existing->enrollments()
+                    ->where('college_id', $collegeId)
+                    ->exists();
+
+                if (!$inCollege) {
+                    // Student exists globally but not in this college, treat as new
+                    $new_count++;
+                    continue;
+                }
+
+                if (strtolower($existing->last_name) === strtolower($lastName)) {
+                    $existing_match[] = [
+                        'student_id' => $studentId,
+                        'last_name'  => $lastName,
+                        'first_name' => trim($row['first_name'] ?? ''),
+                    ];
+                } else {
+                    $existing_mismatch[] = [
+                        'student_id'     => $studentId,
+                        'file_last_name' => $lastName,
+                        'db_last_name'   => $existing->last_name,
+                        'first_name'     => trim($row['first_name'] ?? ''),
+                    ];
+                }
+            } else {
+                $new_count++;
+            }
+        }
+
+        return response()->json([
+            'existing_match'    => $existing_match,
+            'existing_mismatch' => $existing_mismatch,
+            'new_count'         => $new_count,
+        ]);
     }
 
     public function markPaid(Student $student)
@@ -238,7 +309,6 @@ class ValidateStudentsController extends Controller
         $enrollment->update([
             'is_paid' => true,
             'paid_at' => now(),
-            'payment_verified_by' => Auth::id(),
         ]);
 
         return back()->with('status', 'Payment marked as completed.');
@@ -259,8 +329,9 @@ class ValidateStudentsController extends Controller
 
         $enrollment->update([
             'cleared_for_enrollment' => true,
-            'cleared_by' => Auth::id(),
-            'cleared_at' => now(),
+            'status' => 'PAID',
+            'validated_by' => Auth::id(),
+            'validated_at' => now(),
         ]);
 
         return back()->with('status', 'Student cleared for enrollment.');
