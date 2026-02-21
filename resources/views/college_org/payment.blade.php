@@ -125,13 +125,22 @@ let SELECTED_STUDENT = null;
 
 searchInput.addEventListener('input', function () {
     const query = this.value.trim();
-    if (!query) return hideStudentCard();
+    if (!query) {
+        resultsList.classList.add('hidden');
+        return;
+    }
 
     fetch(`/college/students/search?q=${encodeURIComponent(query)}`)
-        .then(res => res.json())
+        .then(res => {
+            if (!res.ok) throw new Error('Search failed');
+            return res.json();
+        })
         .then(data => {
             resultsList.innerHTML = '';
-            if (data.length === 0) return resultsList.classList.add('hidden');
+            if (data.length === 0) {
+                resultsList.classList.add('hidden');
+                return;
+            }
 
             data.forEach(student => {
                 const li = document.createElement('li');
@@ -145,12 +154,19 @@ searchInput.addEventListener('input', function () {
                 resultsList.appendChild(li);
             });
             resultsList.classList.remove('hidden');
+        })
+        .catch(err => {
+            resultsList.innerHTML = `<li class="px-3 py-2 text-red-600 text-sm">Search error: ${err.message}</li>`;
+            resultsList.classList.remove('hidden');
         });
 });
 
 function loadStudentDetails(studentId) {
     fetch(`/college_org/students/${studentId}/fees`)
-        .then(res => res.json())
+        .then(res => {
+            if (!res.ok) throw new Error('Failed to load student details');
+            return res.json();
+        })
         .then(data => {
             SELECTED_STUDENT = data.student;
             FEES = data.fees || [];
@@ -164,12 +180,18 @@ function loadStudentDetails(studentId) {
             document.getElementById('cardEmail').textContent = data.student.email ?? '—';
 
             studentCard.classList.remove('hidden');
+            cashierPanel.classList.remove('hidden');
+            resultsList.classList.add('hidden');
 
             renderFees();
             resetPayment();
 
             cashInput.disabled = false;
             updateProceedBtnState();
+        })
+        .catch(err => {
+            alert('Error loading student details: ' + (err.message || 'Please try again.'));
+            hideStudentCard();
         });
 }
 
@@ -206,7 +228,6 @@ function renderFees() {
     calculateTotal();
 }
 
-// --- CALCULATE TOTAL ---
 function calculateTotal() {
     let total = 0;
     document.querySelectorAll('.feeCheckbox:checked').forEach(cb => total += parseFloat(cb.dataset.amount));
@@ -214,7 +235,6 @@ function calculateTotal() {
     calculateChange();
 }
 
-// --- CALCULATE CHANGE ---
 function calculateChange() {
     const total = parseFloat(totalAmountEl.textContent) || 0;
     const cash = parseFloat(cashInput.value) || 0;
@@ -223,7 +243,6 @@ function calculateChange() {
     updateProceedBtnState();
 }
 
-// --- RESET PAYMENT ---
 function resetPayment() {
     cashInput.value = '';
     changeAmountEl.textContent = '0.00';
@@ -246,37 +265,50 @@ function updateProceedBtnState() {
 
 cashInput.addEventListener('input', calculateChange);
 
-// --- PROCEED PAYMENT ---
 proceedBtn.addEventListener('click', () => {
-    if(!SELECTED_STUDENT){ alert('Select a student first.'); return; }
+    if(!SELECTED_STUDENT) {
+        alert('Select a student first.');
+        return;
+    }
 
     const cashReceived = parseFloat(cashInput.value) || 0;
     const selectedFees = Array.from(document.querySelectorAll('.feeCheckbox:checked'))
         .map(cb => parseInt(cb.dataset.id));
 
-    if(selectedFees.length === 0){ alert('Select at least one fee.'); return; }
-    if(cashReceived < parseFloat(totalAmountEl.textContent)){ alert('Cash received is less than total.'); return; }
+    if(selectedFees.length === 0) {
+        alert('Select at least one fee.');
+        return;
+    }
+
+    if(cashReceived < parseFloat(totalAmountEl.textContent)) {
+        alert('Cash received is less than total.');
+        return;
+    }
+
+    proceedBtn.disabled = true;
+    proceedBtn.textContent = 'Processing...';
 
     fetch('/college_org/payment/collect', {
         method:'POST',
         headers:{ 'Content-Type':'application/json','X-CSRF-TOKEN':'{{ csrf_token() }}' },
         body: JSON.stringify({ student_id: SELECTED_STUDENT.id, fee_ids: selectedFees, cash_received: cashReceived })
     })
-    .then(res => res.ok ? res.json() : res.json().then(d=>{throw d}))
+    .then(res => res.ok ? res.json() : res.json().then(d=>{ throw d; }))
     .then(data => {
         alert(data.message || 'Payment collected successfully.');
-        window.open(`{{ route('college_org.payment.receipt', ':id') }}`
-            .replace(':id', data.payment_id),
-        '_blank');
-
         SELECTED_STUDENT = null;
         FEES = [];
+        PAID_FEES = [];
         searchInput.value = '';
-        studentCard.classList.add('hidden');
-        cashierPanel.classList.add('hidden');
-        resetPayment();
+        proceedBtn.disabled = false;
+        proceedBtn.textContent = 'Proceed Payment';
+        hideStudentCard();
     })
-    .catch(err => alert(err.message || 'Something went wrong.'));
+    .catch(err => {
+        alert(err.message || 'Something went wrong.');
+        proceedBtn.disabled = false;
+        proceedBtn.textContent = 'Proceed Payment';
+    });
 });
 
 document.addEventListener('click', function(e){
@@ -290,6 +322,7 @@ function hideStudentCard() {
     resultsList.classList.add('hidden');
     studentCard.classList.add('hidden');
     cashierPanel.classList.add('hidden');
+    resetPayment();
 }
 </script>
 @endsection

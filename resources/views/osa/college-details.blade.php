@@ -89,7 +89,7 @@
                     </div>
                 </div>
                 <p class="text-sm text-gray-600">Type: {{ $org->role === 'university_org' ? 'University-wide' : 'College-based' }}</p>
-                <p class="text-sm text-gray-500">Admin: {{ $org->admin?->name ?? 'N/A' }}</p>
+                <p class="text-sm text-gray-500">Admin: {{ $org->orgAdmin?->name ?? 'N/A' }}</p>
             </div>
             @endforeach
         </div>

@@ -159,15 +159,22 @@ searchInput.addEventListener('input', function () {
         resultsList.classList.add('hidden');
         selectedStudent = null;
         studentCard.classList.add('hidden');
+        cashierPanel.classList.add('hidden');
         updateProceedBtnState();
         return;
     }
 
-    fetch(`/admin/cashiering/search?q=${encodeURIComponent(query)}`)
-        .then(res => res.json())
+    fetch(`/treasurer/cashiering/search?q=${encodeURIComponent(query)}`)
+        .then(res => {
+            if (!res.ok) throw new Error('Search failed');
+            return res.json();
+        })
         .then(data => {
             resultsList.innerHTML = '';
-            if (data.length === 0) { resultsList.classList.add('hidden'); return; }
+            if (data.length === 0) { 
+                resultsList.classList.add('hidden'); 
+                return; 
+            }
 
             data.forEach(student => {
                 const li = document.createElement('li');
@@ -181,32 +188,45 @@ searchInput.addEventListener('input', function () {
                 resultsList.appendChild(li);
             });
             resultsList.classList.remove('hidden');
+        })
+        .catch(err => {
+            resultsList.innerHTML = `<li class="px-3 py-2 text-red-600 text-sm">Search error: ${err.message}</li>`;
+            resultsList.classList.remove('hidden');
         });
 });
 
 function loadStudentDetails(studentId) {
-    fetch(`/admin/cashiering/student/${studentId}`)
-        .then(res => res.json())
+    fetch(`/treasurer/cashiering/student/${studentId}`)
+        .then(res => {
+            if (!res.ok) throw new Error('Failed to load student details');
+            return res.json();
+        })
         .then(data => {
             selectedStudent = data.student;
             FEES = data.fees || [];
-
             PAID_FEES = (data.paid_fee_ids || []).map(id => Number(id));
 
             document.getElementById('cardStudentId').textContent = selectedStudent.student_id;
-            document.getElementById('cardName').textContent =
-                selectedStudent.first_name + ' ' + selectedStudent.last_name;
-            document.getElementById('cardCourse').textContent =
-                selectedStudent.course ?? '—';
-            document.getElementById('cardYearSection').textContent =
-                selectedStudent.year_level + ' - ' + selectedStudent.section;
-            document.getElementById('cardEmail').textContent =
-                selectedStudent.email ?? '—';
+            document.getElementById('cardName').textContent = selectedStudent.first_name + ' ' + selectedStudent.last_name;
+            document.getElementById('cardCourse').textContent = selectedStudent.course ?? '—';
+            document.getElementById('cardYearSection').textContent = selectedStudent.year_level + ' - ' + selectedStudent.section;
+            document.getElementById('cardEmail').textContent = selectedStudent.email ?? '—';
 
             studentCard.classList.remove('hidden');
+            cashierPanel.classList.remove('hidden');
+            resultsList.classList.add('hidden');
+            
             renderFees();
             resetPayment();
-            cashierPanel.classList.remove('hidden');
+            updateProceedBtnState();
+            cashInput.disabled = false;
+        })
+        .catch(err => {
+            alert('Error: ' + (err.message || 'Could not load student details'));
+            selectedStudent = null;
+            studentCard.classList.add('hidden');
+            cashierPanel.classList.add('hidden');
+            resultsList.classList.add('hidden');
         });
 }
 
@@ -270,7 +290,10 @@ proceedBtn.addEventListener('click', () => {
     if (selectedFees.length === 0) { alert('Select at least one fee.'); return; }
     if (cashReceived < parseFloat(totalAmountEl.textContent)) { alert('Cash received is less than total.'); return; }
 
-    fetch('/admin/cashiering/collect', {
+    proceedBtn.disabled = true;
+    proceedBtn.textContent = 'Processing...';
+
+    fetch('/treasurer/cashiering/collect', {
         method: 'POST',
         headers: { 
             'Content-Type': 'application/json', 
@@ -288,18 +311,21 @@ proceedBtn.addEventListener('click', () => {
     })
     .then(data => {
         alert(data.message || 'Payment collected successfully.');
-
-        window.open(`/admin/cashiering/receipt/pdf/${data.payment_id}`, '_blank');
-
         selectedStudent = null;
         FEES = @json($fees);
+        PAID_FEES = [];
         searchInput.value = '';
         studentCard.classList.add('hidden');
+        cashierPanel.classList.add('hidden');
+        proceedBtn.disabled = false;
+        proceedBtn.textContent = 'Proceed Payment';
         resetPayment();
         updateProceedBtnState();
     })
     .catch(err => {
         alert(err.message || 'Something went wrong.');
+        proceedBtn.disabled = false;
+        proceedBtn.textContent = 'Proceed Payment';
     });
 });
 

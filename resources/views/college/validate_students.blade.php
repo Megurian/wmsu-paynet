@@ -188,7 +188,7 @@
                                 class="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-500 transition text-xs"
                                 onclick="return confirm('Validate and enroll this student?');"
                             >
-                                Assess
+                                Enroll
                             </button>
                         
                         @else
@@ -280,10 +280,10 @@
             <button @click="close()" class="px-4 py-2 border rounded text-gray-600 hover:bg-gray-100">
                 Cancel
             </button>
-            <form :action="clearEnrollmentUrl" method="POST">
+            <form :action="clearEnrollmentUrl" method="POST" @submit.prevent="submitClearForm">
                 @csrf
-                <button class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-500"
-                onclick="return confirm('Confirm this Student for Enrollment?')">
+                <button :disabled="!allMandatoryFeesPaid" type="submit" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition"
+                    :title="!allMandatoryFeesPaid ? 'All mandatory fees must be paid before clearing for assessment' : 'Clear this student for assessment'">
                     Clear Student for Assessment
                 </button>
             </form>
@@ -358,6 +358,31 @@ function paymentVerification() {
         markPaidUrl: '',
         clearEnrollmentUrl: '',
         fees: [],
+        optionalFeeShown: false,
+
+        get mandatoryFees() {
+            return this.fees.filter(f => f.requirement_level === 'mandatory');
+        },
+
+        get optionalFees() {
+            return this.fees.filter(f => f.requirement_level !== 'mandatory');
+        },
+
+        get allMandatoryFeesPaid() {
+            return this.mandatoryFees.every(fee => fee.payments && fee.payments.length > 0);
+        },
+
+        submitClearForm(e) {
+            if (!this.allMandatoryFeesPaid) {
+                e.preventDefault();
+                return false;
+            }
+            if (!confirm('Confirm this Student for Enrollment?')) {
+                e.preventDefault();
+                return false;
+            }
+            e.target.submit();
+        },
 
         openPaymentModal(id, studentNo, name, course, year, section, email, contact, religion) {
             this.studentId = id;
@@ -371,14 +396,13 @@ function paymentVerification() {
             this.studentReligion = religion;
             this.markPaidUrl = `/college/students/${id}/mark-paid`;
             this.clearEnrollmentUrl = `/college/students/${id}/clear-for-enrollment`;
+            this.optionalFeeShown = false;
             this.showPaymentModal = true;
             fetch(`/college/students/${id}/fees`)
                 .then(res => res.json())
                 .then(data => {
                     this.fees = data;
                 });
-
-            this.showPaymentModal = true;
         },
         close() {
             this.showPaymentModal = false;

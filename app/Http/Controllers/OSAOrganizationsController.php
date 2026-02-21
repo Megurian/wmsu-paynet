@@ -13,7 +13,7 @@ class OSAOrganizationsController extends Controller
 {
     public function index()
     {
-        $organizations = Organization::with('college', 'admin')->get();
+        $organizations = Organization::with('college', 'orgAdmin')->get();
         return view('osa.organizations', compact('organizations'));
     }
 
@@ -105,7 +105,7 @@ class OSAOrganizationsController extends Controller
 
     public function show($id)
     {
-        $organization = Organization::with('college', 'admin')->find($id);
+        $organization = Organization::with('college', 'orgAdmin')->find($id);
 
         if (!$organization) {
             return redirect()->route('osa.organizations')

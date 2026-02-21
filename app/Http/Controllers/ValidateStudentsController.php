@@ -85,7 +85,13 @@ class ValidateStudentsController extends Controller
         foreach ($students as $student) {
             $latest = $student->enrollments->first() ?? null;
             $student->displayEnrollment = $latest ?? $previousEnrollments[$student->id] ?? null;
+            $student->isAdvised = $student->displayEnrollment && $student->displayEnrollment->status !== 'NOT_ENROLLED';
         }
+
+        // sort the paginated collection so advised students appear first
+        $students->setCollection(
+            $students->getCollection()->sortByDesc('isAdvised')
+        );
 
         $courses = Course::where('college_id', $collegeId)->get();
         $years = YearLevel::where('college_id', $collegeId)->get();
@@ -306,10 +312,7 @@ class ValidateStudentsController extends Controller
             'semester_id' => $activeSem->id,
         ])->firstOrFail();
 
-        $enrollment->update([
-            'is_paid' => true,
-            'paid_at' => now(),
-        ]);
+        // no columns left to update; payment details are stored in payments table
 
         return back()->with('status', 'Payment marked as completed.');
     }
@@ -340,26 +343,60 @@ class ValidateStudentsController extends Controller
     public function getFeesForStudent(Student $student)
     {
         $collegeId = Auth::user()->college_id;
-        $organizationIds = \App\Models\Organization::where('college_id', $collegeId)
-            ->orWhereHas('motherOrganization', fn($q) => $q->where('college_id', $collegeId))
-            ->pluck('id');
-
-        $orgFees = \App\Models\Fee::whereIn('organization_id', $organizationIds)
-            ->where('status', 'APPROVED') 
+        
+        // Get all organizations in this college
+        $collegeOrgs = \App\Models\Organization::where('college_id', $collegeId)->get();
+        $collegeOrgIds = $collegeOrgs->pluck('id')->toArray();
+        
+        // Collect all applicable organization IDs
+        $allOrgIds = $collegeOrgIds;
+        
+        // For each college org, if it has a mother organization, add that
+        $motherOrgIds = $collegeOrgs
+            ->whereNotNull('mother_organization_id')
+            ->pluck('mother_organization_id')
+            ->unique()
+            ->toArray();
+        
+        if (!empty($motherOrgIds)) {
+            $allOrgIds = array_merge($allOrgIds, $motherOrgIds);
+        }
+        
+        // Check if any mother orgs have inherits_osa_fees = true, and get OSA org
+        $osaId = null;
+        if (!empty($motherOrgIds)) {
+            $hasOSAInheritance = \App\Models\Organization::whereIn('id', $motherOrgIds)
+                ->where('inherits_osa_fees', true)
+                ->exists();
+            
+            if ($hasOSAInheritance) {
+                $osaId = \App\Models\Organization::where('org_code', 'OSA')->value('id');
+                if ($osaId) {
+                    $allOrgIds[] = $osaId;
+                }
+            }
+        }
+        
+        // Remove duplicates
+        $allOrgIds = array_unique($allOrgIds);
+        
+        // Get all fees - both from applicable organizations AND college-wide fees
+        $fees = \App\Models\Fee::where('status', 'APPROVED')
+            ->where(function ($q) use ($allOrgIds, $collegeId) {
+                $q->whereIn('organization_id', $allOrgIds)
+                  ->orWhere(function ($q2) use ($collegeId) {
+                      $q2->where('college_id', $collegeId)
+                         ->whereNull('organization_id');
+                  });
+            })
             ->with([
                 'organization',
-                'payments' => fn($q) => $q->where('student_id', $student->id)
-            ]);
-        $collegeFees = \App\Models\Fee::where('college_id', $collegeId)
-            ->whereNull('organization_id')
-            ->where('status', 'APPROVED')
-            ->with([
-                'organization', 
-                'payments' => fn($q) => $q->where('student_id', $student->id)
-            ]);
-
-        $fees = $orgFees->union($collegeFees)->get();
-
+                'payments' => fn($q) => $q->where('student_id', $student->id)->with(['collector', 'organization'])
+            ])
+            ->get()
+            ->unique('id')
+            ->values();
+        
         return response()->json($fees);
     }
 }

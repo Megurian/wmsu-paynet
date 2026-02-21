@@ -10,9 +10,9 @@ class Organization extends Model
     protected $fillable = ['name', 'org_code', 'role', 'status', 'college_id', 'logo', 'mother_organization_id', 'inherits_osa_fees'];
 
     // Eager-load common relations
-    protected $with = ['admin', 'college'];
+    protected $with = ['orgAdmin', 'college'];
 
-    public function admin()
+    public function orgAdmin()
     {
         return $this->hasOne(User::class, 'organization_id')
                     ->whereIn('role', ['university_org', 'college_org']);
