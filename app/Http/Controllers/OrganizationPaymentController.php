@@ -8,7 +8,7 @@ use App\Models\Student;
 use App\Models\SchoolYear;
 use App\Models\Semester;
 use App\Models\Fee;
-use Mpdf\Mpdf;
+use App\Models\Organization;
 use App\Models\StudentEnrollment;
 use App\Models\Payment;
 use Illuminate\Support\Facades\DB;
@@ -133,48 +133,115 @@ class OrganizationPaymentController extends Controller
     {
         $request->validate([
             'student_id' => 'required|exists:students,id',
-            'fee_ids' => 'required|array',
+            'fee_ids' => 'required|array|min:1',
             'fee_ids.*' => 'exists:fees,id',
             'cash_received' => 'required|numeric|min:0',
         ]);
 
-        $student = Student::findOrFail($request->student_id);
+        // Authenticate organization and get active periods
+        $user = auth()->user();
+        $organization = $user->organization;
+
+        if (!$organization) {
+            return response()->json(['message' => 'Organization not found.'], 422);
+        }
 
         $activeSY = SchoolYear::where('is_active', true)->first();
         $activeSem = Semester::where('is_active', true)->first();
 
+        if (!$activeSY || !$activeSem) {
+            return response()->json(['message' => 'No active school year or semester.'], 422);
+        }
+
+        // Fetch student
+        $student = Student::findOrFail($request->student_id);
+
+        // Get student's active enrollment
         $enrollment = StudentEnrollment::where('student_id', $student->id)
             ->where('school_year_id', $activeSY->id)
             ->where('semester_id', $activeSem->id)
             ->firstOrFail();
 
+        // Verify student belongs to the correct college
+        if ($enrollment->college_id !== $organization->college_id) {
+            return response()->json(['message' => 'Student does not belong to this organization.'], 403);
+        }
+
+        if (!in_array($enrollment->status, [StudentEnrollment::FOR_PAYMENT_VALIDATION, StudentEnrollment::ENROLLED])) {
+            return response()->json([
+                'message' => "Student enrollment status '{$enrollment->status}' does not allow payment."
+            ], 422);
+        }
+
         $fees = Fee::whereIn('id', $request->fee_ids)->get();
+
+        if ($fees->count() !== count($request->fee_ids)) {
+            return response()->json(['message' => 'One or more fees do not exist.'], 422);
+        }
+
+        // Verify all fees belong to this organization or are inherited from mother org
+        $organizationIds = [$organization->id];
+        if ($organization->mother_organization_id) {
+            $organizationIds[] = $organization->mother_organization_id;
+        }
+
+        // Special exception: allow OSA fees if mother org inherits them
+        if ($organization->motherOrganization?->inherits_osa_fees) {
+            $osaId = Organization::where('org_code', 'OSA')->value('id');
+            if ($osaId) {
+                $organizationIds[] = $osaId;
+            }
+        }
+
+        $invalidFees = $fees->whereNotIn('organization_id', $organizationIds)->pluck('id')->toArray();
+        if (!empty($invalidFees)) {
+            return response()->json([
+                'message' => 'One or more selected fees do not belong to your organization.'
+            ], 403);
+        }
+
         $totalAmount = $fees->sum('amount');
 
         if ($request->cash_received < $totalAmount) {
-            return response()->json(['message' => 'Cash received is less than total.'], 422);
+            return response()->json(['message' => 'Cash received is less than total amount due.'], 422);
         }
 
         $change = $request->cash_received - $totalAmount;
 
+        // Check for already-paid fees
         $alreadyPaid = DB::table('fee_payment')
             ->join('payments', 'fee_payment.payment_id', '=', 'payments.id')
             ->where('payments.enrollment_id', $enrollment->id)
+            ->whereIn('fee_payment.fee_id', $request->fee_ids)
             ->pluck('fee_payment.fee_id')
             ->toArray();
 
-        $duplicate = array_intersect($request->fee_ids, $alreadyPaid);
-        if (!empty($duplicate)) {
-            return response()->json(['message' => 'Some fees were already paid.'], 422);
+        if (!empty($alreadyPaid)) {
+            $dupeCount = count($alreadyPaid);
+            return response()->json([
+                'message' => "$dupeCount fee(s) already paid for this enrollment."
+            ], 422);
         }
 
-        $lastId = Payment::max('id') + 1;
-        $transactionId = 'TRX' . now()->format('Ymd') . str_pad($lastId, 5, '0', STR_PAD_LEFT);
+        $orgCode = $organization->org_code ?? 'GEN';
+        $dateStr = now()->format('Ymd');
+        
+        $countToday = Payment::where('organization_id', $organization->id)
+            ->whereDate('created_at', now())
+            ->count();
+        
+        $sequenceNum = str_pad($countToday + 1, 4, '0', STR_PAD_LEFT);
+        $randomSuffix = strtoupper(str_pad(dechex(random_int(0, 4095)), 3, '0', STR_PAD_LEFT));
+        
+        $transactionId = "{$orgCode}-{$dateStr}-{$sequenceNum}-{$randomSuffix}";
 
         $payment = Payment::create([
             'student_id' => $student->id,
             'enrollment_id' => $enrollment->id,
-            'amount' => $totalAmount,
+            'organization_id' => $organization->id,
+            'school_year_id' => $activeSY->id,
+            'semester_id' => $activeSem->id,
+            'amount_due' => $totalAmount,
             'cash_received' => $request->cash_received,
             'change' => $change,
             'collected_by' => auth()->id(),
@@ -182,53 +249,56 @@ class OrganizationPaymentController extends Controller
         ]);
 
         foreach ($fees as $fee) {
-            $payment->fees()->attach($fee->id, ['amount' => $fee->amount]);
+            $payment->fees()->attach($fee->id, ['amount_paid' => $fee->amount]);
         }
-
-        $enrollment->update(['is_paid' => true]);
 
         return response()->json([
             'message' => 'Payment collected successfully.',
             'payment_id' => $payment->id,
             'transaction_id' => $transactionId,
-            'total' => $totalAmount,
-            'change' => $change
-        ]);
-    }
-
-    public function downloadReceipt(Payment $payment)
-    {
-        $payment->load([
-            'student',
-            'fees',
-            'enrollment.course',
-            'enrollment.yearLevel',
-            'enrollment.section',
-            'collector'
-        ]);
-
-        $html = view('college_org.receipt_pdf', compact('payment'))->render();
-
-        $mpdf = new Mpdf([
-            'mode' => 'utf-8',
-            'format' => 'A4',
-        ]);
-
-        $mpdf->WriteHTML($html);
-
-        if (!$payment->fees->contains('organization_id', auth()->user()->organization->id)) {
-            abort(403);
-        }
-
-        return response(
-            $mpdf->Output('receipt-' . $payment->transaction_id . '.pdf', 'S'),
-            200,
-            [
-                'Content-Type' => 'application/pdf',
-                'Content-Disposition' => 'inline; filename="receipt-' . $payment->transaction_id . '.pdf"'
+            'amount_due' => $totalAmount,
+            'change' => $change,
+            'student' => [
+                'id' => $student->id,
+                'student_id' => $student->student_id,
+                'name' => "{$student->first_name} {$student->last_name}"
             ]
-        );
+        ]);
     }
+
+    // public function downloadReceipt(Payment $payment)
+    // {
+    //     $payment->load([
+    //         'student',
+    //         'fees',
+    //         'enrollment.course',
+    //         'enrollment.yearLevel',
+    //         'enrollment.section',
+    //         'collector'
+    //     ]);
+    //
+    //     $html = view('college_org.receipt_pdf', compact('payment'))->render();
+    //
+    //     $mpdf = new Mpdf([
+    //         'mode' => 'utf-8',
+    //         'format' => 'A4',
+    //     ]);
+    //
+    //     $mpdf->WriteHTML($html);
+    //
+    //     if (!$payment->fees->contains('organization_id', auth()->user()->organization->id)) {
+    //         abort(403);
+    //     }
+    //
+    //     return response(
+    //         $mpdf->Output('receipt-' . $payment->transaction_id . '.pdf', 'S'),
+    //         200,
+    //         [
+    //             'Content-Type' => 'application/pdf',
+    //             'Content-Disposition' => 'inline; filename="receipt-' . $payment->transaction_id . '.pdf"'
+    //         ]
+    //     );
+    // }
 
     public function records(Request $request)
     {

@@ -33,7 +33,7 @@ class OSACollegeController extends Controller
         ])->findOrFail($id);
 
         $organizations = Organization::where('college_id', $college->id)
-            ->with('admin')
+            ->with('orgAdmin')
             ->get();
 
         return view('osa.college-details', compact('college', 'organizations'));

@@ -15,7 +15,7 @@ use App\Http\Middleware\CheckActiveSchoolYear;
 use App\Http\Controllers\AdviserStudentUploadController;
 use App\Http\Controllers\CollegeFeeController;
 use App\Http\Controllers\CollegeFeeApprovalController;
-use App\Http\Controllers\AdminCashieringController;
+use App\Http\Controllers\TreasurerCashieringController;
 use App\Http\Controllers\LocalOrgsController;
 use App\Http\Controllers\CollegeOrgApprovalController;
 use App\Http\Controllers\OrganizationPaymentController;
@@ -42,6 +42,7 @@ Route::middleware('auth')->get('/dashboard', function () {
         'university_org' => redirect()->route('university_org.dashboard'),
         'college_org' => redirect()->route('college_org.dashboard'),
         'college' => redirect()->route('college.dashboard'),
+        'treasurer' => redirect()->route('treasurer.cashiering'),
         default => abort(403), 
     };
 })->name('dashboard');
@@ -167,10 +168,11 @@ Route::middleware(['auth', 'role:college_org'])->group(function () {
     [OrganizationPaymentController::class,'getStudentFees'])
     ->name('college_org.students.fees');
     Route::post('/college_org/payment/collect', [OrganizationPaymentController::class,'collectPayment']);
-    Route::get(
-    '/college_org/receipt/pdf/{payment}',
-    [OrganizationPaymentController::class, 'downloadReceipt']
-)->name('college_org.payment.receipt');
+    // receipt route is disabled while email receipts are being implemented
+    // Route::get(
+    // '/college_org/receipt/pdf/{payment}',
+    // [OrganizationPaymentController::class, 'downloadReceipt']
+    //)->name('college_org.payment.receipt');
 
     // Documents routes
     Route::get('/college_org/documents', [DocumentController::class, 'index'])->name('college_org.documents.index')->defaults('role', 'college_org');
@@ -206,7 +208,7 @@ Route::middleware(['auth','role:college'])->group(function () {
         ->name('college.fees.reject');
 });
 
-Route::middleware(['auth', 'role:admin,college,student_coordinator,adviser,assessor'])->group(function () {
+Route::middleware(['auth', 'role:treasurer,college,student_coordinator,adviser,assessor'])->group(function () {
     Route::get('/college/dashboard', function () {
         return view('college.dashboard');
     })->name('college.dashboard');
@@ -295,13 +297,14 @@ Route::middleware(['auth', 'role:admin,college,student_coordinator,adviser,asses
 
 
 
-Route::middleware(['auth', 'role:admin'])->group(function () {
-     Route::get('/college/cashiering', [AdminCashieringController::class, 'index'])->name('admin.cashiering');
-    Route::get('/admin/cashiering/search', [AdminCashieringController::class, 'searchAdvisedStudents']);
-    Route::get('/admin/cashiering/student/{student}', [AdminCashieringController::class, 'getStudentDetails']);
-    Route::post('/admin/cashiering/collect', [AdminCashieringController::class, 'collectPayment']);
-    Route::get('/admin/cashiering/receipt/pdf/{payment}', [AdminCashieringController::class, 'downloadReceipt'])
-    ->name('cashiering.receipt.pdf');
+Route::middleware(['auth', 'role:treasurer'])->group(function () {
+     Route::get('/college/cashiering', [TreasurerCashieringController::class, 'index'])->name('treasurer.cashiering');
+    Route::get('/treasurer/cashiering/search', [TreasurerCashieringController::class, 'searchAdvisedStudents']);
+    Route::get('/treasurer/cashiering/student/{student}', [TreasurerCashieringController::class, 'getStudentDetails']);
+    Route::post('/treasurer/cashiering/collect', [TreasurerCashieringController::class, 'collectPayment']);
+    // receipt download disabled for now
+    // Route::get('/treasurer/cashiering/receipt/pdf/{payment}', [TreasurerCashieringController::class, 'downloadReceipt'])
+    //    ->name('cashiering.receipt.pdf');
 });
 
 Route::middleware(['auth','role:student_coordinator'])->group(function(){

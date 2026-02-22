@@ -12,8 +12,6 @@ class StudentEnrollment extends Model
     const ENROLLED = 'ENROLLED';
 
     protected $casts = [
-        'is_paid' => 'boolean',
-        'paid_at' => 'datetime',
         'advised_at' => 'datetime',
         'validated_at' => 'datetime',
         'assessed_at' => 'datetime',
@@ -34,8 +32,6 @@ class StudentEnrollment extends Model
         'validated_at',
         'assessed_by',
         'assessed_at',
-        'is_paid',
-        'paid_at', 
         'cleared_for_enrollment',
     ];
 
@@ -71,13 +67,6 @@ class StudentEnrollment extends Model
     {
         return $this->belongsTo(User::class, 'assessed_by');
     }
-    public function markAsPaid()
-{
-    $this->update([
-        'is_paid' => true,
-        'paid_at' => now(),
-    ]);
-}
 
 
 }

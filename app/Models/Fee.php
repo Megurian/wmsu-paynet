@@ -65,7 +65,7 @@ class Fee extends Model
     }
 
     public function payments() {
-        return $this->belongsToMany(Payment::class, 'fee_payment')->withPivot('amount')->withTimestamps();
+        return $this->belongsToMany(Payment::class, 'fee_payment')->withPivot('amount_paid')->withTimestamps();
     }
 
     /**
