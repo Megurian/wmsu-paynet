@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use App\Notifications\StudentResetPasswordNotification;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
 
-class Student extends Model
+class Student extends Authenticatable
 {
-    use HasFactory;
+    use HasFactory, Notifiable;
 
     protected $fillable = [
         'student_id',
@@ -17,17 +19,34 @@ class Student extends Model
         'suffix',
         'contact',
         'email',
-        'religion'
+        'religion',
+        'password',
     ];
+
+    protected $hidden = [
+        'password',
+        'remember_token',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'email_verified_at' => 'datetime',
+            'password' => 'hashed',
+        ];
+    }
+
+    public function payments()
+    {
+        return $this->hasMany(Payment::class);
+    }
 
     public function enrollments()
     {
         return $this->hasMany(StudentEnrollment::class);
     }
 
-    /**
-     * Get the student's current enrollment record.
-     */
+    // Returns the student's current enrollment record
     public function currentEnrollment()
     {
         // Try to get the enrollment for the active school year/semester
@@ -40,11 +59,14 @@ class Student extends Model
             });
     }
 
-    /**
-     * Get the most recent enrollment record regardless of active status.
-     */
+    // Returns the most recent enrollment record
     public function latestEnrollment()
     {
         return $this->hasOne(StudentEnrollment::class)->latestOfMany();
+    }
+
+    public function sendPasswordResetNotification($token): void
+    {
+        $this->notify(new StudentResetPasswordNotification($token));
     }
 }
