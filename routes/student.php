@@ -1,0 +1,35 @@
+<?php
+
+use App\Http\Controllers\Student\StudentAuthController;
+use App\Http\Controllers\Student\StudentPasswordController;
+use App\Http\Controllers\Student\StudentPortalController;
+use Illuminate\Support\Facades\Route;
+
+Route::prefix('student')->name('student.')->group(function () {
+    Route::middleware('guest.student')->group(function () {
+        Route::get('/login', [StudentAuthController::class, 'showLogin'])->name('login');
+        Route::post('/login', [StudentAuthController::class, 'login']);
+
+        Route::get('/forgot-password', [StudentPasswordController::class, 'showForgotPassword'])
+            ->name('password.request');
+        Route::post('/forgot-password', [StudentPasswordController::class, 'sendResetLink'])
+            ->name('password.email');
+
+        Route::get('/reset-password/{token}', [StudentPasswordController::class, 'showResetPassword'])
+            ->name('password.reset');
+        Route::post('/reset-password', [StudentPasswordController::class, 'resetPassword'])
+            ->name('password.store');
+    });
+
+    Route::middleware('student')->group(function () {
+        Route::post('/logout', [StudentAuthController::class, 'logout'])->name('logout');
+
+        Route::get('/dashboard', [StudentPortalController::class, 'dashboard'])->name('dashboard');
+        Route::get('/payments', [StudentPortalController::class, 'payments'])->name('payments');
+        Route::get('/payments/{payment}/receipt', [StudentPortalController::class, 'downloadReceipt'])
+            ->name('payments.receipt');
+
+        Route::get('/profile', [StudentPortalController::class, 'profile'])->name('profile');
+        Route::patch('/profile', [StudentPortalController::class, 'updateProfile'])->name('profile.update');
+    });
+});

@@ -16,7 +16,13 @@
         <a href="{{ route('login') }}"
            class="block text-center bg-red-700 hover:bg-red-800
                   text-white py-2.5 rounded-md font-medium transition">
-            Login to Your Account
+            Staff / Admin Login
+        </a>
+
+        <a href="{{ route('student.login') }}"
+           class="block text-center border border-red-700 text-red-700
+                  hover:bg-red-50 py-2.5 rounded-md font-medium transition">
+            Student Portal
         </a>
 
         {{-- @if (Route::has('register'))
