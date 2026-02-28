@@ -107,6 +107,15 @@
                 </div>
 
                 <div>
+                    <label for="recurrence" class="block text-sm font-medium text-gray-700 mb-1">Fee Recurrence</label>
+                    <select id="recurrence" name="recurrence" required class="w-full border rounded px-3 py-2">
+                        <option value="one_time">One Time</option>
+                        <option value="semestrial">Semestrial</option>
+                        <option value="annual">Annual</option>
+                    </select>
+                </div>
+
+                <div>
                     <div class="flex items-center gap-2">
                         <span class="block text-sm font-medium text-gray-700 mb-1">Requirement Level</span>
                         <!-- Tooltip icon -->
@@ -153,20 +162,81 @@
 
                 <!-- Optional: accreditation only -->
                 <div id="supporting-optional" class="hidden">
-                    <label for="accreditation_file_optional" class="block text-sm font-medium text-gray-700 mb-1">Certificate of Accreditation / Accreditation Permit</label>
-                    <input type="file" id="accreditation_file_optional" name="accreditation_file" accept=".pdf,image/*" class="w-full" />
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Certificate of Accreditation / Accreditation Permit</label>
+                        <div class="space-y-3">
+                            @if($accreditationDocuments->count() > 0)
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-600 mb-2">Select from existing documents:</label>
+                                    <select name="accreditation_document_id" id="accreditation_document_id_optional" class="w-full border rounded px-3 py-2 focus:ring-red-500 focus:border-red-500">
+                                        <option value="">-- Use new upload below --</option>
+                                        @foreach($accreditationDocuments as $doc)
+                                            <option value="{{ $doc->id }}">{{ $doc->original_file_name }} ({{ $doc->created_at->format('M d, Y') }})</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="relative">
+                                    <div class="absolute inset-0 flex items-center"><span class="w-full border-t border-gray-300"></span></div>
+                                    <div class="relative flex justify-center text-xs uppercase"><span class="bg-white px-2 text-gray-500">Or upload new</span></div>
+                                </div>
+                            @endif
+                            <input type="file" id="accreditation_file_optional" name="accreditation_file" accept=".pdf,image/*,.doc,.docx" class="w-full" />
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Mandatory: accreditation + resolution -->
                 <div id="supporting-mandatory" class="hidden space-y-4">
                     <div>
-                        <label for="accreditation_file_mandatory" class="block text-sm font-medium text-gray-700 mb-1">Certificate of Accreditation / Accreditation Permit</label>
-                        <input type="file" id="accreditation_file_mandatory" name="accreditation_file" accept=".pdf,image/*" class="w-full" />
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Certificate of Accreditation / Accreditation Permit</label>
+                        <div class="space-y-3">
+                            @if($accreditationDocuments->count() > 0)
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-600 mb-2">Select from existing documents:</label>
+                                    <select name="accreditation_document_id" id="accreditation_document_id_mandatory" class="w-full border rounded px-3 py-2 focus:ring-red-500 focus:border-red-500">
+                                        <option value="">-- Use new upload below --</option>
+                                        @foreach($accreditationDocuments as $doc)
+                                            <option value="{{ $doc->id }}">{{ $doc->original_file_name }} ({{ $doc->created_at->format('M d, Y') }})</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="relative">
+                                    <div class="absolute inset-0 flex items-center"><span class="w-full border-t border-gray-300"></span></div>
+                                    <div class="relative flex justify-center text-xs uppercase"><span class="bg-white px-2 text-gray-500">Or upload new</span></div>
+                                </div>
+                            @endif
+                            <input type="file" id="accreditation_file_mandatory" name="accreditation_file" accept=".pdf,image/*,.doc,.docx" class="w-full" />
+                        </div>
                     </div>
                     <div>
-                        <label for="resolution_file" class="block text-sm font-medium text-gray-700 mb-1">Resolution of Collection</label>
-                        <input type="file" id="resolution_file" name="resolution_file" accept=".pdf,image/*" class="w-full" />
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Resolution of Collection</label>
+                        <div class="space-y-3">
+                            @if($resolutionDocuments->count() > 0)
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-600 mb-2">Select from existing documents:</label>
+                                    <select name="resolution_document_id" id="resolution_document_id_mandatory" class="w-full border rounded px-3 py-2 focus:ring-red-500 focus:border-red-500">
+                                        <option value="">-- Use new upload below --</option>
+                                        @foreach($resolutionDocuments as $doc)
+                                            <option value="{{ $doc->id }}">{{ $doc->original_file_name }} ({{ $doc->created_at->format('M d, Y') }})</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="relative">
+                                    <div class="absolute inset-0 flex items-center"><span class="w-full border-t border-gray-300"></span></div>
+                                    <div class="relative flex justify-center text-xs uppercase"><span class="bg-white px-2 text-gray-500">Or upload new</span></div>
+                                </div>
+                            @endif
+                            <input type="file" id="resolution_file" name="resolution_file" accept=".pdf,image/*,.doc,.docx" class="w-full" />
+                        </div>
                     </div>
+                </div>
+
+                <!-- Supporting Document (Optional, applies to all fees) -->
+                <div class="border-t border-gray-200 pt-6 mt-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Supporting Document <span class="text-xs text-gray-500">(optional)</span></label>
+                    <p class="text-xs text-gray-500 mb-3">Upload additional documents specific to this fee, such as supplementary evidence or supporting materials.</p>
+                    <input type="file" id="supporting_file" name="supporting_file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent" />
+                    <p class="text-xs text-gray-500 mt-2">Allowed formats: PDF, DOC, DOCX, JPG, JPEG, PNG (Max 5MB)</p>
                 </div>
 
                 <div class="flex justify-between mt-8">
@@ -260,8 +330,10 @@ function validateStep1() {
 function validateStep2() {
     const amount = parseFloat(document.getElementById('amount').value);
     const req = document.querySelector('input[name="requirement_level"]:checked');
+    const rec = document.getElementById('recurrence') ? document.getElementById('recurrence').value : null;
     if (isNaN(amount) || amount < 0) { alert('Please enter a valid Amount (0 or more).'); return false; }
     if (!req) { alert('Please select Requirement Level (Mandatory or Optional).'); return false; }
+    if (!rec) { alert('Please select Fee Recurrence.'); return false; }
     return true;
 }
 
@@ -272,7 +344,7 @@ function updateSupportingDocs() {
     const opt = document.getElementById('supporting-optional');
     const mand = document.getElementById('supporting-mandatory');
 
-    // Reset visibility, required and disabled attributes
+    // Reset visibility and disabled attributes
     opt.classList.add('hidden');
     mand.classList.add('hidden');
 
@@ -281,17 +353,17 @@ function updateSupportingDocs() {
     const res = document.getElementById('resolution_file');
 
     // Disable all by default (so only the visible one is submitted)
-    if (accOpt) { accOpt.required = false; accOpt.disabled = true; }
-    if (accMand) { accMand.required = false; accMand.disabled = true; }
-    if (res) { res.required = false; res.disabled = true; }
+    if (accOpt) { accOpt.disabled = true; }
+    if (accMand) { accMand.disabled = true; }
+    if (res) { res.disabled = true; }
 
     if (selected === 'optional') {
         if (opt) opt.classList.remove('hidden');
-        if (accOpt) { accOpt.disabled = false; /* optional - not required */ }
+        if (accOpt) { accOpt.disabled = false; }
     } else if (selected === 'mandatory') {
         if (mand) mand.classList.remove('hidden');
-        if (accMand) { accMand.required = true; accMand.disabled = false; }
-        if (res) { res.required = true; res.disabled = false; }
+        if (accMand) { accMand.disabled = false; }
+        if (res) { res.disabled = false; }
     }
 }
 
@@ -361,10 +433,17 @@ document.addEventListener('DOMContentLoaded', function() {
             const req = document.querySelector('input[name="requirement_level"]:checked');
             if (!req) { e.preventDefault(); alert('Requirement Level is missing.'); showStep(2); return false; }
             if (req.value === 'mandatory') {
-                const a = document.getElementById('accreditation_file_mandatory');
-                const r = document.getElementById('resolution_file');
-                if (!a || a.files.length === 0) { e.preventDefault(); alert('Please upload the Certificate of Accreditation/Accreditation Permit.'); showStep(3); return false; }
-                if (!r || r.files.length === 0) { e.preventDefault(); alert('Please upload the Resolution of Collection.'); showStep(3); return false; }
+                const accFile = document.getElementById('accreditation_file_mandatory');
+                const accDocId = document.getElementById('accreditation_document_id_mandatory');
+                const resFile = document.getElementById('resolution_file');
+                const resDocId = document.getElementById('resolution_document_id_mandatory');
+                
+                // Check if either a file is uploaded OR a document is selected
+                const hasAccreditation = (accFile && accFile.files.length > 0) || (accDocId && accDocId.value);
+                const hasResolution = (resFile && resFile.files.length > 0) || (resDocId && resDocId.value);
+                
+                if (!hasAccreditation) { e.preventDefault(); alert('Please upload or select the Certificate of Accreditation/Accreditation Permit.'); showStep(3); return false; }
+                if (!hasResolution) { e.preventDefault(); alert('Please upload or select the Resolution of Collection.'); showStep(3); return false; }
             }
             // if optional, accreditation is optional
             // allow the form to submit normally

@@ -19,11 +19,16 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'name',
+        'last_name',
+        'first_name',
+        'middle_name',
+        'suffix',
         'email',
         'password',
         'role',
         'college_id',
         'organization_id',
+        'course_id',
     ];
 
     /**
@@ -48,7 +53,14 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
-
+    public function getFullNameAttribute(): string
+    {
+        return trim(
+            "{$this->first_name} {$this->middle_name} " .
+            ($this->last_name ?? '') . ' ' .
+            ($this->suffix ?? '')
+        );
+    }
     public function college()
     {
         return $this->belongsTo(College::class);
@@ -73,7 +85,9 @@ class User extends Authenticatable
     {
         return $this->role === 'student_coordinator';
     }
-
-
+    public function course()
+    {
+        return $this->belongsTo(Course::class);
+    }
 
 }

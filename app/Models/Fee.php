@@ -18,9 +18,16 @@ class Fee extends Model
         'amount',
         'remittance_percent',
         'requirement_level',
-        'accreditation_file',
-        'resolution_file',
+        'recurrence',
+        'accreditation_document_id',
+        'resolution_document_id',
+        'supporting_document_id',
         'status',
+        'fee_scope',
+        'college_id',
+        'approval_level',
+        'approved_by',
+        'approved_at',
     ];
 
     /**
@@ -45,5 +52,43 @@ class Fee extends Model
     public function appeals()
     {
         return $this->hasMany(Appeal::class);
+    }
+
+     public function college()
+    {
+        return $this->belongsTo(College::class);
+    }
+
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function payments() {
+        return $this->belongsToMany(Payment::class, 'fee_payment')->withPivot('amount_paid')->withTimestamps();
+    }
+
+    /**
+     * Get the accreditation document associated with this fee.
+     */
+    public function accreditationDocument()
+    {
+        return $this->belongsTo(Document::class, 'accreditation_document_id');
+    }
+
+    /**
+     * Get the resolution document associated with this fee.
+     */
+    public function resolutionDocument()
+    {
+        return $this->belongsTo(Document::class, 'resolution_document_id');
+    }
+
+    /**
+     * Get the supporting document associated with this fee (1:1 relationship).
+     */
+    public function supportingDocument()
+    {
+        return $this->belongsTo(Document::class, 'supporting_document_id');
     }
 }

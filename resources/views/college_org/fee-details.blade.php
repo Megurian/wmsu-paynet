@@ -15,12 +15,30 @@
     <p class="text-sm text-gray-600 mb-2">Requirement: {{ ucfirst($fee->requirement_level) }}</p>
     <p class="text-sm text-gray-600 mb-4">Status: {{ ucfirst($fee->status) }}</p>
 
-    @if($fee->accreditation_file)
-        <p class="mb-2"><a href="{{ \Illuminate\Support\Facades\Storage::url($fee->accreditation_file) }}" target="_blank" class="text-blue-600 hover:underline">View Certificate of Accreditation</a></p>
-    @endif
-    @if($fee->resolution_file)
-        <p class="mb-4"><a href="{{ \Illuminate\Support\Facades\Storage::url($fee->resolution_file) }}" target="_blank" class="text-blue-600 hover:underline">View Resolution of Collection</a></p>
-    @endif
+    <div class="mb-4 space-y-2">
+        <div>
+            <span class="text-sm text-gray-600">Accreditation Certification:</span>
+            @if($fee->accreditationDocument)
+                <a href="{{ route('college_org.documents.preview', $fee->accreditationDocument) }}" target="_blank" class="text-blue-600 hover:underline">{{ $fee->accreditationDocument->original_file_name }}</a>
+            @else
+                <span class="text-gray-500 text-sm">Not uploaded</span>
+            @endif
+        </div>
+        <div>
+            <span class="text-sm text-gray-600">Resolution of Collection:</span>
+            @if($fee->resolutionDocument)
+                <a href="{{ route('college_org.documents.preview', $fee->resolutionDocument) }}" target="_blank" class="text-blue-600 hover:underline">{{ $fee->resolutionDocument->original_file_name }}</a>
+            @else
+                <span class="text-gray-500 text-sm">Not uploaded</span>
+            @endif
+        </div>
+        @if($fee->supportingDocument)
+            <div>
+                <span class="text-sm text-gray-600">Supporting Document:</span>
+                <a href="{{ route('college_org.documents.preview', $fee->supportingDocument) }}" target="_blank" class="text-blue-600 hover:underline">{{ $fee->supportingDocument->original_file_name }}</a>
+            </div>
+        @endif
+    </div>
 
     @if($fee->status === 'disabled')
         <div class="mt-6">

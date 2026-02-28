@@ -2,25 +2,45 @@
 
 namespace App\Exports;
 
-use Maatwebsite\Excel\Concerns\FromArray;
 use Maatwebsite\Excel\Concerns\WithHeadings;
+use Maatwebsite\Excel\Concerns\WithStyles;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
+use Maatwebsite\Excel\Concerns\FromArray;
 
-class TemplateExport implements FromArray, WithHeadings
+class StudentImportTemplateExport implements FromArray, WithHeadings, WithStyles
 {
-    protected $headers;
-
-    public function __construct(array $headers)
-    {
-        $this->headers = $headers;
-    }
-
     public function array(): array
     {
-        return []; 
+        return [
+            [], // Leave empty for spacing if needed
+        ];
     }
 
     public function headings(): array
     {
-        return $this->headers;
+        return [
+            'Student ID',
+            'Last Name',
+            'First Name',
+            'Middle Name',
+            'Suffix',
+            'Contact',
+            'Email',
+            'Year Level ID',
+            'Section ID',
+            'Religion',
+        ];
+    }
+
+    public function styles(Worksheet $sheet)
+    {
+        // Style header row
+        return [
+            1 => [
+                'font' => ['bold' => true, 'size' => 12, 'color' => ['argb' => 'FFFFFFFF']],
+                'fill' => ['fillType' => 'solid', 'startColor' => ['argb' => 'FF1E40AF']],
+                'alignment' => ['horizontal' => 'center']
+            ],
+        ];
     }
 }

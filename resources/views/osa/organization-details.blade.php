@@ -33,10 +33,10 @@
 <!-- Admin Section -->
 <div class="bg-white rounded shadow p-6 mb-6">
     <h3 class="text-xl font-semibold mb-4">Organization Admin</h3>
-    @if($orgDetail->admin)
+    @if($orgDetail->orgAdmin)
         <div class="border rounded p-4 flex flex-col space-y-1">
-            <p class="font-semibold">{{ $orgDetail->admin->name }}</p>
-            <p class="text-gray-600 text-sm">{{ $orgDetail->admin->email }}</p>
+            <p class="font-semibold">{{ $orgDetail->orgAdmin->first_name }}{{ $orgDetail->orgAdmin->middle_name }} {{ $orgDetail->orgAdmin->last_name }} {{ $orgDetail->orgAdmin->suffix }}</p>
+            <p class="text-gray-600 text-sm">{{ $orgDetail->orgAdmin->email }}</p>
         </div>
     @else
         <p class="text-gray-500 italic">No admin found for this organization yet.</p>

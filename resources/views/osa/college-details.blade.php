@@ -33,7 +33,7 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             @foreach($college->admins as $admin)
             <div class="border rounded p-4 flex flex-col space-y-1">
-                <p class="font-semibold">{{ $admin->name }}</p>
+                <p class="font-semibold">{{ $admin->first_name }} {{ $admin->middle_name }}{{ $admin->last_name }} {{ $admin->suffix }} </p>
                 <p class="text-gray-600 text-sm">{{ $admin->email }}</p>
             </div>
             @endforeach
@@ -89,7 +89,7 @@
                     </div>
                 </div>
                 <p class="text-sm text-gray-600">Type: {{ $org->role === 'university_org' ? 'University-wide' : 'College-based' }}</p>
-                <p class="text-sm text-gray-500">Admin: {{ $org->admin?->name ?? 'N/A' }}</p>
+                <p class="text-sm text-gray-500">Admin: {{ $org->orgAdmin?->name ?? 'N/A' }}</p>
             </div>
             @endforeach
         </div>

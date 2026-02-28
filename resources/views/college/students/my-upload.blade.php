@@ -4,92 +4,180 @@
 @section('page-title', 'My Students Upload')
 
 @section('content')
-
+@php
+    $isCleared =  false;
+@endphp
 <div x-data="myStudentsUpload()" x-init="">
-    {{-- Top Actions --}}
-
-
     {{-- Import Modal --}}
     <div x-show="showImportModal" x-cloak class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-        <div @click.away="showImportModal = false" class="bg-white rounded-xl shadow-lg w-full max-w-md p-6 relative">
-            <button @click="showImportModal = false" class="absolute top-2 right-3 text-gray-500 hover:text-gray-800 text-xl">&times;</button>
+        <div @click.away="resetImport()" class="bg-white rounded-xl shadow-lg w-full max-w-lg p-6 relative">
+            <button @click="resetImport()" class="absolute top-2 right-3 text-gray-500 hover:text-gray-800 text-xl">&times;</button>
 
-            <h3 class="text-lg font-semibold mb-4">Import Student List</h3>
-            <p class="text-sm text-gray-700 mb-4">
-                Download the template, fill in student details, and upload. Students remain unvalidated until manual validation.
-            </p>
+            {{-- Step 1: File Select --}}
+            <div x-show="importStep === 'select'">
+                <h3 class="text-lg font-semibold mb-2">Import Student List</h3>
+                <p class="text-sm text-gray-600 mb-4">
+                    Download the template, fill in student details, and upload. The system will detect existing students and ask for confirmation before updating.
+                </p>
+                <a href="{{ route('college.students.import.template') }}?v={{ time() }}" class="inline-block mb-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition text-sm">
+                    Download Import Template
+                </a>
+                <form id="importForm" action="{{ route('college.students.import') }}" method="POST" enctype="multipart/form-data">
+                    @csrf
+                    <input type="file" id="importFileInput" name="student_file" accept=".csv, .xls, .xlsx"
+                        @change="importFile = $event.target.files[0]"
+                        class="block w-full text-sm text-gray-700 border border-gray-300 rounded-lg px-3 py-2 mb-4">
+                    <div class="flex justify-end gap-2">
+                        <button type="button" @click="resetImport()" class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 text-sm">Cancel</button>
+                        <button type="button" @click="runPreviewImport()"
+                            :disabled="!importFile || importPreviewing"
+                            class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-500 text-sm disabled:opacity-50">
+                            <span x-show="!importPreviewing">Upload</span>
+                            <span x-show="importPreviewing">Checking...</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
 
-            <a href="{{ route('college.students.import.template') }}" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition">
-                Download Import Template
-            </a>
+            {{-- Step 2: Preview / Confirm --}}
+            <div x-show="importStep === 'confirm'">
+                <h3 class="text-lg font-semibold mb-3">Confirm Import</h3>
 
-            <form action="{{ route('college.students.import') }}" method="POST" enctype="multipart/form-data" class="mt-4">
-                @csrf
-                <input type="file" name="student_file" accept=".csv, .xls, .xlsx" class="mb-4">
-                <div class="flex justify-end gap-2">
-                    <button type="button" @click="showImportModal = false" class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">Cancel</button>
-                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-500">Upload</button>
+                {{-- Summary bar --}}
+                <div class="flex gap-3 mb-4 text-sm">
+                    <span class="px-3 py-1 bg-green-100 text-green-700 rounded-full font-medium" x-text="importPreview.new_count + ' new'"></span>
+                    <span class="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full font-medium" x-text="importPreview.existing_match.length + ' will be updated'"></span>
+                    <template x-if="importPreview.existing_mismatch.length > 0">
+                        <span class="px-3 py-1 bg-red-100 text-red-700 rounded-full font-medium" x-text="importPreview.existing_mismatch.length + ' will be skipped'"></span>
+                    </template>
                 </div>
-            </form>
+
+                {{-- Students that will be updated --}}
+                <template x-if="importPreview.existing_match.length > 0">
+                    <div class="mb-4">
+                        <p class="text-sm font-semibold text-yellow-700 mb-1">⚠ The following students already exist and their information will be updated:</p>
+                        <div class="max-h-36 overflow-y-auto border border-yellow-200 rounded-lg bg-yellow-50 text-xs divide-y divide-yellow-100">
+                            <template x-for="s in importPreview.existing_match" :key="s.student_id">
+                                <div class="px-3 py-1.5 flex gap-3">
+                                    <span class="font-mono font-semibold" x-text="s.student_id"></span>
+                                    <span x-text="s.last_name + ', ' + s.first_name"></span>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </template>
+
+                {{-- Students that will be skipped (mismatch) --}}
+                <template x-if="importPreview.existing_mismatch.length > 0">
+                    <div class="mb-4">
+                        <p class="text-sm font-semibold text-red-700 mb-1">🚫 The following rows will be <strong>skipped</strong> — student ID exists but last name does not match:</p>
+                        <div class="max-h-36 overflow-y-auto border border-red-200 rounded-lg bg-red-50 text-xs divide-y divide-red-100">
+                            <template x-for="s in importPreview.existing_mismatch" :key="s.student_id">
+                                <div class="px-3 py-1.5">
+                                    <span class="font-mono font-semibold" x-text="s.student_id"></span> —
+                                    File: <span class="font-medium" x-text="s.file_last_name"></span>
+                                    vs DB: <span class="font-medium" x-text="s.db_last_name"></span>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </template>
+
+                <p class="text-sm text-gray-600 mb-4">Do you want to proceed with the import?</p>
+
+                <div class="flex justify-end gap-2">
+                    <button type="button" @click="importStep = 'select'" class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 text-sm">Back</button>
+                    <button type="button" @click="submitImport()" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-500 text-sm">Confirm &amp; Import</button>
+                </div>
+            </div>
         </div>
     </div>
 
+
+    {{-- Import result flash messages --}}
+    @if(session('import_success'))
+    <div class="mb-4 p-4 bg-green-100 border border-green-400 text-green-800 rounded-lg text-sm">
+        ✓ {{ session('import_success') }}
+    </div>
+    @endif
+    @if(session('import_skipped') && count(session('import_skipped')) > 0)
+    <div class="mb-4 p-4 bg-yellow-100 border border-yellow-400 text-yellow-800 rounded-lg text-sm">
+        <p class="font-semibold mb-1">⚠ The following rows were skipped (student ID / last name mismatch):</p>
+        <ul class="list-disc list-inside space-y-0.5">
+            @foreach(session('import_skipped') as $row)
+            <li><span class="font-mono">{{ $row['student_id'] }}</span> — file: "{{ $row['file_last_name'] }}" vs DB: "{{ $row['db_last_name'] }}"</li>
+            @endforeach
+        </ul>
+    </div>
+    @endif
 
     {{-- Filters and Actions --}}
-<div class="bg-white border border-gray-200 rounded-xl p-4 mb-5 shadow-sm">
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
+    <div class="bg-white border border-gray-200 rounded-xl p-4 mb-5 shadow-sm">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
 
-        {{-- Search --}}
-        <div class="relative col-span-1 sm:col-span-2">
-            <input type="text" x-model="search" placeholder="Search by name or Student ID"
-                class="w-full px-3 py-2 pr-10 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none">
-            <button type="button" x-show="search" @click="search=''"
-                class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none transition">&times;</button>
+            {{-- Search --}}
+            <div class="relative col-span-1 sm:col-span-2">
+                <input type="text" x-model="search" placeholder="Search by name or Student ID"
+                    class="w-full px-3 py-2 pr-10 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none">
+                <button type="button" x-show="search" @click="search=''"
+                    class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none transition">&times;</button>
+            </div>
+
+            
+            @if(Auth::user()->role === 'adviser')
+                <select class="rounded-lg border border-gray-300 px-4 py-2.5 text-sm bg-gray-100 cursor-not-allowed" disabled>
+                    <option value="{{ Auth::user()->course_id }}" selected>
+                        {{ Auth::user()->course?->name ?? 'No course assigned' }}
+                    </option>
+                </select>
+            @else
+                <select x-model="filterCourse"
+                        class="rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
+                    <option value="">All Courses</option>
+                    @foreach($courses as $course)
+                    <option value="{{ $course->id }}">{{ $course->name }}</option>
+                    @endforeach
+                </select>
+            @endif
+            
+
+            {{-- Year --}}
+            <select x-model="filterYear"
+                class="rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
+                <option value="">All Year Levels</option>
+                @foreach($years as $year)
+                <option value="{{ $year->id }}">{{ $year->name }}</option>
+                @endforeach
+            </select>
+
+            {{-- Section --}}
+            <select x-model="filterSection"
+                class="rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
+                <option value="">All Sections</option>
+                @foreach($sections as $section)
+                <option value="{{ $section->id }}">{{ $section->name }}</option>
+                @endforeach
+            </select>
+
         </div>
 
-        {{-- Course --}}
-        <select x-model="filterCourse"
-            class="rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
-            <option value="">All Courses</option>
-            @foreach($courses as $course)
-            <option value="{{ $course->id }}">{{ $course->name }}</option>
-            @endforeach
-        </select>
+        {{-- Action Buttons --}}
+        <div class="flex justify-end gap-4 mt-4 i items-center">
 
-        {{-- Year --}}
-        <select x-model="filterYear"
-            class="rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
-            <option value="">All Year Levels</option>
-            @foreach($years as $year)
-            <option value="{{ $year->id }}">{{ $year->name }}</option>
-            @endforeach
-        </select>
+             <div class="text-gray-500 text-sm italic">
+                This view shows the students you are assigned to. You can manage, add, or import student data for your course.
+            </div>
+            <button @click="showModal = true"
+                class="bg-red-800 text-white px-4 py-2 rounded hover:bg-red-700 transition">
+                New Student
+            </button>
 
-        {{-- Section --}}
-        <select x-model="filterSection"
-            class="rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
-            <option value="">All Sections</option>
-            @foreach($sections as $section)
-            <option value="{{ $section->id }}">{{ $section->name }}</option>
-            @endforeach
-        </select>
-
+            <button @click="showImportModal = true"
+                class="px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-500 transition">
+                Import Student List
+            </button>
+        </div>
     </div>
-
-    {{-- Action Buttons --}}
-    <div class="flex justify-end gap-4 mt-4">
-
-        <button @click="showModal = true"
-            class="bg-red-800 text-white px-4 py-2 rounded hover:bg-red-700 transition">
-            New Student
-        </button>
-
-        <button @click="showImportModal = true"
-            class="px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-500 transition">
-            Import Student List
-        </button>
-    </div>
-</div>
 
 
 
@@ -145,15 +233,27 @@
 
                 {{-- Course / Year / Section --}}
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <div>
-                        <label class="text-sm font-medium">Course <span class="text-red-500">*</span></label>
-                        <select name="course_id" required class="w-full border rounded px-3 py-2 text-sm">
-                            <option value="">Select Course</option>
-                            @foreach($courses as $course)
-                            <option value="{{ $course->id }}">{{ $course->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
+                   @if(Auth::user()->role === 'adviser')
+                        <div>
+                            <label class="text-sm font-medium">Course</label>
+                            <select class="w-full border rounded px-3 py-2 text-sm bg-gray-100" disabled>
+                                <option value="{{ Auth::user()->course_id }}" selected>
+                                    {{ Auth::user()->course?->name ?? 'No course assigned' }}
+                                </option>
+                            </select>
+                            <input type="hidden" name="course_id" value="{{ Auth::user()->course_id }}">
+                        </div>
+                    @else
+                        <div>
+                            <label class="text-sm font-medium">Course <span class="text-red-500">*</span></label>
+                            <select name="course_id" required class="w-full border rounded px-3 py-2 text-sm">
+                                <option value="">Select Course</option>
+                                @foreach($courses as $course)
+                                <option value="{{ $course->id }}">{{ $course->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    @endif        
                     <div>
                         <label class="text-sm font-medium">Year Level <span class="text-red-500">*</span></label>
                         <select name="year_level_id" required class="w-full border rounded px-3 py-2 text-sm">
@@ -210,7 +310,7 @@
         <template x-for="student in filteredStudents" :key="student.id">
             <div class="bg-white shadow rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between space-y-3 md:space-y-0 md:space-x-4">
                <div class="flex items-center md:w-1/3 space-x-2">
-                    <template x-if="student.status === 'NOT ENROLLED'">
+                    <template x-if="student.status === 'NOT_ENROLLED'">
                         <!-- Bulk select checkbox -->
                         <div class="flex items-center space-x-2 md:w-1/12">
                             <input type="checkbox" 
@@ -233,15 +333,10 @@
                     <div class="grid grid-cols-3 gap-2 items-center">
                         {{-- Course --}}
                         <div>
-                            <select 
-                                x-model="student.course_id" 
-                                @change="updateStudent(student.id, 'course_id', student.course_id)" 
-                                class="w-full border rounded px-2 py-1 text-xs"
-                                :disabled="student.status === 'ENROLLED' || student.status === 'FOR_PAYMENT_VALIDATION'">
-                                <option value="">Select Course</option>
-                                @foreach($courses as $course)
-                                <option value="{{ $course->id }}">{{ $course->name }}</option>
-                                @endforeach
+                            <select x-model="student.course_id" class="w-full border rounded px-2 py-1 text-xs" disabled>
+                                <option value="{{ Auth::user()->course_id }}" selected>
+                                    {{ Auth::user()->course?->name ?? 'No course assigned' }}
+                                </option>
                             </select>
                         </div>
 
@@ -251,7 +346,7 @@
                                 x-model="student.year_level_id" 
                                 @change="updateStudent(student.id, 'year_level_id', student.year_level_id)" 
                                 class="w-full border rounded px-2 py-1 text-xs"
-                                :disabled="student.status === 'ENROLLED' || student.status === 'FOR_PAYMENT_VALIDATION'">
+                                :disabled="student.status === 'ENROLLED' || student.status === 'PAID' || student.status === 'FOR_PAYMENT_VALIDATION'">
                                 <option value="">Select Year</option>
                                 @foreach($years as $year)
                                 <option value="{{ $year->id }}">{{ $year->name }}</option>
@@ -265,7 +360,7 @@
                                 x-model="student.section_id" 
                                 @change="updateStudent(student.id, 'section_id', student.section_id)" 
                                 class="w-full border rounded px-2 py-1 text-xs"
-                                :disabled="student.status === 'ENROLLED' || student.status === 'FOR_PAYMENT_VALIDATION'">
+                                :disabled="student.status === 'ENROLLED' || student.status === 'PAID' || student.status === 'FOR_PAYMENT_VALIDATION'">
                                 <option value="">Select Section</option>
                                 @foreach($sections as $section)
                                 <option value="{{ $section->id }}">{{ $section->name }}</option>
@@ -278,7 +373,7 @@
                 {{-- Status / Actions --}}
                 <div class="flex flex-col items-end md:w-1/3 space-y-2">
                     <div>
-                        <template x-if="student.status === 'NOT ENROLLED'">
+                        <template x-if="student.status === 'NOT_ENROLLED'">
                             <form :action="`{{ url('/college/students') }}/${student.id}/readd`" method="POST" class="flex gap-2 items-center">
                                 @csrf
                                 <input type="hidden" name="course_id" :value="student.course_id">
@@ -290,10 +385,13 @@
                             </form>
                         </template>
                         <template x-if="student.status === 'FOR_PAYMENT_VALIDATION'">
-                            <span class="text-yellow-700 italic text-sm">Pending payment</span>
+                            <span class="text-yellow-700 font-semibold text-sm">Pending Payment</span>
+                        </template>
+                        <template x-if="student.status === 'PAID'">
+                            <span class="text-green-700 font-semibold text-sm">For Assessment</span>
                         </template>
                         <template x-if="student.status === 'ENROLLED'">
-                            <span class="text-indigo-600 font-semibold text-sm">Enrolled</span>
+                            <span class="text-indigo-600 font-semibold text-sm">Assessment Completed</span>
                         </template>
                     </div>
 
@@ -301,38 +399,38 @@
                     <div class="flex items-center space-x-3 mt-2 w-full">
                         <!-- Advising -->
                         <div class="flex items-center space-x-1">
-                            <div class="w-5 h-5 flex items-center justify-center rounded-full" :class="student.status !== 'NOT ENROLLED' ? 'bg-blue-600' : 'bg-gray-200'">
-                                <template x-if="student.status !== 'NOT ENROLLED'">
+                            <div class="w-5 h-5 flex items-center justify-center rounded-full" :class="student.status !== 'NOT_ENROLLED' ? 'bg-blue-600' : 'bg-gray-200'">
+                                <template x-if="student.status !== 'NOT_ENROLLED'">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
                                     </svg>
                                 </template>
-                                <template x-if="student.status === 'NOT ENROLLED'">
+                                <template x-if="student.status === 'NOT_ENROLLED'">
                                     <span class="text-[8px] font-semibold text-gray-500">A</span>
                                 </template>
                             </div>
-                            <span class="text-[10px]" :class="student.status !== 'NOT ENROLLED' ? 'text-blue-600 font-semibold' : 'text-gray-400'">Advising</span>
+                            <span class="text-[10px]" :class="student.status !== 'NOT_ENROLLED' ? 'text-blue-600 font-semibold' : 'text-gray-400'">Advising</span>
                         </div>
 
-                        <div class="flex-1 border-t-2 border-dashed" :class="student.status !== 'NOT ENROLLED' ? 'border-blue-300' : 'border-gray-300'"></div>
+                        <div class="flex-1 border-t-2 border-dashed" :class="student.status !== 'NOT_ENROLLED' ? 'border-blue-300' : 'border-gray-300'"></div>
 
                         <!-- Payment -->
                         <div class="flex items-center space-x-1">
                             <div class="w-5 h-5 flex items-center justify-center rounded-full"
-                                :class="student.isPaid ? 'bg-green-600' : 'bg-gray-200'">
-                                <template x-if="student.isPaid">
+                                :class="student.isCleared ? 'bg-green-600' : 'bg-gray-200'">
+                                <template x-if="student.isCleared">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
                                     </svg>
                                 </template>
-                                <template x-if="!student.isPaid">
+                                <template x-if="!student.isCleared">
                                     <span class="text-[8px] font-semibold text-gray-500">P</span>
                                 </template>
                             </div>
-                            <span class="text-[10px]" :class="student.isPaid ? 'text-green-600 font-semibold' : 'text-gray-400'">Payment</span>
+                            <span class="text-[10px]" :class="student.isCleared ? 'text-green-600 font-semibold' : 'text-gray-400'">Payment</span>
                         </div>
 
-                        <div class="flex-1 border-t-2 border-dashed" :class="student.status === 'FOR_PAYMENT_VALIDATION' || student.status === 'ENROLLED' ? 'border-green-300' : 'border-gray-300'"></div>
+                        <div class="flex-1 border-t-2 border-dashed" :class="student.status === 'FOR_PAYMENT_VALIDATION' || student.status === 'PAID' || student.status === 'ENROLLED' ? 'border-green-300' : 'border-gray-300'"></div>
 
                         <!-- Enrollment -->
                         <div class="flex items-center space-x-1">
@@ -343,10 +441,10 @@
                                     </svg>
                                 </template>
                                 <template x-if="student.status !== 'ENROLLED'">
-                                    <span class="text-[8px] font-semibold text-gray-500">E</span>
+                                    <span class="text-[8px] font-semibold text-gray-500">A</span>
                                 </template>
                             </div>
-                            <span class="text-[10px]" :class="student.status === 'ENROLLED' ? 'text-indigo-600 font-semibold' : 'text-gray-400'">Enrollment</span>
+                            <span class="text-[10px]" :class="student.status === 'ENROLLED' ? 'text-indigo-600 font-semibold' : 'text-gray-400'">Assessment</span>
                         </div>
                     </div>
                 </div>
@@ -368,13 +466,17 @@
     return {
         showModal: false,
         showImportModal: false,
+        importStep: 'select',    // 'select' | 'confirm'
+        importFile: null,
+        importPreview: { new_count: 0, existing_match: [], existing_mismatch: [] },
+        importPreviewing: false,
         search: '',
         filterCourse: '',
         filterYear: '',
         filterSection: '',
         students: @json($alpineStudents),
 
-        selectedStudents: [], 
+        selectedStudents: [],
 
         get filteredStudents() {
             let result = this.students;
@@ -419,6 +521,46 @@
             `;
             document.body.appendChild(form);
             form.submit();
+        },
+
+        resetImport() {
+            this.showImportModal = false;
+            this.importStep = 'select';
+            this.importFile = null;
+            this.importPreview = { new_count: 0, existing_match: [], existing_mismatch: [] };
+            this.importPreviewing = false;
+            const fi = document.getElementById('importFileInput');
+            if (fi) fi.value = '';
+        },
+
+        async runPreviewImport() {
+            if (!this.importFile) return;
+            this.importPreviewing = true;
+            const fd = new FormData();
+            fd.append('student_file', this.importFile);
+            fd.append('_token', '{{ csrf_token() }}');
+            try {
+                const res = await fetch('{{ route("college.students.import.preview") }}', {
+                    method: 'POST',
+                    body: fd,
+                });
+                if (!res.ok) throw new Error('Preview request failed');
+                this.importPreview = await res.json();
+                // If no existing or mismatch students, skip confirmation and submit directly
+                if (this.importPreview.existing_match.length === 0 && this.importPreview.existing_mismatch.length === 0) {
+                    this.submitImport();
+                } else {
+                    this.importStep = 'confirm';
+                }
+            } catch (e) {
+                alert('Could not preview file. Please check the file format and try again.');
+            } finally {
+                this.importPreviewing = false;
+            }
+        },
+
+        submitImport() {
+            document.getElementById('importForm').submit();
         },
 
         updateStudent(studentId, field, value) {

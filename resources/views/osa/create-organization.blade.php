@@ -5,7 +5,7 @@
 
 @section('content')
 <div class="flex justify-center">
-    <form id="organizationForm" method="POST" action="{{ route('osa.organizations.store') }}" enctype="multipart/form-data" class="w-full max-w-2xl bg-white p-8 rounded-lg shadow-lg">
+    <form id="organizationForm" method="POST" action="{{ route('osa.organizations.store') }}" enctype="multipart/form-data" class="w-full max-w-4xl bg-white p-8 rounded-lg shadow-lg">
         @csrf
         <input type="hidden" name="current_step" id="current_step" value="{{ old('current_step', 1) }}">
 
@@ -42,13 +42,13 @@
                 <select name="college_id" class="w-full border border-gray-300 px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400">
                     <option value="">-- Choose College --</option>
                     @foreach($colleges as $college)
-                        <option value="{{ $college->id }}" {{ old('college_id')==$college->id?'selected':'' }}>{{ $college->name }}</option>
+                        <option value="{{ $college->id }}" data-code="{{ $college->college_code }}" {{ old('college_id')==$college->id?'selected':'' }}>{{ $college->name }}</option>
                     @endforeach
                 </select>
             </div>
 
             <div class="flex justify-end">
-                <button type="button" id="nextStepBtn1" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 transition" onclick="nextStep(1)">Next</button>
+                <button type="button" id="nextStepBtn1" class="bg-red-800 text-white px-6 py-2 rounded hover:bg-red-700 transition" onclick="nextStep(1)">Next</button>
             </div>
         </div>
 
@@ -56,46 +56,80 @@
         <div class="form-step hidden" id="step-2">
             <h3 class="text-xl font-bold mb-6 text-center">Organization Details</h3>
 
-            <div class="mb-4">
-                <label class="block font-medium mb-1">Organization Name</label>
-                <input type="text" name="name" value="{{ old('name') }}" placeholder="Enter Organization Name" class="w-full border border-gray-300 px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400" required>
-            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-4">
+                <div class="grid grid-cols-1 md:grid-cols-1 gap-5 mb-4">
+                    <div class="mb-4">
+                        <label class="block font-medium mb-1">Organization Name</label>
+                        <input type="text" name="name" value="{{ old('name') }}" placeholder="Enter Organization Name" class="w-full border border-gray-300 px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400" required>
+                    </div>
 
-            <div class="mb-4">
-                <label class="block font-medium mb-1">Organization Code</label>
-                <input id="org_code_input" type="text" name="org_code" value="{{ old('org_code') }}" placeholder="Enter Organization Code" class="w-full border border-gray-300 px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400" required>
-                <p class="text-xs text-gray-500 mt-1">Unique code for the organization</p>
-                <p id="codeFeedback" class="text-xs mt-1"></p>
-            </div>
-
-            <div class="mb-6 relative">
-                <label class="block font-medium mb-2">Organization Logo (Optional)</label>
-                <div id="logoUpload" class="w-40 h-40 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center cursor-pointer relative mx-auto">
-                    <button type="button" id="removeLogo" class="hidden absolute -top-7 -right-3 right-0 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-700">×</button>
-                    <span id="logoPlus" class="text-gray-400 text-4xl font-bold">+</span>
-                    <img id="logoPreview" class="hidden w-full h-full object-cover rounded-lg absolute top-0 left-0" alt="Logo Preview">
-                    <input type="file" name="logo" id="logoInput" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                    <div class="mb-4">
+                        <label class="block font-medium mb-1">Organization Code</label>
+                        <input id="org_code_input" type="text" name="org_code" value="{{ old('org_code') }}" placeholder="Enter Organization Code" class="w-full border border-gray-300 px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400" required>
+                        <p class="text-xs text-gray-500 mt-1">Unique code for the organization</p>
+                        <p id="codeFeedback" class="text-xs mt-1"></p>
+                    </div>
                 </div>
-                <p class="text-xs text-gray-500 mt-1 text-center">Click to upload organization logo</p>
+
+                <div class="mb-6 relative">
+                    <label class="block font-medium px-5 mb-2">Organization Logo (Optional)</label>
+                    <div id="logoUpload" class="w-40 h-40 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center cursor-pointer relative mx-auto">
+                        <button type="button" id="removeLogo" class="hidden absolute -top-7 -right-3 right-0 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-700">×</button>
+                        <span id="logoPlus" class="text-gray-400 text-4xl font-bold">+</span>
+                        <img id="logoPreview" class="hidden w-full h-full object-cover rounded-lg absolute top-0 left-0" alt="Logo Preview">
+                        <input type="file" name="logo" id="logoInput" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1 text-center">Click to upload organization logo</p>
+                </div>
             </div>
 
             <div class="flex justify-between">
                 <button type="button" class="bg-gray-400 text-white px-6 py-2 rounded hover:bg-gray-500 transition" onclick="prevStep(2)">Back</button>
-                <button type="button" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 transition" onclick="nextStep(2)">Next</button>
+                <button type="button" class="bg-red-800 text-white px-6 py-2 rounded hover:bg-red-700 transition" onclick="nextStep(2)">Next</button>
             </div>
         </div>
 
         <!--  Admin Account -->
         <div class="form-step hidden" id="step-3">
             <h3 class="text-xl font-bold mb-6 text-center">Organization President Account</h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-2 mb-4">
+                <div>
+                    <label class="block font-medium mb-1">Last Name</label>
+                    <input type="text" name="admin_last_name" placeholder = "Enter Last Name"
+                        class="w-full border border-gray-300 px-4 py-2 rounded"
+                        required>
+                </div>
 
-            <div class="mb-4">
-                <label class="block font-medium mb-1">Admin Name</label>
-                <input type="text" name="admin_name" value="{{ old('admin_name') }}" placeholder="Enter Admin Name" class="w-full border border-gray-300 px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400" required>
+                <div>
+                    <label class="block font-medium mb-1">First Name</label>
+                    <input type="text" name="admin_first_name" placeholder="Enter First Name"
+                        class="w-full border border-gray-300 px-4 py-2 rounded"
+                        required>
+                </div>
+
+                <div class="mb-4">
+                    <label class="block font-medium mb-1">Middle Name</label>
+                    <input type="text" name="admin_middle_name" placeholder="Enter Middle Name"
+                        class="w-full border border-gray-300 px-4 py-2 rounded">
+                </div>
+
+                <div class="mb-4">
+                    <label class="block font-medium mb-1">Suffix</label>
+                    <select name="admin_suffix"
+                            class="w-full border border-gray-300 px-4 py-2 rounded">
+                        <option value="">None</option>
+                        <option value="Jr.">Jr.</option>
+                        <option value="Sr.">Sr.</option>
+                        <option value="II">II</option>
+                        <option value="III">III</option>
+                        <option value="IV">IV</option>
+                    </select>
+                </div>
             </div>
 
             <div class="mb-4">
-                <label class="block font-medium mb-1">Admin Email</label>
+                <label class="block font-medium mb-1"> Email</label>
                 <input id="admin_email_input" type="email" name="admin_email" value="{{ old('admin_email') }}" placeholder="Enter Admin Email" class="w-full border border-gray-300 px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400" required>
                 <p id="emailFeedback" class="text-xs mt-1"></p>
             </div>
@@ -456,6 +490,17 @@ document.addEventListener('DOMContentLoaded', function(){
     const role = document.getElementById('org-role').value;
     document.getElementById('college-select').classList.toggle('hidden', role!=='college_org');
 
+    // if page loaded with a college selected, apply its prefix to the org code input
+    const collegeSelectEl = document.querySelector('[name="college_id"]');
+    if (role === 'college_org' && collegeSelectEl && collegeSelectEl.value && codeInput) {
+        const opt = collegeSelectEl.options[collegeSelectEl.selectedIndex];
+        const dataCode = opt?.dataset?.code || '';
+        const prefix = dataCode ? dataCode.trim().toUpperCase() + '-' : (opt?.textContent || '').split(/\s+/).filter(Boolean).map(w=>w[0]).join('').toUpperCase() + '-';
+        const stripped = (codeInput.value || '').replace(/^[A-Z0-9]+-\s*/i, '');
+        codeInput.value = prefix + stripped;
+        codeInput.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
     toggleCreateDisabled();
 });
 
@@ -494,12 +539,58 @@ if (removeLogo) {
 
 const roleSelect = document.getElementById('org-role');
 const collegeSelectWrapper = document.getElementById('college-select');
+const collegeSelect = document.querySelector('[name="college_id"]');
+
+// build a prefix from selected college (use data-code if present, otherwise derive acronym)
+function getCollegePrefix() {
+    if (!collegeSelect || !collegeSelect.value) return '';
+    const opt = collegeSelect.options[collegeSelect.selectedIndex];
+    const code = opt?.dataset?.code || '';
+    if (code && code.trim()) return code.trim().toUpperCase() + '-';
+    const name = opt?.textContent || '';
+    const acronym = name.split(/\s+/).filter(Boolean).map(w => w[0]).join('').toUpperCase();
+    return acronym ? acronym + '-' : '';
+}
+function stripCollegePrefix(val) {
+    return (val || '').replace(/^[A-Z0-9]+-\s*/i, '');
+}
+function applyCollegePrefixToCode() {
+    if (!codeInput) return;
+    const prefix = getCollegePrefix();
+    const stripped = stripCollegePrefix(codeInput.value || '');
+    if (!prefix) {
+        codeInput.value = stripped;
+    } else {
+        codeInput.value = prefix + stripped;
+    }
+    setTimeout(() => { codeInput.selectionStart = codeInput.selectionEnd = codeInput.value.length; }, 0);
+    codeInput.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+if (collegeSelect) {
+    collegeSelect.addEventListener('change', function () {
+        if (roleSelect && roleSelect.value === 'college_org' && this.value) {
+            applyCollegePrefixToCode();
+        } else {
+            if (codeInput) {
+                codeInput.value = stripCollegePrefix(codeInput.value || '');
+                codeInput.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+        }
+        toggleCreateDisabled();
+    });
+}
 
 roleSelect.addEventListener('change', function () {
     if (this.value === 'college_org') {
         collegeSelectWrapper.classList.remove('hidden');
+        if (collegeSelect && collegeSelect.value) applyCollegePrefixToCode();
     } else {
         collegeSelectWrapper.classList.add('hidden');
+        if (codeInput) {
+            codeInput.value = stripCollegePrefix(codeInput.value || '');
+            codeInput.dispatchEvent(new Event('input', { bubbles: true }));
+        }
     }
     const roleFb = document.getElementById('roleFeedback');
     if (roleFb) roleFb.textContent = '';
@@ -526,7 +617,14 @@ function openPreview() {
         const code = form.querySelector('input[name="org_code"]').value.trim();
         const role = form.querySelector('select[name="role"]').value;
         const collegeText = form.querySelector('select[name="college_id"]')? form.querySelector('select[name="college_id"] option:checked')?.textContent : '';
-        const adminName = form.querySelector('input[name="admin_name"]').value.trim();
+        const adminLast = form.querySelector('input[name="admin_last_name"]').value.trim();
+        const adminFirst = form.querySelector('input[name="admin_first_name"]').value.trim();
+        const adminMiddle = form.querySelector('input[name="admin_middle_name"]').value.trim();
+        const adminSuffix = form.querySelector('select[name="admin_suffix"]').value;
+        const adminFullName =
+            `${adminLast}, ${adminFirst}` +
+            (adminMiddle ? ` ${adminMiddle}` : '') +
+            (adminSuffix ? ` ${adminSuffix}` : '');
         const adminEmail = form.querySelector('input[name="admin_email"]').value.trim();
         const adminPassword = form.querySelector('input[name="admin_password"]').value || '';
 
@@ -555,7 +653,7 @@ function openPreview() {
                 <div>
                     <h4 class="font-semibold">Admin Account</h4>
                     <div class="mt-1 text-sm">
-                        <div><strong>Name:</strong> ${escapeHtml(adminName)}</div>
+                        <div><strong>Name:</strong> ${escapeHtml(adminFullName)}</div>
                         <div><strong>Email:</strong> ${escapeHtml(adminEmail)}</div>
                         <div id="preview-email-error" class="text-xs mt-1 text-red-600"></div>
                         <div><strong>Password:</strong> ${maskedPassword}</div>

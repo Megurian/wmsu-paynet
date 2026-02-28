@@ -35,7 +35,7 @@
         </div>
     @endif
 
-    <div class="grid grid-cols-1 gap-4">
+<div class="grid grid-cols-1 gap-4">
         <div>
             <h3 class="font-medium">Purpose</h3>
             <p class="text-gray-700">{{ $fee->purpose }}</p>
@@ -56,21 +56,36 @@
                 <p class="text-gray-700">{{ $fee->remittance_percent !== null ? number_format($fee->remittance_percent, 2) . '%' : '—' }}</p>
             </div>
             <div>
+                <h3 class="font-medium">Recurrence</h3>
+                <p class="text-gray-700">{{ ucwords(str_replace('_', ' ', $fee->recurrence ?? 'one_time')) }}</p>
             </div>
         </div>
 
         <div>
             <h3 class="font-medium">Supporting Documents</h3>
-            <div class="mt-2">
-                @if($fee->accreditation_file)
-                    <a href="{{ asset('storage/' . $fee->accreditation_file) }}" target="_blank" class="text-blue-600 hover:underline">Download Certificate of Accreditation</a>
+            <div class="mt-2 space-y-2">
+                @if($fee->accreditationDocument)
+                    <div>
+                        <span class="text-sm text-gray-600">Accreditation Certification:</span>
+                        <a href="{{ route('university_org.documents.preview', $fee->accreditationDocument) }}" target="_blank" class="text-blue-600 hover:underline">{{ $fee->accreditationDocument->original_file_name }}</a>
+                    </div>
                 @else
-                    <p class="text-gray-500">No Certificate of Accreditation uploaded.</p>
+                    <p class="text-gray-500 text-sm">No Certificate of Accreditation uploaded.</p>
                 @endif
 
-                @if($fee->resolution_file)
-                    <div class="mt-2">
-                        <a href="{{ asset('storage/' . $fee->resolution_file) }}" target="_blank" class="text-blue-600 hover:underline">Download Resolution of Collection</a>
+                @if($fee->resolutionDocument)
+                    <div>
+                        <span class="text-sm text-gray-600">Resolution of Collection:</span>
+                        <a href="{{ route('university_org.documents.preview', $fee->resolutionDocument) }}" target="_blank" class="text-blue-600 hover:underline">{{ $fee->resolutionDocument->original_file_name }}</a>
+                    </div>
+                @else
+                    <p class="text-gray-500 text-sm">No Resolution of Collection uploaded.</p>
+                @endif
+
+                @if($fee->supportingDocument)
+                    <div>
+                        <span class="text-sm text-gray-600">Supporting Document:</span>
+                        <a href="{{ route('university_org.documents.preview', $fee->supportingDocument) }}" target="_blank" class="text-blue-600 hover:underline">{{ $fee->supportingDocument->original_file_name }}</a>
                     </div>
                 @endif
             </div>

@@ -1,7 +1,7 @@
 @extends('layouts.dashboard')
 
-@section('title', 'Dashboard')
-@section('page-title', 'Dashboard')
+@section('title', 'Cashiering')
+@section('page-title', 'Cashiering')
 
 @section('content')
 <div class="max-w-6xl mx-auto space-y-6">
@@ -60,8 +60,7 @@
             </div>
         </div>
 
-        <div id="cashierPanel"
-             class="hidden bg-white border rounded-lg p-4 flex flex-col justify-between">
+        <div id="cashierPanel" class="bg-white border rounded-lg p-4 flex flex-col justify-between">
 
             <div class="space-y-4">
 
@@ -73,6 +72,7 @@
                 </div>
 
                 <hr>
+
                 <div class="flex justify-between text-sm">
                     <span class="text-gray-600">Total</span>
                     <span class="font-semibold">₱ <span id="totalAmount">0.00</span></span>
@@ -95,8 +95,9 @@
                 </div>
             </div>
 
-            <button
-                class="mt-4 w-full bg-red-700 hover:bg-red-800 text-white py-2 rounded-md text-sm font-medium transition">
+            <button id="proceedPayment"
+                class="mt-4 w-full bg-red-700 hover:bg-red-800 text-white py-2 rounded-md text-sm font-medium transition"
+            >
                 Proceed Payment
             </button>
         </div>
@@ -104,120 +105,224 @@
     </div>
 </div>
 
+
 <script>
 const searchInput = document.getElementById('studentSearch');
 const resultsList = document.getElementById('searchResults');
 const studentCard = document.getElementById('studentCard');
 const cashierPanel = document.getElementById('cashierPanel');
 
-const FEES = [
-    { id: 1, name: 'Registration Fee', amount: 300 },
-    { id: 2, name: 'Membership Fee', amount: 150 },
-    { id: 3, name: 'Organization Fee', amount: 500 },
-];
-
 const feesList = document.getElementById('feesList');
 const totalAmountEl = document.getElementById('totalAmount');
 const cashInput = document.getElementById('cashInput');
 const changeAmountEl = document.getElementById('changeAmount');
+const proceedBtn = document.getElementById('proceedPayment');
 
-// --- STUDENT SEARCH ---
+let FEES = [];
+let PAID_FEES = [];
+let SELECTED_STUDENT = null;
+
+
 searchInput.addEventListener('input', function () {
     const query = this.value.trim();
     if (!query) {
-        resultsList.innerHTML = '';
         resultsList.classList.add('hidden');
-        studentCard.classList.add('hidden');
-        cashierPanel.classList.add('hidden');
         return;
     }
 
     fetch(`/college/students/search?q=${encodeURIComponent(query)}`)
-        .then(res => res.json())
+        .then(res => {
+            if (!res.ok) throw new Error('Search failed');
+            return res.json();
+        })
         .then(data => {
             resultsList.innerHTML = '';
-            if (data.length === 0) { resultsList.classList.add('hidden'); return; }
+            if (data.length === 0) {
+                resultsList.classList.add('hidden');
+                return;
+            }
 
             data.forEach(student => {
                 const li = document.createElement('li');
-                li.textContent = ` ${student.student_id} ${student.name}`;
-                li.className = 'px-3 py-2 hover:bg-gray-100 cursor-pointer text-md uppercase ';
+                li.textContent = ` ${student.student_id} - ${student.name}`;
+                li.className = 'px-3 py-2 hover:bg-gray-100 cursor-pointer text-md uppercase';
                 li.addEventListener('click', () => {
                     searchInput.value = `${student.name} (${student.student_id})`;
                     resultsList.classList.add('hidden');
-                    renderStudentCard(student);
+                    loadStudentDetails(student.id);
                 });
                 resultsList.appendChild(li);
             });
             resultsList.classList.remove('hidden');
+        })
+        .catch(err => {
+            resultsList.innerHTML = `<li class="px-3 py-2 text-red-600 text-sm">Search error: ${err.message}</li>`;
+            resultsList.classList.remove('hidden');
         });
 });
 
-// --- RENDER STUDENT + CASHIER PANEL ---
-function renderStudentCard(student) {
-    document.getElementById('cardStudentId').textContent = student.student_id;
-    document.getElementById('cardName').textContent = student.name;
-    document.getElementById('cardCourse').textContent = student.course ?? '—';
-    document.getElementById('cardYearSection').textContent =
-        `${student.year ?? '—'} ${student.section ?? '—'}`;
-    document.getElementById('cardEmail').textContent = student.email ?? '—';
+function loadStudentDetails(studentId) {
+    fetch(`/college_org/students/${studentId}/fees`)
+        .then(res => {
+            if (!res.ok) throw new Error('Failed to load student details');
+            return res.json();
+        })
+        .then(data => {
+            SELECTED_STUDENT = data.student;
+            FEES = data.fees || [];
+            PAID_FEES = (data.paid_fee_ids || []).map(Number);
 
-    studentCard.classList.remove('hidden');
-    cashierPanel.classList.remove('hidden');
+            document.getElementById('cardStudentId').textContent = data.student.student_id;
+            document.getElementById('cardName').textContent = `${data.student.first_name} ${data.student.last_name}`;
+            document.getElementById('cardCourse').textContent = data.student.course ?? '—';
+            document.getElementById('cardYearSection').textContent =
+                `${data.student.year ?? '—'} - ${data.student.section ?? '—'}`;
+            document.getElementById('cardEmail').textContent = data.student.email ?? '—';
 
-    renderFees();
-    resetPayment();
+            studentCard.classList.remove('hidden');
+            cashierPanel.classList.remove('hidden');
+            resultsList.classList.add('hidden');
+
+            renderFees();
+            resetPayment();
+
+            cashInput.disabled = false;
+            updateProceedBtnState();
+        })
+        .catch(err => {
+            alert('Error loading student details: ' + (err.message || 'Please try again.'));
+            hideStudentCard();
+        });
 }
 
-// --- RENDER FEES ---
 function renderFees() {
     feesList.innerHTML = '';
+    if(FEES.length === 0){
+        feesList.innerHTML = `<p class="text-gray-500 text-sm">No approved fees for this organization.</p>`;
+        return;
+    }
+
     FEES.forEach(fee => {
+        const amount = parseFloat(fee.amount) || 0;
+        const isMandatory = fee.requirement_level === 'mandatory';
+        const isPaid = PAID_FEES.includes(Number(fee.id));
+        const checkedAttr = isMandatory && !isPaid ? 'checked' : '';
+        const disabledAttr = isPaid ? 'disabled' : '';
+
         const div = document.createElement('div');
         div.className = 'flex items-center justify-between text-sm';
         div.innerHTML = `
-            <label class="flex items-center gap-2">
-                <input type="checkbox" data-amount="${fee.amount}" class="feeCheckbox">
-                ${fee.name}
+            <label class="flex items-center gap-2 ${isPaid ? 'text-gray-400 ' : ''}">
+                <input type="checkbox" data-id="${fee.id}" data-amount="${amount}" class="feeCheckbox"
+                    ${checkedAttr} ${disabledAttr}>
+                ${fee.fee_name}
+                <span class="text-xs text-gray-400">(${fee.requirement_level})</span>
+                ${isPaid ? '<span class="text-xs text-green-600 font-semibold ml-1">(PAID)</span>' : ''}
             </label>
-            <span>₱ ${fee.amount.toFixed(2)}</span>
+            <span>₱ ${amount.toFixed(2)}</span>
         `;
         feesList.appendChild(div);
     });
+
     document.querySelectorAll('.feeCheckbox').forEach(cb => cb.addEventListener('change', calculateTotal));
+    calculateTotal();
 }
 
-// --- CALCULATE TOTAL ---
 function calculateTotal() {
     let total = 0;
-    document.querySelectorAll('.feeCheckbox:checked').forEach(cb => {
-        total += parseFloat(cb.dataset.amount);
-    });
+    document.querySelectorAll('.feeCheckbox:checked').forEach(cb => total += parseFloat(cb.dataset.amount));
     totalAmountEl.textContent = total.toFixed(2);
     calculateChange();
 }
 
-// --- CALCULATE CHANGE ---
 function calculateChange() {
     const total = parseFloat(totalAmountEl.textContent) || 0;
     const cash = parseFloat(cashInput.value) || 0;
     const change = cash - total;
     changeAmountEl.textContent = change >= 0 ? change.toFixed(2) : '0.00';
+    updateProceedBtnState();
 }
 
-// --- RESET PAYMENT ---
 function resetPayment() {
-    totalAmountEl.textContent = '0.00';
-    changeAmountEl.textContent = '0.00';
     cashInput.value = '';
+    changeAmountEl.textContent = '0.00';
+    document.querySelectorAll('.feeCheckbox').forEach(cb => cb.checked = cb.hasAttribute('checked'));
+    calculateTotal();
+
+    if (!SELECTED_STUDENT) {
+        cashInput.disabled = true;
+        proceedBtn.disabled = true;
+        feesList.innerHTML = `<p class="text-gray-500 text-sm">Select a student to load fees.</p>`;
+    }
+}
+function updateProceedBtnState() {
+    const hasStudent = !!SELECTED_STUDENT;
+    const hasFees = document.querySelectorAll('.feeCheckbox:checked').length > 0;
+    const cash = parseFloat(cashInput.value) || 0;
+    const total = parseFloat(totalAmountEl.textContent) || 0;
+    proceedBtn.disabled = !(hasStudent && hasFees && cash >= total);
 }
 
 cashInput.addEventListener('input', calculateChange);
 
-document.addEventListener('click', function (e) {
-    if (!searchInput.contains(e.target) && !resultsList.contains(e.target)) {
+proceedBtn.addEventListener('click', () => {
+    if(!SELECTED_STUDENT) {
+        alert('Select a student first.');
+        return;
+    }
+
+    const cashReceived = parseFloat(cashInput.value) || 0;
+    const selectedFees = Array.from(document.querySelectorAll('.feeCheckbox:checked'))
+        .map(cb => parseInt(cb.dataset.id));
+
+    if(selectedFees.length === 0) {
+        alert('Select at least one fee.');
+        return;
+    }
+
+    if(cashReceived < parseFloat(totalAmountEl.textContent)) {
+        alert('Cash received is less than total.');
+        return;
+    }
+
+    proceedBtn.disabled = true;
+    proceedBtn.textContent = 'Processing...';
+
+    fetch('/college_org/payment/collect', {
+        method:'POST',
+        headers:{ 'Content-Type':'application/json','X-CSRF-TOKEN':'{{ csrf_token() }}' },
+        body: JSON.stringify({ student_id: SELECTED_STUDENT.id, fee_ids: selectedFees, cash_received: cashReceived })
+    })
+    .then(res => res.ok ? res.json() : res.json().then(d=>{ throw d; }))
+    .then(data => {
+        alert(data.message || 'Payment collected successfully.');
+        SELECTED_STUDENT = null;
+        FEES = [];
+        PAID_FEES = [];
+        searchInput.value = '';
+        proceedBtn.disabled = false;
+        proceedBtn.textContent = 'Proceed Payment';
+        hideStudentCard();
+    })
+    .catch(err => {
+        alert(err.message || 'Something went wrong.');
+        proceedBtn.disabled = false;
+        proceedBtn.textContent = 'Proceed Payment';
+    });
+});
+
+document.addEventListener('click', function(e){
+    if(!searchInput.contains(e.target) && !resultsList.contains(e.target)){
         resultsList.classList.add('hidden');
     }
 });
+
+function hideStudentCard() {
+    resultsList.innerHTML = '';
+    resultsList.classList.add('hidden');
+    studentCard.classList.add('hidden');
+    cashierPanel.classList.add('hidden');
+    resetPayment();
+}
 </script>
 @endsection

@@ -13,7 +13,7 @@ class OSAOrganizationsController extends Controller
 {
     public function index()
     {
-        $organizations = Organization::with('college', 'admin')->get();
+        $organizations = Organization::with('college', 'orgAdmin')->get();
         return view('osa.organizations', compact('organizations'));
     }
 
@@ -59,7 +59,10 @@ class OSAOrganizationsController extends Controller
                 },
             ],
             'logo' => 'nullable|image|max:2048',
-            'admin_name' => 'required|string|max:255',
+            'admin_last_name' => 'required|string|max:255',
+            'admin_first_name' => 'required|string|max:255',
+            'admin_middle_name' => 'nullable|string|max:255',
+            'admin_suffix' => 'nullable|string|max:255',
             'admin_email' => 'required|email|unique:users,email',
             'admin_password' => 'required|string|min:8|confirmed',
         ]);
@@ -68,16 +71,25 @@ class OSAOrganizationsController extends Controller
             DB::transaction(function () use ($request) {
                 $logoPath = $request->file('logo')?->store('organizations', 'public');
 
+                $status = null; 
+                if ($request->role === 'college_org' && $request->college_id) {
+                    $status = 'pending'; 
+                }
                 $organization = Organization::create([
                     'name' => $request->name,
                     'org_code' => strtoupper($request->org_code),
                     'role' => $request->role,
                     'college_id' => $request->college_id,
                     'logo' => $logoPath,
+                    'status' => $status,
+                    'mother_organization_id' => $request->mother_organization_id ?? null,
                 ]);
 
                 User::create([
-                    'name' => $request->admin_name,
+                    'last_name' => $request->admin_last_name,
+                    'first_name' => $request->admin_first_name,
+                    'middle_name' => $request->admin_middle_name,
+                    'suffix' => $request->admin_suffix,
                     'email' => $request->admin_email,
                     'password' => Hash::make($request->admin_password),
                     'role' => $request->role,
@@ -93,7 +105,7 @@ class OSAOrganizationsController extends Controller
 
     public function show($id)
     {
-        $organization = Organization::with('college', 'admin')->find($id);
+        $organization = Organization::with('college', 'orgAdmin')->find($id);
 
         if (!$organization) {
             return redirect()->route('osa.organizations')
@@ -114,6 +126,24 @@ class OSAOrganizationsController extends Controller
         $organization->delete();
 
         return redirect()->route('osa.organizations')->with('status', 'Organization deleted successfully!');
+    }
+
+    /**
+     * Toggle OSA fee inheritance for an organization
+     */
+    public function toggleOsaInheritance($id)
+    {
+        $organization = Organization::findOrFail($id);
+
+        $organization->update([
+            'inherits_osa_fees' => !$organization->inherits_osa_fees
+        ]);
+
+        $message = $organization->inherits_osa_fees 
+            ? 'Organization now inherits OSA fees.'
+            : 'Organization no longer inherits OSA fees.';
+
+        return redirect()->route('osa.organizations')->with('status', $message);
     }
 
 }

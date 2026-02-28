@@ -86,11 +86,15 @@
                 <h2 class="mt-3 text-lg font-bold text-center break-words max-w-[12rem]">
                     {{ $currentCollege->name }}
                 </h2>
-                <p class="text-xs opacity-80 text-center">
+                <p class="text-sm opacity-90 mt-3 font-bold text-center">
                     @switch($user->role)
                         @case('college') College Dean @break
                         @case('student_coordinator') Student Coordinator @break
-                        @case('adviser') Adviser @break
+                        @case('adviser') Adviser 
+                        <span class="inline-block bg-blue-100 text-blue-800 text-xs font-semibold px-3 py-1 rounded-full">
+                            {{ Auth::user()->course?->name ?? 'No course assigned' }}
+                        </span>
+                        @break
                         @case('assessor') Assessor @break
                     @endswitch
                 </p>
@@ -157,6 +161,10 @@
                     {{ request()->routeIs('university_org.offices') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
                     <span>Offices</span>
                 </a>
+                <a href="{{ route('university_org.documents.index') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('university_org.documents.*') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span>Documents</span>
+                </a>
                 <a href="{{ route('university_org.remittance') }}" class="block px-4 py-2 rounded-md transition
                     {{ request()->routeIs('university_org.remittance') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
                     <span>Remittance</span>
@@ -189,6 +197,10 @@
                     {{ request()->routeIs('college_org.fees') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
                     <span>Fees</span>
                 </a>
+                <a href="{{ route('college_org.documents.index') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('college_org.documents.*') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span>Documents</span>
+                </a>
                 <a href="{{ route('college_org.payment') }}" class="block px-4 py-2 rounded-md transition
                     {{ request()->routeIs('college_org.payment') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
                     <span>Payment</span>
@@ -202,7 +214,15 @@
                  @if($role === 'college')
                 <a href="{{ route('college.users.index') }}" class="block px-4 py-2 rounded-md transition
                     {{ request()->routeIs('college.users.*') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-                    <span>User Management</span>
+                    <span> College Management</span>
+                </a>
+                <a href="{{ route('college.fees.approval') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('college.fees.approval') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span> Fees</span>
+                </a>
+                <a href="{{ route('college.local_organizations.approvals') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('college.local_organizations.approvals') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span> Organizations</span>
                 </a>
                 @endif
 
@@ -213,10 +233,29 @@
                     </a>
                 @endif
 
+                @if(Auth::user()->role === 'treasurer')
+                    <a href="{{ route('treasurer.cashiering') }}" class="block px-4 py-2 rounded-md transition
+                        {{ request()->routeIs('treasurer.cashiering') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                        <span> Payments</span>
+                    </a>
+                @endif
+
                 @if(in_array($role, [ 'student_coordinator','assessor']))
                     <a href="{{ route('college.students.validate') }}" class="block px-4 py-2 rounded-md transition
                         {{ request()->routeIs('college.students.validate') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
                         <span>Enrollment Validation</span>
+                    </a>
+                    
+                @endif
+
+                @if(Auth::user()->role === 'student_coordinator')
+                    <a href="{{ route('college.fees') }}" class="block px-4 py-2 rounded-md transition
+                        {{ request()->routeIs('college.fees') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                        <span>Fees</span>
+                    </a>
+                    <a href="{{ route('college.local_organizations') }}" class="block px-4 py-2 rounded-md transition
+                        {{ request()->routeIs('college.local_organizations') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                        <span> College Organizations</span>
                     </a>
                 @endif
 
@@ -253,7 +292,7 @@
                 <!-- User Dropdown -->
                 <div class="relative">
                     <button type="button" class="flex items-center gap-2 text-sm text-gray-700 hover:text-gray-900 focus:outline-none" onclick="document.getElementById('user-dropdown').classList.toggle('hidden')">
-                        <span>{{ Auth::user()->name }}</span>
+                        <span>{{ auth()->user()->full_name }}</span>
                         <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                         </svg>
@@ -337,23 +376,33 @@
         </div>
 
         <script>
-            function toggleSidebar() {
-                const sidebar = document.getElementById('sidebar');
-                const mainArea = document.getElementById('main-area');
-                const header = document.getElementById('main-header');
+            const sidebar = document.getElementById('sidebar');
+            const mainArea = document.getElementById('main-area');
+            const header = document.getElementById('main-header');
 
-                sidebar.classList.toggle('collapsed');
-
-                if (sidebar.classList.contains('collapsed')) {
+            function applySidebarState(collapsed) {
+                if (collapsed) {
+                    sidebar.classList.add('collapsed');
                     mainArea.style.marginLeft = '100px';
                     header.style.left = '100px';
                     header.style.right = '0';
                 } else {
+                    sidebar.classList.remove('collapsed');
                     mainArea.style.marginLeft = '16rem';
                     header.style.left = '16rem';
                     header.style.right = '0';
                 }
             }
+            function toggleSidebar() {
+                const isCollapsed = sidebar.classList.toggle('collapsed');
+                applySidebarState(isCollapsed);
+                localStorage.setItem('sidebarCollapsed', isCollapsed); 
+            }
+
+            document.addEventListener('DOMContentLoaded', () => {
+                const savedState = localStorage.getItem('sidebarCollapsed') === 'true';
+                applySidebarState(savedState);
+            });
 
             function closeSuccessModal() {
                 const modal = document.getElementById('successModal');
@@ -361,11 +410,7 @@
             }
 
             setTimeout(() => closeSuccessModal(), 3000);
-
-            
-
         </script>
-
     </div>
 
 </body>

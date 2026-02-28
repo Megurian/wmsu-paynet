@@ -19,21 +19,21 @@
                 </button>
             @endif
         </div>
-        <select name="course" class="rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition" onchange="this.form.submit()">
+        <select name="course" class="rounded-lg border border-gray-300 px-4 py-2.5 pr-8 appearance-none text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition" onchange="this.form.submit()">
             <option value="">All Courses</option>
             @foreach($courses as $course)
                 <option value="{{ $course->id }}" @selected(request('course') == $course->id)>{{ $course->name }}</option>
             @endforeach
         </select>
 
-        <select name="year" class="rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition" onchange="this.form.submit()">
+        <select name="year" class="rounded-lg border border-gray-300 px-4 py-2.5 pr-8 appearance-none text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition" onchange="this.form.submit()">
             <option value="">All Years</option>
             @foreach($years as $year)
                 <option value="{{ $year->id }}" @selected(request('year') == $year->id)>{{ $year->name }}</option>
             @endforeach
         </select>
 
-        <select name="section" class="rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition" onchange="this.form.submit()">
+        <select name="section" class="rounded-lg border border-gray-300 px-4 py-2.5 pr-8 appearance-none text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition" onchange="this.form.submit()">
             <option value="">All Sections</option>
             @foreach($sections as $section)
                 <option value="{{ $section->id }}" @selected(request('section') == $section->id)>{{ $section->name }}</option>
@@ -85,16 +85,17 @@
         @forelse($students as $student)
         @php
             $currentEnrollment = $activeEnrollments[$student->id] ?? null;
-            $prev = $previousEnrollments[$student->id] ?? null;
             $displayEnrollment = $student->displayEnrollment;
-            $isAdvised = $currentEnrollment !== null;
-            $isPaid = $currentEnrollment && $currentEnrollment->is_paid;
+            $isAdvised  = $currentEnrollment && $currentEnrollment->status !== 'NOT_ENROLLED';
+            $isCleared  = $currentEnrollment && $currentEnrollment->cleared_for_enrollment;
+            $isPaid     = $currentEnrollment && $currentEnrollment->status === 'PAID';
             $isEnrolled = $currentEnrollment && $currentEnrollment->status === 'ENROLLED';
         @endphp
 
         <div class="bg-white shadow rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between space-y-3 md:space-y-0 md:space-x-4">
-            <div class="flex items-center space-x-4 md:w-1/3">
-               @if($isAdvised && $isPaid && !$isEnrolled)
+            {{-- Left Section: Student Info --}}
+            <div class="flex items-center md:w-1/3 space-x-2">
+                @if($isCleared && !$isEnrolled)
                     @if(auth()->user()->isAssessor())
                         <input type="checkbox"
                             name="selected_students[]"
@@ -106,19 +107,12 @@
                 <div class="text-sm font-semibold">{{ $student->student_id }}</div>
                 <div class="text-sm font-medium">{{ strtoupper($student->last_name) }}, {{ strtoupper($student->first_name) }}</div>
             </div>
-            <div class="md:w-1/3 text-sm text-gray-700">
-                <div class="grid grid-cols-4 gap-2 items-center">
-                    <div class="col-span-1 text-xs">
-                        @if($prev)
-                            <div class="font-semibold">{{ $prev->course->name ?? '—' }}</div>
-                            <div>{{ $prev->yearLevel->name ?? '—' }} {{ $prev->section->name ?? '—' }}</div>
-                        @else
-                            <span class="italic text-gray-400">No previous record</span>
-                        @endif
-                    </div>
 
+            {{-- Middle Section: Course/Year/Section --}}
+            <div class="md:w-1/3 text-sm text-gray-700">
+                <div class="grid grid-cols-3 gap-2 items-center">
                     <!-- Course Dropdown -->
-                    <div class="col-span-1">
+                    <div>
                         <select name="course_id[{{ $student->id }}]" class="w-full border rounded px-2 py-1 text-xs" required {{ $isEnrolled ? 'disabled' : '' }}>
                             @foreach($courses as $course)
                                 <option value="{{ $course->id }}"
@@ -129,7 +123,7 @@
                     </div>
 
                     <!-- Year Dropdown -->
-                    <div class="col-span-1">
+                    <div>
                         <select name="year_level_id[{{ $student->id }}]" class="w-full border rounded px-2 py-1 text-xs" required {{ $isEnrolled ? 'disabled' : '' }}>
                             @foreach($years as $year)
                                 <option value="{{ $year->id }}"
@@ -140,7 +134,7 @@
                     </div>
 
                     <!-- Section Dropdown -->
-                    <div class="col-span-1 mt-1">
+                    <div>
                         <select name="section_id[{{ $student->id }}]" class="w-full border rounded px-2 py-1 text-xs" required {{ $isEnrolled ? 'disabled' : '' }}>
                             @foreach($sections as $section)
                                 <option value="{{ $section->id }}"
@@ -152,16 +146,17 @@
                 </div>
             </div>
 
-
+            {{-- Right Section: Status & Progress --}}
             <div class="flex flex-col items-end md:w-1/3 space-y-2">
+                {{-- Status/Action Button --}}
                 <div>
                     @if($isEnrolled)
-                        <span class="text-indigo-600 font-semibold text-sm">Enrolled</span>
+                        <span class="text-indigo-600 font-semibold text-sm">Assessment Completed</span>
 
                     @elseif(!$isAdvised)
                         <span class="text-gray-400 italic text-sm">Waiting for adviser</span>
 
-                    @elseif(!$isPaid)
+                    @elseif(!$isCleared)
                         @if(auth()->user()->isStudentCoordinator())
                            <button
                                 type="button"
@@ -197,13 +192,14 @@
                             </button>
                         
                         @else
-                            <span class="text-green-600 font-semibold text-sm">Payment Completed</span>
+                            <span class="text-green-600 font-semibold text-sm">For Assessment</span>
                         @endif
                     @endif  
                 </div>
 
-
-                <div class="flex items-center justify-end space-x-3 mt-2">
+                {{-- Progress Indicator --}}
+                <div class="flex items-center space-x-3 mt-2 w-full">
+                    <!-- Advising -->
                     <div class="flex items-center space-x-1">
                         <div class="w-5 h-5 flex items-center justify-center rounded-full {{ $isAdvised ? 'bg-blue-600' : 'bg-gray-200' }} text-white">
                             @if($isAdvised)
@@ -219,9 +215,10 @@
 
                     <div class="flex-1 border-t-2 border-dashed {{ $isAdvised ? 'border-blue-300' : 'border-gray-300' }}"></div>
 
+                    <!-- Payment -->
                     <div class="flex items-center space-x-1">
-                        <div class="w-5 h-5 flex items-center justify-center rounded-full {{ $isPaid ? 'bg-green-600' : 'bg-gray-200' }} text-white">
-                            @if($isPaid)
+                        <div class="w-5 h-5 flex items-center justify-center rounded-full {{ $isCleared ? 'bg-green-600' : 'bg-gray-200' }} text-white">
+                            @if($isCleared)
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
                                 </svg>
@@ -229,11 +226,12 @@
                                 <span class="text-[8px] font-semibold text-gray-500">P</span>
                             @endif
                         </div>
-                        <span class="text-[10px] {{ $isPaid ? 'text-green-600 font-semibold' : 'text-gray-400' }}">Payment</span>
+                        <span class="text-[10px] {{ $isCleared ? 'text-green-600 font-semibold' : 'text-gray-400' }}">Payment</span>
                     </div>
 
-                    <div class="flex-1 border-t-2 border-dashed {{ $isPaid ? 'border-green-300' : 'border-gray-300' }}"></div>
+                    <div class="flex-1 border-t-2 border-dashed {{ $isCleared ? 'border-green-300' : 'border-gray-300' }}"></div>
 
+                    <!-- Assessment -->
                     <div class="flex items-center space-x-1">
                         <div class="w-5 h-5 flex items-center justify-center rounded-full {{ $isEnrolled ? 'bg-indigo-600' : 'bg-gray-200' }} text-white">
                             @if($isEnrolled)
@@ -241,10 +239,10 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
                                 </svg>
                             @else
-                                <span class="text-[8px] font-semibold text-gray-500">E</span>
+                                <span class="text-[8px] font-semibold text-gray-500">A</span>
                             @endif
                         </div>
-                        <span class="text-[10px] {{ $isEnrolled ? 'text-indigo-600 font-semibold' : 'text-gray-400' }}">Enrollment</span>
+                        <span class="text-[10px] {{ $isEnrolled ? 'text-indigo-600 font-semibold' : 'text-gray-400' }}">Assessment</span>
                     </div>
                 </div>
             </div>
@@ -267,7 +265,6 @@
         @click.away="close()"
         class="bg-white rounded-xl shadow-xl w-full max-w-6xl max-h-[95vh] "
     >
-
         <!-- Header -->
         <div class="px-6 py-4 border-b flex justify-between items-start">
             <h3 class="text-xl font-bold text-gray-800">Verify Payment</h3>
@@ -275,126 +272,7 @@
         </div>
 
         <div class="p-6 text-sm overflow-y-auto max-h-[calc(92vh-100px)]">
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-                <!--  Student Information -->
-                <div class="space-y-4">
-                    <h4 class="font-semibold text-gray-700">Student Information</h4>
-
-                    <div class="grid grid-cols-2 gap-3">
-                        <div class="bg-gray-50 border rounded-lg p-3">
-                            <p class="text-xs text-gray-500">Full Name</p>
-                            <p class="font-semibold text-gray-800" x-text="studentName"></p>
-                        </div>
-
-                        <div class="bg-gray-50 border rounded-lg p-3">
-                            <p class="text-xs text-gray-500">Student ID</p>
-                            <p class="font-semibold text-gray-800" x-text="studentNumber"></p>
-                        </div>
-
-                        <div class="bg-gray-50 border rounded-lg p-3">
-                            <p class="text-xs text-gray-500">Course · Year · Section</p>
-                            <p class="font-semibold text-gray-800" x-text="`${studentCourse} · ${studentYear} · ${studentSection}`"></p>
-                        </div>
-                        <div class="bg-gray-50 border rounded-lg p-3">
-                            <p class="text-xs text-gray-500">Email</p>
-                            <p class="font-semibold text-gray-800" x-text="studentEmail || '—'"></p>
-                        </div>
-
-                        <div class="bg-gray-50 border rounded-lg p-3">
-                            <p class="text-xs text-gray-500">Contact</p>
-                            <p class="font-semibold text-gray-800" x-text="studentContact || '—'"></p>
-                        </div>
-
-                        <div class="bg-gray-50 border rounded-lg p-3">
-                            <p class="text-xs text-gray-500">Religion</p>
-                            <p class="font-semibold text-gray-800" x-text="studentReligion || '—'"></p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Payment Details -->
-                <div class="space-y-4">
-                    <div class="flex items-center justify-between">
-                        <h4 class="font-semibold text-gray-700">Payment & Transaction Details</h4>
-                        <span class="text-xs text-gray-400 italic">S.Y. & Semester</span>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <span class="font-medium">Overall Status:</span>
-                            <span class="ml-1 text-yellow-600 font-semibold">Pending</span>
-                        </div>
-                        <div>
-                            <span class="font-medium">Last Updated:</span>
-                            <span class="ml-1 text-gray-500">—</span>
-                        </div>
-                    </div>
-
-                    <hr class="border-gray-200">
-
-                    <!-- Scrollable Payment List -->
-                    <div class="space-y-3 max-h-80 overflow-y-auto">
-                        <div class="border rounded-xl p-4 shadow-sm flex justify-between">
-                            <div>
-                                <p class="font-medium">CSC Fee</p>
-                                <p class="text-xs text-gray-500">University Student Council</p>
-                            </div>
-                            <div class="text-right">
-                                <p class="font-semibold">₱ —</p>
-                                <p class="text-green-600 text-sm font-medium">Paid</p>
-                            </div>
-                        </div>
-
-                        <div class="border rounded-xl p-4 shadow-sm flex justify-between">
-                            <div>
-                                <p class="font-medium">Department Org Fee</p>
-                                <p class="text-xs text-gray-500">College Organization</p>
-                            </div>
-                            <div class="text-right">
-                                <p class="font-semibold">₱ —</p>
-                                <p class="text-green-600 text-sm font-medium">Paid</p>
-                            </div>
-                        </div>
-
-                        <div class="border rounded-xl p-4 shadow-sm flex justify-between">
-                            <div>
-                                <p class="font-medium">Department Org Fee</p>
-                                <p class="text-xs text-gray-500">College Organization</p>
-                            </div>
-                            <div class="text-right">
-                                <p class="font-semibold">₱ —</p>
-                                <p class="text-green-600 text-sm font-medium">Paid</p>
-                            </div>
-                        </div>
-
-                        <div class="border rounded-xl p-4 shadow-sm flex justify-between">
-                            <div>
-                                <p class="font-medium">Department Org Fee</p>
-                                <p class="text-xs text-gray-500">College Organization</p>
-                            </div>
-                            <div class="text-right">
-                                <p class="font-semibold">₱ —</p>
-                                <p class="text-green-600 text-sm font-medium">Paid</p>
-                            </div>
-                        </div>
-
-                        <div class="border rounded-xl p-4 shadow-sm flex justify-between">
-                            <div>
-                                <p class="font-medium">Department Org Fee</p>
-                                <p class="text-xs text-gray-500">College Organization</p>
-                            </div>
-                            <div class="text-right">
-                                <p class="font-semibold">₱ —</p>
-                                <p class="text-green-600 text-sm font-medium">Paid</p>
-                            </div>
-                        </div>
-
-                    </div>
-                </div>
-
-
-            </div>
+            @include('college.verify-payment-content')
         </div>
 
         <!-- Footer -->
@@ -402,11 +280,11 @@
             <button @click="close()" class="px-4 py-2 border rounded text-gray-600 hover:bg-gray-100">
                 Cancel
             </button>
-            <form :action="markPaidUrl" method="POST">
+            <form :action="clearEnrollmentUrl" method="POST" @submit.prevent="submitClearForm">
                 @csrf
-                <button class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-500"
-                onclick="return confirm('Confirm this Student for Enrollment?')">
-                    Clear Student for Enrollment
+                <button :disabled="!allMandatoryFeesPaid" type="submit" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition"
+                    :title="!allMandatoryFeesPaid ? 'All mandatory fees must be paid before clearing for assessment' : 'Clear this student for assessment'">
+                    Clear Student for Assessment
                 </button>
             </form>
         </div>
@@ -478,6 +356,33 @@ function paymentVerification() {
         studentContact: '',
         studentReligion: '',
         markPaidUrl: '',
+        clearEnrollmentUrl: '',
+        fees: [],
+        optionalFeeShown: false,
+
+        get mandatoryFees() {
+            return this.fees.filter(f => f.requirement_level === 'mandatory');
+        },
+
+        get optionalFees() {
+            return this.fees.filter(f => f.requirement_level !== 'mandatory');
+        },
+
+        get allMandatoryFeesPaid() {
+            return this.mandatoryFees.every(fee => fee.payments && fee.payments.length > 0);
+        },
+
+        submitClearForm(e) {
+            if (!this.allMandatoryFeesPaid) {
+                e.preventDefault();
+                return false;
+            }
+            if (!confirm('Confirm this Student for Enrollment?')) {
+                e.preventDefault();
+                return false;
+            }
+            e.target.submit();
+        },
 
         openPaymentModal(id, studentNo, name, course, year, section, email, contact, religion) {
             this.studentId = id;
@@ -490,7 +395,14 @@ function paymentVerification() {
             this.studentContact = contact;
             this.studentReligion = religion;
             this.markPaidUrl = `/college/students/${id}/mark-paid`;
+            this.clearEnrollmentUrl = `/college/students/${id}/clear-for-enrollment`;
+            this.optionalFeeShown = false;
             this.showPaymentModal = true;
+            fetch(`/college/students/${id}/fees`)
+                .then(res => res.json())
+                .then(data => {
+                    this.fees = data;
+                });
         },
         close() {
             this.showPaymentModal = false;

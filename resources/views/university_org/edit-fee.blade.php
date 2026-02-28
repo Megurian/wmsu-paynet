@@ -46,6 +46,16 @@
         </div>
 
         <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Recurrence</label>
+            <select id="recurrence_select" name="recurrence" required class="w-full border rounded px-3 py-2">
+                <option value="one_time" {{ old('recurrence', $fee->recurrence) == 'one_time' ? 'selected' : '' }}>One Time</option>
+                <option value="semestrial" {{ old('recurrence', $fee->recurrence) == 'semestrial' ? 'selected' : '' }}>Semestrial</option>
+                <option value="annual" {{ old('recurrence', $fee->recurrence) == 'annual' ? 'selected' : '' }}>Annual</option>
+            </select>
+            @error('recurrence') <p class="text-red-600 text-sm mt-1">{{ $message }}</p> @enderror
+        </div>
+
+        <div class="mb-4">
             <label class="block text-sm font-medium text-gray-700 mb-1">Requirement Level</label>
             <select id="requirement_level_select" name="requirement_level" required class="w-full border rounded px-3 py-2">
                 <option value="mandatory" {{ old('requirement_level', $fee->requirement_level) == 'mandatory' ? 'selected' : '' }}>Mandatory</option>
@@ -54,14 +64,17 @@
             @error('requirement_level') <p class="text-red-600 text-sm mt-1">{{ $message }}</p> @enderror
         </div>
 
-        @if ($fee->accreditation_file || $fee->resolution_file)
+        @if ($fee->accreditationDocument || $fee->resolutionDocument || $fee->supportingDocument)
             <div class="mb-4" id="current-files">
-                <p class="text-sm font-medium text-gray-700 mb-1">Existing Files</p>
-                @if ($fee->accreditation_file)
-                    <p class="text-sm"><a href="{{ \Illuminate\Support\Facades\Storage::url($fee->accreditation_file) }}" target="_blank" class="text-blue-600 hover:underline">View Certificate of Accreditation</a></p>
+                <p class="text-sm font-medium text-gray-700 mb-1">Existing Documents</p>
+                @if ($fee->accreditationDocument)
+                    <p class="text-sm"><a href="{{ \Illuminate\Support\Facades\Storage::url($fee->accreditationDocument->file_path) }}" target="_blank" class="text-blue-600 hover:underline">View Certificate of Accreditation — {{ $fee->accreditationDocument->original_file_name }}</a></p>
                 @endif
-                @if ($fee->resolution_file)
-                    <p class="text-sm"><a href="{{ \Illuminate\Support\Facades\Storage::url($fee->resolution_file) }}" target="_blank" class="text-blue-600 hover:underline">View Resolution of Collection</a></p>
+                @if ($fee->resolutionDocument)
+                    <p class="text-sm"><a href="{{ \Illuminate\Support\Facades\Storage::url($fee->resolutionDocument->file_path) }}" target="_blank" class="text-blue-600 hover:underline">View Resolution of Collection — {{ $fee->resolutionDocument->original_file_name }}</a></p>
+                @endif
+                @if ($fee->supportingDocument)
+                    <p class="text-sm"><a href="{{ \Illuminate\Support\Facades\Storage::url($fee->supportingDocument->file_path) }}" target="_blank" class="text-blue-600 hover:underline">View Supporting Document — {{ $fee->supportingDocument->original_file_name }}</a></p>
                 @endif
             </div>
         @endif

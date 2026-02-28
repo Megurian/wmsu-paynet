@@ -109,7 +109,12 @@
 
             <div class="mb-4">
                 <label class="block font-medium mb-1">Admin Name</label>
-                <input type="text" name="admin_name" value="" placeholder="Enter Admin Name" class="w-full border border-gray-300 px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400" required>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-2">
+                    <input type="text" name="admin_last_name" value="" placeholder="Last Name" class="border border-gray-300 px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400" required>
+                    <input type="text" name="admin_first_name" value="" placeholder="First Name" class="border border-gray-300 px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400" required>
+                    <input type="text" name="admin_middle_name" value="" placeholder="Middle Name" class="border border-gray-300 px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400">
+                    <input type="text" name="admin_suffix" value="" placeholder="Suffix" class="border border-gray-300 px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400">
+                </div>
             </div>
 
             <div class="mb-4">
@@ -173,11 +178,14 @@ function setupOrgPrefix() {
     const prefixInput = document.getElementById('org-prefix');
     const suffixInput = document.getElementById('org-suffix');
     const fullInput = document.getElementById('org-full');
+    const codeInput = document.getElementById('org_code_input');
 
     if (!prefixInput || !suffixInput || !fullInput) return;
 
     const selectedOption = collegeSelect && collegeSelect.selectedOptions[0];
     const collegeName = selectedOption ? (selectedOption.dataset.name || selectedOption.text) : '';
+    // prefer data-code if provided, otherwise use option value
+    const collegeCode = selectedOption ? (selectedOption.dataset.code || selectedOption.value || '') : '';
 
     const prefix = collegeName ? `${collegeName} - ` : '';
     prefixInput.value = prefix;
@@ -190,6 +198,23 @@ function setupOrgPrefix() {
             suffixInput.value = fullInput.value;
             fullInput.value = prefix + suffixInput.value;
         }
+    }
+
+    // Apply college-code prefix to organization code input (format: "CSSPE-" with NO spaces)
+    if (codeInput) {
+        let codePrefix = '';
+        if (collegeCode && collegeCode.trim()) {
+            codePrefix = collegeCode.trim().toUpperCase() + '-';
+        } else if (collegeName) {
+            // fallback: derive acronym from college name
+            const acronym = collegeName.split(/\s+/).filter(Boolean).map(w => w[0]).join('').toUpperCase();
+            codePrefix = acronym ? acronym + '-' : '';
+        }
+        const stripped = (codeInput.value || '').replace(/^[A-Z0-9]+-\s*/i, '');
+        codeInput.value = codePrefix ? codePrefix + stripped : stripped;
+        // move caret to end and trigger input handlers
+        setTimeout(() => { codeInput.selectionStart = codeInput.selectionEnd = codeInput.value.length; }, 0);
+        codeInput.dispatchEvent(new Event('input', { bubbles: true }));
     }
 
     // Ensure full value is synced now
@@ -385,12 +410,16 @@ function validateStep(step) {
     }
 
     if (step === 3) {
-        const adminName = document.querySelector('input[name="admin_name"]')?.value.trim() || '';
+        const adminLastName = document.querySelector('input[name="admin_last_name"]')?.value.trim() || '';
+        const adminFirstName = document.querySelector('input[name="admin_first_name"]')?.value.trim() || '';
+        const adminMiddleName = document.querySelector('input[name="admin_middle_name"]')?.value.trim() || '';
+        const adminSuffix = document.querySelector('input[name="admin_suffix"]')?.value.trim() || '';
         const adminEmail = document.getElementById('admin_email_input')?.value.trim() || '';
         const pw = document.getElementById('admin_password')?.value || '';
         const pwc = document.getElementById('admin_password_confirmation')?.value || '';
 
-        if (!adminName) { document.querySelector('input[name="admin_name"]')?.focus(); return false; }
+        if (!adminLastName) { document.querySelector('input[name="admin_last_name"]').focus(); return false; }
+        if (!adminFirstName) { document.querySelector('input[name="admin_first_name"]').focus(); return false; }
         if (!adminEmail) { document.getElementById('admin_email_input')?.focus(); setFeedback(emailFeedback, 'Required', 'text-red-600'); return false; }
         if (!pw || !pwc) { document.getElementById('admin_password')?.focus(); return false; }
         if (pw !== pwc) { setFeedback(pwFeedback, 'Passwords do not match', 'text-red-600'); return false; }
@@ -418,7 +447,13 @@ function openPreview() {
     const suffix = document.getElementById('org-suffix')?.value || '';
     const fullName = prefix + suffix;
     const orgCode = document.getElementById('org_code_input')?.value || '';
-    const adminName = document.querySelector('input[name="admin_name"]')?.value || '';
+    const adminLastName = document.querySelector('input[name="admin_last_name"]')?.value || '';
+    const adminFirstName = document.querySelector('input[name="admin_first_name"]')?.value || '';
+    const adminMiddleName = document.querySelector('input[name="admin_middle_name"]')?.value || '';
+    const adminSuffix = document.querySelector('input[name="admin_suffix"]')?.value || '';
+
+    // Combine for display in preview
+    const adminFullName = `${adminLastName}, ${adminFirstName}${adminMiddleName ? ' ' + adminMiddleName : ''}${adminSuffix ? ', ' + adminSuffix : ''}`;
     const adminEmail = document.getElementById('admin_email_input')?.value || '';
     const adminPassword = document.getElementById('admin_password')?.value || '';
 
@@ -447,7 +482,7 @@ function openPreview() {
             <div>
                 <h4 class="font-semibold">Admin Account</h4>
                 <div class="mt-1 text-sm">
-                    <div><strong>Name:</strong> ${escapeHtml(adminName)}</div>
+                    <div><strong>Name:</strong> ${escapeHtml(adminFullName)}</div>
                     <div><strong>Email:</strong> ${escapeHtml(adminEmail)}</div>
                     <div><strong>Password:</strong> ${maskedPassword}</div>
                 </div>

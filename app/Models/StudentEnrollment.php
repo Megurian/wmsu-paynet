@@ -6,14 +6,15 @@ use Illuminate\Database\Eloquent\Model;
 
 class StudentEnrollment extends Model
 {
-    const FOR_ADVISING = 'FOR_ADVISING';
-    const FOR_PAYMENT  = 'FOR_PAYMENT';
-    const PAID         = 'PAID';
-    const ENROLLED     = 'ENROLLED';
+    const NOT_ENROLLED = 'NOT_ENROLLED';
+    const FOR_PAYMENT_VALIDATION = 'FOR_PAYMENT_VALIDATION';
+    const PAID = 'PAID';
+    const ENROLLED = 'ENROLLED';
 
     protected $casts = [
-        'is_paid' => 'boolean',
-        'paid_at' => 'datetime',
+        'advised_at' => 'datetime',
+        'validated_at' => 'datetime',
+        'assessed_at' => 'datetime',
     ];
 
     protected $fillable = [
@@ -24,12 +25,14 @@ class StudentEnrollment extends Model
         'section_id',
         'school_year_id',
         'semester_id',
+        'status',
+        'adviser_id',
+        'advised_at',
         'validated_by',
         'validated_at',
-        'adviser_id',
-        'status',
-         'is_paid',
-        'paid_at', 
+        'assessed_by',
+        'assessed_at',
+        'cleared_for_enrollment',
     ];
 
     public function student() {
@@ -59,13 +62,11 @@ class StudentEnrollment extends Model
     {
         return $this->belongsTo(User::class, 'adviser_id');
     }
-    public function markAsPaid()
-{
-    $this->update([
-        'is_paid' => true,
-        'paid_at' => now(),
-    ]);
-}
+
+    public function assessor()
+    {
+        return $this->belongsTo(User::class, 'assessed_by');
+    }
 
 
 }

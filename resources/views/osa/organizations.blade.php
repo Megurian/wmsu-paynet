@@ -30,6 +30,10 @@
         <h3 class="text-lg font-semibold">{{ $org->name }}</h3>
         <p class="text-gray-600 mb-2"><span class="font-medium">{{ $org->org_code }}</span></p>
 
+        @if($org->inherits_osa_fees)
+            <span class="inline-block px-3 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded-full mb-2">Inherits OSA Fees</span>
+        @endif
+
         <p class="text-sm text-gray-600">Type: {{ $org->role === 'university_org' ? 'University-wide' : 'College-based' }}</p>
         @if($org->college)
             <p class="text-sm text-gray-600"> {{ $org->college->name }}</p>
@@ -43,9 +47,15 @@
                 class="w-8 h-5 flex items-center justify-center border border-gray-300 rounded-lg text-gray-700 font-bold text-xl hover:bg-gray-100 focus:outline-none">
                 &#x22EF; 
             </button>
-            <div id="menu-{{ $org->id }}" class="hidden absolute right-0 mt-2 w-36 bg-white border border-gray-200 rounded shadow-lg z-10">
+            <div id="menu-{{ $org->id }}" class="hidden absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded shadow-lg z-10">
                 <a href="{{ route('osa.organizations.show', $org->id) }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">View Details</a>
-                <form action="{{ route('osa.organizations.destroy', $org->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this organization?');">
+                <form action="{{ route('osa.organizations.toggle-osa-inheritance', $org->id) }}" method="POST" class="border-t">
+                    @csrf
+                    <button type="submit" class="w-full text-center px-4 py-2 text-sm text-blue-600 hover:bg-gray-100">
+                        {{ $org->inherits_osa_fees ? 'Remove OSA Inheritance' : 'Enable OSA Inheritance' }}
+                    </button>
+                </form>
+                <form action="{{ route('osa.organizations.destroy', $org->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this organization?');" class="border-t">
                     @csrf
                     @method('DELETE')
                     <button type="submit" class="w-full text-center px-4 py-2 text-sm text-red-600 hover:bg-gray-100">Delete</button>
