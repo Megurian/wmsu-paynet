@@ -199,13 +199,17 @@ Route::middleware(['auth','role:college'])->group(function () {
     Route::get('/college/fees/approval', [CollegeFeeApprovalController::class, 'index'])
         ->name('college.fees.approval');
 
+    // restrict {fee} to numbers so literal segments (e.g. "create") don't match
     Route::get('/college/fees/{fee}', [CollegeFeeApprovalController::class, 'show'])
+        ->whereNumber('fee')
         ->name('college.fees.show');
 
     Route::post('/college/fees/{fee}/approve', [CollegeFeeApprovalController::class, 'approve'])
+        ->whereNumber('fee')
         ->name('college.fees.approve');
 
     Route::post('/college/fees/{fee}/reject', [CollegeFeeApprovalController::class, 'reject'])
+        ->whereNumber('fee')
         ->name('college.fees.reject');
 });
 
