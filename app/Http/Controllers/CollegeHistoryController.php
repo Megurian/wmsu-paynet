@@ -6,60 +6,66 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\StudentEnrollment;
 use App\Models\SchoolYear;
 use App\Models\Semester;
+use App\Models\Payment;
 use Illuminate\Http\Request;
 
 class CollegeHistoryController extends Controller
 {
-    public function history(Request $request)
-    {
-        $collegeId = Auth::user()->college_id;
 
-        $schoolYears = SchoolYear::orderBy('sy_start', 'desc')->get();
-        $semesters = Semester::orderBy('id')->get();
+public function history(Request $request)
+{
+    $collegeId = Auth::user()->college_id;
 
-        $activeSY = SchoolYear::where('is_active', true)->first();
-        $activeSem = Semester::where('is_active', true)->first();
+    $schoolYears = SchoolYear::orderBy('sy_start', 'desc')->get();
+    $semesters = Semester::orderBy('id')->get();
 
-        $selectedSY = $request->school_year ?? $activeSY?->id;
-        $selectedSem = $request->semester ?? '1st';
+    $activeSY = SchoolYear::where('is_active', true)->first();
+    $activeSem = Semester::where('is_active', true)->first();
 
-        $selectedSchoolYear = SchoolYear::find($selectedSY);
-        $selectedSemester   = Semester::where('name', $selectedSem)->first();
+    $selectedSY = $request->school_year ?? $activeSY?->id;
+    $selectedSem = $request->semester ?? '1st';
 
-        $students = StudentEnrollment::with([
-            'student',
-            'course',
-            'yearLevel',
-            'section',
-            'schoolYear',
-            'semester',
-            'adviser'
-        ])
-            ->join('students', 'student_enrollments.student_id', '=', 'students.id')
-            ->where('student_enrollments.college_id', $collegeId)
-            ->when($selectedSY, fn($q) => $q->where('student_enrollments.school_year_id', $selectedSY))
-            ->when(
-                $selectedSem,
-                fn($q) =>
-                $q->whereHas('semester', fn($s) => $s->where('name', $selectedSem))
-            )
-            ->orderBy('students.last_name')
-            ->orderBy('students.first_name')
-            ->select('student_enrollments.*')
-            ->get();
+    $selectedSchoolYear = SchoolYear::find($selectedSY);
+    $selectedSemester   = Semester::where('name', $selectedSem)->first();
 
+    $students = StudentEnrollment::with([
+        'student',
+        'course',
+        'yearLevel',
+        'section',
+        'schoolYear',
+        'semester',
+        'adviser'
+    ])
+        ->join('students', 'student_enrollments.student_id', '=', 'students.id')
+        ->where('student_enrollments.college_id', $collegeId)
+        ->when($selectedSY, fn($q) => $q->where('student_enrollments.school_year_id', $selectedSY))
+        ->when($selectedSem, fn($q) =>
+            $q->whereHas('semester', fn($s) => $s->where('name', $selectedSem))
+        )
+        ->orderBy('students.last_name')
+        ->orderBy('students.first_name')
+        ->select('student_enrollments.*')
+        ->get();
 
+    // Payments within selected SY & Semester
+    $payments = Payment::with(['student', 'fees', 'organization'])
+        ->where('school_year_id', $selectedSY)
+        ->whereHas('semester', fn($s) => $s->where('name', $selectedSem))
+        ->orderBy('created_at', 'desc')
+        ->get();
 
-        return view('college.history', compact(
-            'students',
-            'schoolYears',
-            'semesters',
-            'selectedSY',
-            'selectedSem',
-            'selectedSchoolYear',
-            'selectedSemester'
-        ));
-    }
+    return view('college.history', compact(
+        'students',
+        'schoolYears',
+        'semesters',
+        'selectedSY',
+        'selectedSem',
+        'selectedSchoolYear',
+        'selectedSemester',
+        'payments'
+    ));
+}
 
     public function showStudentHistory($studentId)
     {
@@ -95,7 +101,7 @@ class CollegeHistoryController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        $payments = \App\Models\Payment::with('fees')
+        $payments = Payment::with('fees')
             ->where('student_id', $studentId)
             ->get()
             ->keyBy('transaction_id'); 
