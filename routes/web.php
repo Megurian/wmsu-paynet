@@ -300,6 +300,8 @@ Route::middleware(['auth', 'role:treasurer,college,student_coordinator,adviser,a
         Route::post('/college/students/{student}/clear-for-enrollment', [ValidateStudentsController::class, 'clearForEnrollment'])
     ->name('college.students.clear-for-enrollment');
     
+    Route::get('/college/students/{student}/history', [CollegeHistoryController::class, 'showStudentHistory'])
+        ->name('college.students.history');
        
 });
 
