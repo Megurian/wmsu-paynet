@@ -89,7 +89,7 @@ class LocalOrgsController extends Controller
     {
         if ($org->status === 'pending') {
             $org->delete();
-            return redirect()->route('college.local_organizations')->with('success', 'Submission canceled successfully.');
+            return redirect()->route('college.local_organizations')->with('status', 'Submission canceled successfully.');
         }
         return redirect()->back()->with('error', 'Cannot cancel this submission.');
     }
