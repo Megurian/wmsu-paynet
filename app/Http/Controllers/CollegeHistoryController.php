@@ -26,20 +26,28 @@ class CollegeHistoryController extends Controller
         $selectedSchoolYear = SchoolYear::find($selectedSY);
         $selectedSemester   = Semester::where('name', $selectedSem)->first();
 
-       $students = StudentEnrollment::with([
-            'student', 'course', 'yearLevel', 'section', 'schoolYear', 'semester', 'adviser'
+        $students = StudentEnrollment::with([
+            'student',
+            'course',
+            'yearLevel',
+            'section',
+            'schoolYear',
+            'semester',
+            'adviser'
         ])
-        ->join('students', 'student_enrollments.student_id', '=', 'students.id')
-        ->where('student_enrollments.college_id', $collegeId)
-        ->when($selectedSY, fn ($q) => $q->where('student_enrollments.school_year_id', $selectedSY))
-        ->when($selectedSem, fn ($q) =>
-            $q->whereHas('semester', fn ($s) => $s->where('name', $selectedSem))
-        )
-        ->orderBy('students.last_name')
-        ->orderBy('students.first_name')
-        ->select('student_enrollments.*')
-        ->get();
-        
+            ->join('students', 'student_enrollments.student_id', '=', 'students.id')
+            ->where('student_enrollments.college_id', $collegeId)
+            ->when($selectedSY, fn($q) => $q->where('student_enrollments.school_year_id', $selectedSY))
+            ->when(
+                $selectedSem,
+                fn($q) =>
+                $q->whereHas('semester', fn($s) => $s->where('name', $selectedSem))
+            )
+            ->orderBy('students.last_name')
+            ->orderBy('students.first_name')
+            ->select('student_enrollments.*')
+            ->get();
+
 
 
         return view('college.history', compact(
@@ -55,21 +63,43 @@ class CollegeHistoryController extends Controller
 
     public function showStudentHistory($studentId)
     {
-        $student = StudentEnrollment::with([
-            'student', 'course', 'yearLevel', 'section', 'schoolYear', 'semester', 'adviser', 'assessor'
+        $studentEnrollments = StudentEnrollment::with([
+            'student',
+            'course',
+            'yearLevel',
+            'section',
+            'schoolYear',
+            'semester',
+            'adviser'
         ])
-        ->where('student_id', $studentId)
-        ->orderBy('school_year_id', 'desc')
-        ->orderBy('semester_id', 'desc')
-        ->get();
+            ->where('student_id', $studentId)
+            ->orderBy('school_year_id', 'desc')
+            ->orderBy('semester_id', 'desc')
+            ->get();
 
-        if ($student->isEmpty()) {
+        if ($studentEnrollments->isEmpty()) {
             abort(404, 'Student history not found.');
         }
 
-        $studentInfo = $student->first()->student;
+        $studentInfo = $studentEnrollments->first()->student;
 
-        return view('college.student-history-info', compact('student', 'studentInfo'));
+        $collegeId = auth()->user()->college_id;
+
+        $fees = \App\Models\Fee::with('organization')
+            ->where('status', 'approved')
+            ->where(function ($q) use ($collegeId) {
+                $q->where('fee_scope', 'university-wide')
+                    ->orWhere('fee_scope', 'college')
+                    ->orWhereHas('organization', fn($org) => $org->where('college_id', $collegeId));
+            })
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        $payments = \App\Models\Payment::with('fees')
+            ->where('student_id', $studentId)
+            ->get()
+            ->keyBy('transaction_id'); 
+
+        return view('college.student-history-info', compact('studentEnrollments', 'studentInfo', 'fees', 'payments'));
     }
-
 }
