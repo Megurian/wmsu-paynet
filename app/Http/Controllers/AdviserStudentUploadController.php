@@ -27,10 +27,10 @@ class AdviserStudentUploadController extends Controller
 
         $adviser = Auth::user();
         $adviserCourseId = $adviser->course_id;
-        $students = Student::where('college_id', $collegeId)
-            ->whereHas('enrollments', function ($q) use ($adviserId, $adviserCourseId) {
+        $students = Student::whereHas('enrollments', function ($q) use ($adviserId, $adviserCourseId, $collegeId) {
                 $q->where('adviser_id', $adviserId)
-                ->where('course_id', $adviserCourseId);
+                ->where('course_id', $adviserCourseId)
+                ->where('college_id', $collegeId);
             })
             ->where(function ($q) use ($request) {
 
@@ -101,8 +101,8 @@ class AdviserStudentUploadController extends Controller
                 'year_level' => $enrollment->yearLevel->name ?? $prev->yearLevel->name ?? null,
                 'section_id' => $enrollment->section_id ?? $prev->section_id ?? null,
                 'section' => $enrollment->section->name ?? $prev->section->name ?? null,
-                'status' => $enrollment->status ?? 'NOT ENROLLED',
-                 'isPaid' => $enrollment ? $enrollment->is_paid : false,
+                'status' => $enrollment->status ?? 'NOT_ENROLLED',
+                 'isPaid' => $enrollment ? $enrollment->status === \App\Models\StudentEnrollment::PAID : false,
                  'isCleared' => $enrollment ? $enrollment->cleared_for_enrollment : false, 
                 'selected' => false, 
             ];
@@ -124,7 +124,7 @@ class AdviserStudentUploadController extends Controller
         $collegeId = Auth::user()->college_id;
 
         $request->validate([
-            'student_id' => 'required|string|max:50|unique:students,student_id,NULL,id,college_id,' . $collegeId,
+            'student_id' => 'required|string|max:50',
             'last_name' => 'required|string|max:255',
             'first_name' => 'required|string|max:255',
             'middle_name' => 'nullable|string|max:255',
@@ -135,10 +135,10 @@ class AdviserStudentUploadController extends Controller
             'section_id' => 'required|exists:sections,id',
         ]);
 
-        $student = Student::create([
-            ...$request->all(),
-            'college_id' => $collegeId,
-        ]);
+        $student = Student::updateOrCreate(
+            ['student_id' => $request->student_id],
+            $request->only(['last_name', 'first_name', 'middle_name', 'contact', 'email', 'suffix', 'religion'])
+        );
 
         $activeSY = SchoolYear::where('is_active', true)->first();
         $activeSem = Semester::where('is_active', true)->first();
@@ -147,17 +147,26 @@ class AdviserStudentUploadController extends Controller
             $courseId = Auth::user()->role === 'adviser'
                     ? Auth::user()->course_id
                     : $request->course_id;
-            StudentEnrollment::create([
-                'student_id' => $student->id,
-                'college_id' => $collegeId,
-                'course_id' => $courseId,
-                'year_level_id' => $request->year_level_id,
-                'section_id' => $request->section_id,
+
+            $enrollment = StudentEnrollment::firstOrNew([
+                'student_id'     => $student->id,
                 'school_year_id' => $activeSY->id,
-                'semester_id' => $activeSem->id,
-                'adviser_id' => $adviserId,
-                'status' => 'FOR_PAYMENT_VALIDATION',
+                'semester_id'    => $activeSem->id,
             ]);
+
+            $enrollment->fill([
+                'college_id'    => $collegeId,
+                'course_id'     => $courseId,
+                'year_level_id' => $request->year_level_id,
+                'section_id'    => $request->section_id,
+                'adviser_id'    => $adviserId,
+            ]);
+
+            if (!$enrollment->exists) {
+                $enrollment->status = 'NOT_ENROLLED';
+            }
+
+            $enrollment->save();
         }
 
         return back()->with('status', 'Student uploaded successfully.');
@@ -182,21 +191,25 @@ public function reAddOldStudent(Request $request, $studentId)
         ->latest('id')
         ->first();
 
-    StudentEnrollment::updateOrCreate(
-        [
-            'student_id' => $studentId,
-            'school_year_id' => $activeSY->id,
-            'semester_id' => $activeSem->id,
-        ],
-        [
-            'college_id' => $collegeId,
-            'adviser_id' => $adviserId,
-            'status' => 'FOR_PAYMENT_VALIDATION',
-            'course_id' => Auth::user()->course_id,
+    $enrollment = StudentEnrollment::firstOrNew([
+        'student_id'     => $studentId,
+        'school_year_id' => $activeSY->id,
+        'semester_id'    => $activeSem->id,
+    ]);
+
+    // Only advance the student if they are still NOT_ENROLLED — never downgrade
+    if (!$enrollment->exists || $enrollment->status === 'NOT_ENROLLED') {
+        $enrollment->fill([
+            'college_id'    => $collegeId,
+            'adviser_id'    => $adviserId,
+            'status'        => 'FOR_PAYMENT_VALIDATION',
+            'advised_at'    => now(),
+            'course_id'     => Auth::user()->course_id,
             'year_level_id' => $request->year_level_id ?? $prev?->year_level_id,
-            'section_id' => $request->section_id ?? $prev?->section_id,
-        ]
-    );
+            'section_id'    => $request->section_id ?? $prev?->section_id,
+        ]);
+        $enrollment->save();
+    }
 
     return back()->with('status', 'Student added successfully. Student may now proceed to payment');
 }
@@ -204,9 +217,8 @@ public function reAddOldStudent(Request $request, $studentId)
 public function reAddBulk(Request $request)
 {
     $request->validate([
-        'students' => 'required|array',
+        'students'   => 'required|array',
         'students.*' => 'exists:students,id',
-        'course_id' => Auth::user()->course_id,
     ]);
 
     foreach ($request->students as $studentId) {

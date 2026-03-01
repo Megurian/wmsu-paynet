@@ -13,7 +13,7 @@ class OSAOrganizationsController extends Controller
 {
     public function index()
     {
-        $organizations = Organization::with('college', 'admin')->get();
+        $organizations = Organization::with('college', 'orgAdmin')->get();
         return view('osa.organizations', compact('organizations'));
     }
 
@@ -105,7 +105,7 @@ class OSAOrganizationsController extends Controller
 
     public function show($id)
     {
-        $organization = Organization::with('college', 'admin')->find($id);
+        $organization = Organization::with('college', 'orgAdmin')->find($id);
 
         if (!$organization) {
             return redirect()->route('osa.organizations')
@@ -126,6 +126,24 @@ class OSAOrganizationsController extends Controller
         $organization->delete();
 
         return redirect()->route('osa.organizations')->with('status', 'Organization deleted successfully!');
+    }
+
+    /**
+     * Toggle OSA fee inheritance for an organization
+     */
+    public function toggleOsaInheritance($id)
+    {
+        $organization = Organization::findOrFail($id);
+
+        $organization->update([
+            'inherits_osa_fees' => !$organization->inherits_osa_fees
+        ]);
+
+        $message = $organization->inherits_osa_fees 
+            ? 'Organization now inherits OSA fees.'
+            : 'Organization no longer inherits OSA fees.';
+
+        return redirect()->route('osa.organizations')->with('status', $message);
     }
 
 }

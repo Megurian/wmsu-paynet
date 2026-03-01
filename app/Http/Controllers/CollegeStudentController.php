@@ -70,7 +70,7 @@ class CollegeStudentController extends Controller
     {
         $collegeId = Auth::user()->college_id;
 
-        abort_if($student->college_id !== $collegeId, 403);
+        abort_unless($student->enrollments()->where('college_id', $collegeId)->exists(), 403);
 
         $activeSY = SchoolYear::where('is_active', true)->first();
         $activeSem = Semester::where('is_active', true)->first();
@@ -98,14 +98,7 @@ class CollegeStudentController extends Controller
         $collegeId = Auth::user()->college_id;
 
         $request->validate([
-            'student_id' => [
-                'required',
-                'string',
-                'max:50',
-                Rule::unique('students')->where(fn ($q) =>
-                    $q->where('college_id', $collegeId)
-                ),
-            ],
+            'student_id' => 'required|string|max:50',
             'last_name' => 'required|string|max:255',
             'first_name' => 'required|string|max:255',
             'middle_name' => 'nullable|string|max:255',
@@ -116,40 +109,53 @@ class CollegeStudentController extends Controller
             'email' => 'nullable|email|max:255',
             'suffix' => 'nullable|string|max:255',
              'religion' => 'nullable|string|max:255',
-        ], [
-            'student_id.unique' => 'This Student ID already exists in your college.',
         ]);
 
-        
-        $student = Student::create([
-            ...$request->all(),
-            'college_id' => $collegeId,
-        ]);
+        // Use updateOrCreate to handle existing students (e.g. transfers)
+        $student = Student::updateOrCreate(
+            ['student_id' => $request->student_id],
+            $request->only(['last_name', 'first_name', 'middle_name', 'suffix', 'contact', 'email', 'religion'])
+        );
 
         $activeSY = SchoolYear::where('is_active', true)->first();
         $activeSem = Semester::where('is_active', true)->first();
 
         if ($activeSY && $activeSem) {
-            StudentEnrollment::create([
-                'student_id' => $student->id,
-                'college_id' => $collegeId,
-                'course_id' => $request->course_id,
-                'year_level_id' => $request->year_level_id,
-                'section_id' => $request->section_id,
-                'school_year_id' => $activeSY->id,
-                'semester_id' => $activeSem->id,
-                'validated_by' => Auth::id(),
-                'validated_at' => now(),
-                
-            ]);
+            StudentEnrollment::updateOrCreate(
+                [
+                    'student_id' => $student->id,
+                    'school_year_id' => $activeSY->id,
+                    'semester_id' => $activeSem->id,
+                ],
+                [
+                    'college_id' => $collegeId,
+                    'course_id' => $request->course_id,
+                    'year_level_id' => $request->year_level_id,
+                    'section_id' => $request->section_id,
+                    'validated_by' => Auth::id(),
+                    'validated_at' => now(),
+                    'status' => 'ENROLLED', // Assuming admin adding means they are enrolled
+                ]
+            );
         }
 
-        return back()->with('status', 'Student added successfully.');
+        return back()->with('status', 'Student added/updated successfully.');
     }
 
     public function destroy($id)
     {
-        Student::findOrFail($id)->delete();
+        $collegeId = Auth::user()->college_id;
+        $student = Student::findOrFail($id);
+
+        // Only remove enrollment records that belong to THIS college.
+        // This preserves the student's identity and history in other colleges.
+        $student->enrollments()->where('college_id', $collegeId)->delete();
+
+        // If the student has no remaining enrollments anywhere, clean up.
+        if ($student->enrollments()->doesntExist()) {
+            $student->delete();
+        }
+
         return back()->with('status', 'Student removed successfully.');
     }
 
@@ -172,7 +178,7 @@ class CollegeStudentController extends Controller
     public function update(Request $request, Student $student)
 {
     $collegeId = Auth::user()->college_id;
-    abort_if($student->college_id !== $collegeId, 403);
+    abort_unless($student->enrollments()->where('college_id', $collegeId)->exists(), 403);
 
     $request->validate([
         'field' => ['required', 'string', Rule::in(['name', 'email', 'contact', 'religion'])],

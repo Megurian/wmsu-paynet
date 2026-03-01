@@ -1,72 +1,175 @@
-<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-    <div class="space-y-4">
-        <h4 class="font-semibold text-gray-700">Student Information</h4>
-        <div class="grid grid-cols-2 gap-3">
-            <div class="bg-gray-50 border rounded-lg p-3">
-                <p class="text-xs text-gray-500">Full Name</p>
-                <p class="font-semibold text-gray-800" x-text="studentName"></p>
+<div class="space-y-4">
+    <!-- top two columns: student details left, summary right -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Student Information -->
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <h3 class="font-semibold text-blue-800 mb-2">Student Information</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                <div>
+                    <p class="text-gray-600 font-medium">Student ID</p>
+                    <p class="font-semibold" x-text="studentNumber"></p>
+                </div>
+                <div>
+                    <p class="text-gray-600 font-medium">Name</p>
+                    <p class="font-semibold" x-text="studentName"></p>
+                </div>
+                <div>
+                    <p class="text-gray-600 font-medium">Course</p>
+                    <p class="font-semibold" x-text="studentCourse || '—'"></p>
+                </div>
+                <div>
+                    <p class="text-gray-600 font-medium">Year · Section</p>
+                    <p class="font-semibold" x-text="`${studentYear || '—'} · ${studentSection || '—'}`"></p>
+                </div>
             </div>
-            <div class="bg-gray-50 border rounded-lg p-3">
-                <p class="text-xs text-gray-500">Student ID</p>
-                <p class="font-semibold text-gray-800" x-text="studentNumber"></p>
+        </div>
+        <!-- Payment Summary -->
+        <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+            <h3 class="font-semibold text-gray-800 mb-2">Payment Summary</h3>
+            <div class="grid grid-cols-3 gap-4 text-center text-sm">
+                <div>
+                    <p class="text-gray-600 font-medium">Total Mandatory</p>
+                    <p class="text-2xl font-bold text-gray-800" x-text="mandatoryFees.length"></p>
+                </div>
+                <div>
+                    <p class="text-gray-600 font-medium">Paid</p>
+                    <p class="text-2xl font-bold text-green-600" x-text="mandatoryFees.filter(f => f.payments && f.payments.length > 0).length"></p>
+                </div>
+                <div>
+                    <p class="text-gray-600 font-medium">Pending</p>
+                    <p class="text-2xl font-bold text-yellow-600" x-text="mandatoryFees.filter(f => !f.payments || f.payments.length === 0).length"></p>
+                </div>
             </div>
-            <div class="bg-gray-50 border rounded-lg p-3">
-                <p class="text-xs text-gray-500">Course · Year · Section</p>
-                <p class="font-semibold text-gray-800" x-text="`${studentCourse} · ${studentYear} · ${studentSection}`"></p>
-            </div>
-            <div class="bg-gray-50 border rounded-lg p-3">
-                <p class="text-xs text-gray-500">Email</p>
-                <p class="font-semibold text-gray-800" x-text="studentEmail || '—'"></p>
-            </div>
-            <div class="bg-gray-50 border rounded-lg p-3">
-                <p class="text-xs text-gray-500">Contact</p>
-                <p class="font-semibold text-gray-800" x-text="studentContact || '—'"></p>
-            </div>
-            <div class="bg-gray-50 border rounded-lg p-3">
-                <p class="text-xs text-gray-500">Religion</p>
-                <p class="font-semibold text-gray-800" x-text="studentReligion || '—'"></p>
+            <div class="mt-3 pt-3 border-t border-gray-300 text-sm">
+                <span :class="allMandatoryFeesPaid ? 'text-green-600 font-semibold' : 'text-yellow-600 font-semibold'" x-text="allMandatoryFeesPaid ? '✓ All mandatory fees paid' : 'Some mandatory fees pending'"></span>
             </div>
         </div>
     </div>
 
-    <!-- Payment Details -->
-    <div class="space-y-4">
-        <div class="flex items-center justify-between">
-            <h4 class="font-semibold text-gray-700">Payment & Transaction Details</h4>
-            <span class="text-xs text-gray-400 italic">S.Y. & Semester</span>
+    <!-- Mandatory Fees Table -->
+    <div class="rounded-lg border border-gray-200 overflow-hidden">
+        <div class="bg-red-50 border-b border-red-200 px-4 py-2">
+            <h3 class="font-semibold text-red-800">Mandatory Fees</h3>
         </div>
-
-        <div class="grid grid-cols-2 gap-4">
-            <div>
-                <span class="font-medium">Overall Status:</span>
-                <span class="ml-1 text-yellow-600 font-semibold">Pending</span>
-            </div>
-            <div>
-                <span class="font-medium">Last Updated:</span>
-                <span class="ml-1 text-gray-500">—</span>
-            </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead class="bg-gray-100 border-b border-gray-200">
+                    <tr>
+                        <th class="px-4 py-2 text-left font-semibold text-gray-700">Organization</th>
+                        <th class="px-4 py-2 text-left font-semibold text-gray-700">Fee Name</th>
+                        <th class="px-4 py-2 text-right font-semibold text-gray-700 w-28">Amount</th>
+                        <th class="px-4 py-2 text-center font-semibold text-gray-700 w-20">Status</th>
+                        <th class="px-4 py-2 text-left font-semibold text-gray-700">Payment Details</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template x-for="fee in mandatoryFees" :key="fee.id">
+                        <tr :class="fee.payments && fee.payments.length ? 'bg-green-50' : 'bg-yellow-50'" class="border-b border-gray-200 hover:bg-opacity-75 transition">
+                            <td class="px-4 py-3 text-gray-700" x-text="fee.organization?.name || 'College'"></td>
+                            <td class="px-4 py-3 font-medium text-gray-800" x-text="fee.fee_name"></td>
+                            <td class="px-4 py-3 text-right font-semibold text-gray-800" x-text="`₱ ${parseFloat(fee.amount).toFixed(2)}`"></td>
+                            <td class="px-4 py-3 text-center">
+                                <span class="text-xs px-2 py-1 rounded font-semibold" :class="fee.payments && fee.payments.length ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'" x-text="fee.payments && fee.payments.length ? 'PAID' : 'PENDING'"></span>
+                            </td>
+                            <td class="px-4 py-3 text-xs">
+                                <template x-if="fee.payments && fee.payments.length > 0">
+                                    <div class="space-y-1">
+                                        <template x-for="payment in fee.payments" :key="payment.id">
+                                            <div class="text-gray-700">
+                                                <p><strong>TXN:</strong> <span x-text="payment.transaction_id" class="text-green-700 font-mono"></span></p>
+                                                <p><strong>Paid:</strong> <span x-text="`₱ ${parseFloat(payment.pivot?.amount_paid || payment.amount_due).toFixed(2)}`" class="text-green-700 font-semibold"></span></p>
+                                                <p><strong>Collected by:</strong> <span x-text="payment.organization?.org_code || '—'" class="text-blue-700 font-semibold"></span></p>
+                                                <p class="text-gray-500">
+                                                    <span x-text="new Date(payment.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })"></span>
+                                                </p>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </template>
+                                <template x-if="!fee.payments || fee.payments.length === 0">
+                                    <p class="text-gray-500 italic">—</p>
+                                </template>
+                            </td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
         </div>
-
-        <hr class="border-gray-200">
-
-        <div class="space-y-3 max-h-80 overflow-y-auto">
-        <template x-for="fee in fees" :key="fee.id">
-            <div :class="fee.payments.length ? 'bg-green-50' : 'bg-yellow-50'" class="border rounded-xl p-4 shadow-sm flex justify-between items-center">
-                <div>
-                    <p class="font-medium" x-text="fee.fee_name"></p>
-                     <span x-text="fee.organization ? fee.organization.name : 'College / No organization'"></span>
-                    <p class="text-xs text-gray-400 italic" x-text="fee.requirement_level ? fee.requirement_level.charAt(0).toUpperCase() + fee.requirement_level.slice(1) : ''"></p>
-                </div>
-                <div class="text-right">
-                    <p class="font-semibold" x-text="`₱ ${parseFloat(fee.amount).toFixed(2)}`"></p>
-                    <p class="text-sm font-medium" :class="fee.payments.length ? 'text-green-600' : 'text-yellow-700'" x-text="fee.payments.length ? 'Paid' : 'Pending'"></p>
-                </div>
+        <template x-if="mandatoryFees.length === 0">
+            <div class="text-center py-6 text-gray-500 italic bg-yellow-50">
+                No mandatory fees assigned for this student.
             </div>
         </template>
+    </div>
 
-        <div x-show="fees && fees.length === 0" class="text-center text-gray-500 italic py-4">
-            No fees assigned for this student.
+    <!-- Optional Fees (Collapsible) -->
+    <template x-if="optionalFees.length > 0">
+        <div class="rounded-lg border border-gray-200 overflow-hidden">
+            <button @click="optionalFeeShown = !optionalFeeShown" class="w-full bg-blue-50 border-b border-blue-200 px-4 py-3 flex items-center justify-between hover:bg-blue-100 transition">
+                <h3 class="font-semibold text-blue-800 flex items-center gap-1">
+                    <template x-if="optionalFeeShown">
+                        <!-- chevron down -->
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </template>
+                    <template x-if="!optionalFeeShown">
+                        <!-- chevron right -->
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                        </svg>
+                    </template>
+                    Optional Fees
+                </h3>
+                <span class="text-sm text-blue-700 font-medium" x-text="`(${optionalFees.length})`"></span>
+            </button>
+
+            <template x-if="optionalFeeShown">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead class="bg-gray-100 border-b border-gray-200">
+                            <tr>
+                                <th class="px-4 py-2 text-left font-semibold text-gray-700">Organization</th>
+                                <th class="px-4 py-2 text-left font-semibold text-gray-700">Fee Name</th>
+                                <th class="px-4 py-2 text-right font-semibold text-gray-700 w-28">Amount</th>
+                                <th class="px-4 py-2 text-center font-semibold text-gray-700 w-20">Status</th>
+                                <th class="px-4 py-2 text-left font-semibold text-gray-700">Payment Details</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template x-for="fee in optionalFees" :key="fee.id">
+                                <tr :class="fee.payments && fee.payments.length ? 'bg-green-50' : 'bg-gray-50'" class="border-b border-gray-200 hover:bg-opacity-75 transition">
+                                    <td class="px-4 py-3 text-gray-700" x-text="fee.organization?.name || 'College'"></td>
+                                    <td class="px-4 py-3 font-medium text-gray-800" x-text="fee.fee_name"></td>
+                                    <td class="px-4 py-3 text-right font-semibold text-gray-800" x-text="`₱ ${parseFloat(fee.amount).toFixed(2)}`"></td>
+                                    <td class="px-4 py-3 text-center">
+                                        <span class="text-xs px-2 py-1 rounded font-semibold" :class="fee.payments && fee.payments.length ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'" x-text="fee.payments && fee.payments.length ? 'PAID' : 'PENDING'"></span>
+                                    </td>
+                                    <td class="px-4 py-3 text-xs">
+                                        <template x-if="fee.payments && fee.payments.length > 0">
+                                            <div class="space-y-1">
+                                                <template x-for="payment in fee.payments" :key="payment.id">
+                                                    <div class="text-gray-700">
+                                                        <p><strong>TXN:</strong> <span x-text="payment.transaction_id" class="text-green-700 font-mono"></span></p>
+                                                        <p><strong>Paid:</strong> <span x-text="`₱ ${parseFloat(payment.pivot?.amount_paid || payment.amount_due).toFixed(2)}`" class="text-green-700 font-semibold"></span></p>
+                                                        <p><strong>Collected by:</strong> <span x-text="payment.organization?.org_code || '—'" class="text-blue-700 font-semibold"></span></p>
+                                                        <p class="text-gray-500">
+                                                            <span x-text="new Date(payment.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })"></span>
+                                                        </p>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                        </template>
+                                        <template x-if="!fee.payments || fee.payments.length === 0">
+                                            <p class="text-gray-500 italic">—</p>
+                                        </template>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+            </template>
         </div>
-    </div>
-    </div>
+    </template>
 </div>

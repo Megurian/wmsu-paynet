@@ -13,7 +13,7 @@
 </div>
 
 <div class="max-w-2xl mx-auto bg-white shadow rounded-lg p-6">
-    <h2 class="text-2xl font-semibold text-gray-800 mb-4">Add New College Fee</h2>
+    <h2 class="text-2xl font-semibold text-gray-800 mb-4">New College Local Fee</h2>
     <p class="text-gray-600 mb-6">Fill in the details below to create a new fee. Once submitted, it will be sent for dean approval.</p>
 
     <form method="POST" action="{{ route('college.fees.store') }}" class="space-y-5">
@@ -58,6 +58,17 @@
                     <option value="mandatory">Mandatory</option>
                     <option value="optional">Optional</option>
                 </select>
+            </div>
+
+            <!-- Recurrence -->
+            <div>
+                <label for="recurrence" class="block text-sm font-medium text-gray-700 mb-1">Recurrence</label>
+                <select id="recurrence" name="recurrence" class="w-full border border-gray-300 rounded-lg px-4 py-2">
+                    <option value="one_time">One Time</option>
+                    <option value="semestrial">Semestrial</option>
+                    <option value="annual">Annual</option>
+                </select>
+                @error('recurrence') <p class="text-red-600 text-sm mt-1">{{ $message }}</p> @enderror
             </div>
         </div>
         <div class="pt-4">

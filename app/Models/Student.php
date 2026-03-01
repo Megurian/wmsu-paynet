@@ -2,48 +2,71 @@
 
 namespace App\Models;
 
+use App\Notifications\StudentResetPasswordNotification;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
 
-class Student extends Model
+class Student extends Authenticatable
 {
-    use HasFactory;
+    use HasFactory, Notifiable;
 
     protected $fillable = [
-        'college_id',
-        'course_id',
-        'year_level_id',
-        'section_id',
+        'student_id',
         'last_name',
         'first_name',
         'middle_name',
+        'suffix',
         'contact',
         'email',
-        'student_id',
-        'suffix',
-         'religion'
+        'religion',
+        'password',
     ];
 
-    public function course() {
-        return $this->belongsTo(Course::class);
+    protected $hidden = [
+        'password',
+        'remember_token',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'email_verified_at' => 'datetime',
+            'password' => 'hashed',
+        ];
     }
 
-    public function yearLevel() {
-        return $this->belongsTo(YearLevel::class);
-    }
-
-    public function section() {
-        return $this->belongsTo(Section::class);
+    public function payments()
+    {
+        return $this->hasMany(Payment::class);
     }
 
     public function enrollments()
     {
         return $this->hasMany(StudentEnrollment::class);
     }
-    public function previousEnrollments()
+
+    // Returns the student's current enrollment record
+    public function currentEnrollment()
     {
-        return $this->hasMany(StudentEnrollment::class);
+        // Try to get the enrollment for the active school year/semester
+        return $this->hasOne(StudentEnrollment::class)
+            ->whereHas('schoolYear', function ($query) {
+                $query->where('is_active', true);
+            })
+            ->whereHas('semester', function ($query) {
+                $query->where('is_active', true);
+            });
     }
 
+    // Returns the most recent enrollment record
+    public function latestEnrollment()
+    {
+        return $this->hasOne(StudentEnrollment::class)->latestOfMany();
+    }
 
+    public function sendPasswordResetNotification($token): void
+    {
+        $this->notify(new StudentResetPasswordNotification($token));
+    }
 }

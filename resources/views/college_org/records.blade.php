@@ -102,7 +102,7 @@
                     </td>
 
                     <td class="py-2 px-4 border-b font-semibold text-green-600">
-                        ₱{{ number_format($payment->amount, 2) }}
+                        ₱{{ number_format($payment->amount_due, 2) }}
                     </td>
 
                     <td class="py-2 px-4 border-b">
@@ -122,9 +122,8 @@
                     </td>
 
                     <td class="py-2 px-4 border-b">
-                        <a href="{{ route('college_org.payment.receipt', $payment->id) }}" target="_blank" class="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700">
-                            Receipt
-                        </a>
+                        {{-- receipt link removed; receipts will be emailed --}}
+                        <span class="text-gray-500 text-sm">emailed</span>
                     </td>
                 </tr>
                 @empty

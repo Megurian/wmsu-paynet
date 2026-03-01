@@ -78,9 +78,34 @@
                     Reset
                 </a>
             </div>
-
         </form>
+    </div>
 
+    {{-- Sub-tabs (Pill badges) --}}
+    <div class="mt-4 border-b border-gray-200">
+        <nav class="-mb-px flex space-x-4" aria-label="Tabs">
+            <a href="{{ route('college.history', array_merge(request()->query(), ['tab' => 'enrollments'])) }}"
+               class="px-3 py-2 font-medium text-sm rounded-t-lg
+                      @if(request('tab', 'enrollments') === 'enrollments')
+                          bg-blue-100 text-blue-700
+                      @else
+                          text-gray-500 hover:text-gray-700
+                      @endif
+                      ">
+                Student Enrollments
+            </a>
+
+            <a href="{{ route('college.history', array_merge(request()->query(), ['tab' => 'payments'])) }}"
+               class="px-3 py-2 font-medium text-sm rounded-t-lg
+                      @if(request('tab') === 'payments')
+                          bg-blue-100 text-blue-700
+                      @else
+                          text-gray-500 hover:text-gray-700
+                      @endif
+                      ">
+                Payments
+            </a>
+        </nav>
     </div>
 </div>
 
@@ -98,38 +123,73 @@
         </div>
     @else
         <table class="min-w-full text-sm">
-            <thead class="bg-gray-50 border-b border-gray-200">
-                <tr class="text-left text-[11px] font-semibold uppercase tracking-wide text-gray-600">
-                    <th class="px-4 py-3 text-center"></th>
-                    <th class="px-5 py-3">Student ID</th>
-                    <th class="px-5 py-3">Name</th>
-                    <th class="px-5 py-3">Course</th>
-                    <th class="px-5 py-3">Year & Section</th>
-                </tr>
-            </thead>
+    <thead class="bg-gray-50 border-b border-gray-200">
+        <tr class="text-left text-[11px] font-semibold uppercase tracking-wide text-gray-600">
+            <th class="px-4 py-3 text-center">#</th>
+            <th class="px-5 py-3">Student ID</th>
+            <th class="px-5 py-3">Name</th>
+            <th class="px-5 py-3">Course</th>
+            <th class="px-5 py-3">Year & Section</th>
+            <th class="px-5 py-3">Adviser</th>
+            <th class="px-5 py-3">Status</th>
+            <th class="px-5 py-3"> </th>
+        </tr>
+    </thead>
 
-            <tbody class="divide-y divide-gray-100 text-gray-700">
-                @foreach($students as $student)
-                    <tr class="hover:bg-gray-50 transition">
-                        <td class="px-4 py-3 text-center text-gray-500">
-                            {{ $loop->iteration }}
-                        </td>
-                        <td class="px-5 py-3 font-medium">
-                            {{ $student->student->student_id }}
-                        </td>
-                        <td class="px-5 py-3">
-                            {{ strtoupper($student->student->last_name) }}, {{ strtoupper($student->student->first_name) }} {{ strtoupper($student->student->middle_name) }}. {{ strtoupper($student->student->suffix) }}
-                        </td>
-                        <td class="px-5 py-3">
-                            {{ $student->course?->name ?? '—' }}
-                        </td>
-                        <td class="px-5 py-3">
-                            {{ $student->yearLevel?->name ?? '—' }}  {{ $student->section?->name ?? '—' }}
-                        </td>
-                    </tr>
-                @endforeach
-            </tbody>
-        </table>
+    <tbody class="divide-y divide-gray-100 text-gray-700">
+        @foreach($students as $student)
+            <tr class="hover:bg-gray-50 transition">
+                <td class="px-4 py-3 text-center text-gray-500">
+                    {{ $loop->iteration }}
+                </td>
+                <td class="px-5 py-3 font-medium">
+                    {{ $student->student->student_id }}
+                </td>
+                <td class="px-5 py-3">
+                    {{ strtoupper($student->student->last_name) }},
+                    {{ strtoupper($student->student->first_name) }}
+                    {{ strtoupper($student->student->middle_name) }}.
+                    {{ strtoupper($student->student->suffix) }}
+                </td>
+                <td class="px-5 py-3">
+                    {{ $student->course?->name ?? '—' }}
+                </td>
+                <td class="px-5 py-3">
+                    {{ $student->yearLevel?->name ?? '—' }} {{ $student->section?->name ?? '—' }}
+                </td>
+                <td class="px-5 py-3">
+                    {{ $student->adviser?->last_name ?? '—' }}
+                </td>
+                <td class="px-5 py-3">
+                    @php
+                        if($student->assessed_at) {
+                            $status = 'Assessed';
+                            $badgeColor = 'bg-green-100 text-green-700';
+                        } elseif($student->validated_at) {
+                            $status = 'To be Assessed';
+                            $badgeColor = 'bg-yellow-100 text-yellow-700';
+                        } elseif($student->advised_at) {
+                            $status = 'Pending Payment';
+                            $badgeColor = 'bg-blue-100 text-blue-700';
+                        } else {
+                            $status = 'Not Enrolled';
+                            $badgeColor = 'bg-gray-100 text-gray-500';
+                        }
+                    @endphp
+                    <span class="px-2 py-1 text-xs font-semibold rounded-full {{ $badgeColor }}">
+                        {{ $status }}
+                    </span>
+                </td>
+                <td class="px-5 py-3">
+                    <a href="{{ route('college.students.history', $student->student->id) }}"
+                    class="inline-block px-3 py-1 text-xs font-semibold text-white bg-blue-600 rounded hover:bg-blue-700 transition">
+                    View
+                    </a>
+                </td>
+            </tr>
+        @endforeach
+    </tbody>
+</table>
     @endif
 
 </div>

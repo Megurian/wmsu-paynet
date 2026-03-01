@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Fee;
 use App\Models\Organization;
+use App\Models\Document;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -15,8 +16,8 @@ class OSAFeesController extends Controller
        $pendingFees = Fee::with(['organization', 'user', 'appeals'])
         ->where(function($q) {
             $q->where(function($q2) {
-                // Fees specifically pending for OSA
-                $q2->where('fee_scope', 'organization')
+                // Fees specifically pending for OSA (organization or university-wide)
+                $q2->whereIn('fee_scope', ['organization', 'university-wide'])
                 ->where('status', 'pending');
             })
             ->orWhere(function($q3) {
@@ -35,8 +36,17 @@ class OSAFeesController extends Controller
         // Status filter (default to approved)
         $status = $request->get('status', 'approved');
 
-       $filteredQuery = Fee::with(['organization', 'user'])
-        ->where('fee_scope', 'organization'); 
+// Show university-wide fees and college-organization fees (exclude college-local/student-coordinator entries)
+        $filteredQuery = Fee::with(['organization', 'user'])
+            ->where(function($q) {
+                // university-wide fees (OSA and university orgs)
+                $q->where('fee_scope', 'university-wide')
+                  // college fees that are tied to a college organization (organization_id NOT NULL)
+                  ->orWhere(function($q2) {
+                      $q2->where('fee_scope', 'college')
+                         ->whereNotNull('organization_id');
+                  });
+            });
 
         if ($status === 'approved') {
             $filteredQuery->where('status', 'approved')
@@ -57,6 +67,10 @@ class OSAFeesController extends Controller
 
         if ($request->filled('requirement_level')) {
             $filteredQuery->where('requirement_level', $request->requirement_level);
+        }
+
+        if ($request->filled('recurrence')) {
+            $filteredQuery->where('recurrence', $request->recurrence);
         }
 
         if ($request->filled('organization_role')) {
@@ -94,8 +108,18 @@ class OSAFeesController extends Controller
             'amount' => 'required|numeric|min:0',
             'remittance_percent' => 'nullable|numeric|min:0|max:100',
             'requirement_level' => 'required|in:mandatory,optional',
+            'recurrence' => 'required|in:one_time,semestrial,annual',
             'legal_basis_file' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
         ]);
+
+        // Determine fee_scope according to the organization's role
+        $org = \App\Models\Organization::find($request->organization_id);
+        $feeScope = 'organization';
+        if ($org?->role === 'university_org') {
+            $feeScope = 'university-wide';
+        } elseif ($org?->role === 'college_org') {
+            $feeScope = 'college';
+        }
 
         $data = [
             'organization_id' => $request->organization_id,
@@ -106,19 +130,44 @@ class OSAFeesController extends Controller
             'amount' => $request->amount,
             'remittance_percent' => $request->remittance_percent ?? null,
             'requirement_level' => $request->requirement_level,
+            'recurrence' => $request->recurrence,
+            'fee_scope' => $feeScope,
             // OSA-created fees are auto-approved
             'status' => 'approved',
         ];
 
-        // Store legal basis into resolution_file column
+        // Store legal basis as a Resolution of Collection document
         if ($request->hasFile('legal_basis_file')) {
-            $path = $request->file('legal_basis_file')->store('fees/legal_basis', 'public');
-            $data['resolution_file'] = $path;
+            $file = $request->file('legal_basis_file');
+            $fileName = time() . '_' . $file->getClientOriginalName();
+            $path = $file->storeAs("documents/{$org->id}", $fileName, 'public');
+            $doc = Document::create([
+                'organization_id' => $org->id,
+                'document_type' => 'Resolution of Collection',
+                'file_path' => $path,
+                'file_name' => $fileName,
+                'file_size' => $file->getSize(),
+                'original_file_name' => $file->getClientOriginalName(),
+                'uploaded_by' => Auth::id(),
+            ]);
+            $data['resolution_document_id'] = $doc->id;
         }
 
         // Accreditation is optional and not required for OSA
         if ($request->hasFile('accreditation_file')) {
-            $data['accreditation_file'] = $request->file('accreditation_file')->store('fees/accreditation', 'public');
+            $file = $request->file('accreditation_file');
+            $fileName = time() . '_' . $file->getClientOriginalName();
+            $path = $file->storeAs("documents/{$org->id}", $fileName, 'public');
+            $doc = Document::create([
+                'organization_id' => $org->id,
+                'document_type' => 'Accreditation Certification',
+                'file_path' => $path,
+                'file_name' => $fileName,
+                'file_size' => $file->getSize(),
+                'original_file_name' => $file->getClientOriginalName(),
+                'uploaded_by' => Auth::id(),
+            ]);
+            $data['accreditation_document_id'] = $doc->id;
         }
 
         Fee::create($data);

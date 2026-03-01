@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('payment_id')->constrained()->onDelete('cascade');
             $table->foreignId('fee_id')->constrained()->onDelete('cascade');
-            $table->decimal('amount', 10, 2);
+            $table->decimal('amount_paid', 10, 2);
             $table->timestamps();
         });
     }

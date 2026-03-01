@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Fee;
+use App\Models\Document;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 
 class CollegeOrgFeesController extends Controller
 {
@@ -18,14 +20,14 @@ class CollegeOrgFeesController extends Controller
         // Collect approved fees according to rules:
         // - Always include this organization's approved fees.
         // - Include fees from this org's direct mother organization (if any), both mandatory and optional.
-        // - ONLY if the mother organization is 'USC' (org_code == 'USC'), also include approved fees created by OSA.
+        // - If the mother organization inherits OSA fees, also include approved fees created by OSA.
         $mother = $organization->motherOrganization;
         $motherId = $mother?->id;
 
         // Determine OSA org id if exists
         $osaId = \App\Models\Organization::where('org_code', 'OSA')->value('id');
 
-        $isChildOfUSC = ($mother && $mother->org_code === 'USC');
+        $motherInheritsOsaFees = ($mother && $mother->inherits_osa_fees);
 
         // Local fees for this organization (all statuses)
         $localFees = $organization->fees()->with('organization')->orderBy('created_at', 'desc')->get();
@@ -33,18 +35,18 @@ class CollegeOrgFeesController extends Controller
         // Inherited fees: approved fees from mother org, and OSA if applicable (exclude local to avoid duplication)
         $inheritedFees = collect();
 
-        // Only query inherited fees when there is a direct mother org or the college is a child of USC (include OSA)
-        if ($motherId || ($isChildOfUSC && $osaId)) {
+        // Only query inherited fees when there is a direct mother org or the mother org inherits OSA fees
+        if ($motherId || ($motherInheritsOsaFees && $osaId)) {
             $inheritedQuery = Fee::with('organization')
                 ->where('status', 'approved')
-                ->where(function($q) use ($motherId, $isChildOfUSC, $osaId) {
+                ->where(function($q) use ($motherId, $motherInheritsOsaFees, $osaId) {
                     // Direct mother org's fees (if present)
                     if ($motherId) {
                         $q->where('organization_id', $motherId);
                     }
 
-                    // If this college is a child of USC, include OSA fees as well
-                    if ($isChildOfUSC && $osaId) {
+                    // If the mother org inherits OSA fees, include OSA fees as well
+                    if ($motherInheritsOsaFees && $osaId) {
                         $q->orWhere('organization_id', $osaId);
                     }
                 })
@@ -63,7 +65,16 @@ class CollegeOrgFeesController extends Controller
     public function create()
     {
         $organization = Auth::user()->organization;
-        return view('college_org.create-fee', compact('organization'));
+        $accreditationDocuments = $organization->documents()
+            ->where('document_type', 'Accreditation Certification')
+            ->latest()
+            ->get();
+        $resolutionDocuments = $organization->documents()
+            ->where('document_type', 'Resolution of Collection')
+            ->latest()
+            ->get();
+        
+        return view('college_org.create-fee', compact('organization', 'accreditationDocuments', 'resolutionDocuments'));
     }
 
     public function store(Request $request)
@@ -75,8 +86,11 @@ class CollegeOrgFeesController extends Controller
             'amount' => 'required|numeric|min:0',
             'remittance_percent' => 'nullable|numeric|min:0|max:100',
             'requirement_level' => 'required|in:mandatory,optional',
-            'accreditation_file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
-            'resolution_file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
+            'accreditation_file' => 'nullable|file|mimes:pdf,jpg,jpeg,png,doc,docx|max:5120',
+            'accreditation_document_id' => 'nullable|exists:documents,id',
+            'resolution_file' => 'nullable|file|mimes:pdf,jpg,jpeg,png,doc,docx|max:5120',
+            'resolution_document_id' => 'nullable|exists:documents,id',
+            'supporting_file' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png|max:5120',
         ]);
 
         $organization = Auth::user()->organization;
@@ -84,8 +98,8 @@ class CollegeOrgFeesController extends Controller
             return redirect()->route('college_org.fees')->with('error', 'Organization not found.');
         }
 
-        $approvalLevel = $organization->motherOrganization ? 'osa' : 'dean';
-
+        // All college-local fees start with dean approval.
+        // Fees created by `college_org` (and child offices) require Dean -> OSA approval flow.
         $data = [
             'organization_id' => $organization->id,
             'user_id' => Auth::id(),
@@ -95,28 +109,85 @@ class CollegeOrgFeesController extends Controller
             'amount' => $request->amount,
             'remittance_percent' => $request->remittance_percent ?? null,
             'requirement_level' => $request->requirement_level,
+            'recurrence' => $request->recurrence,
             'status' => 'pending',
             'fee_scope' => 'college',
             'college_id' => $organization->college_id,
-            'approval_level' => $approvalLevel,
+            'approval_level' => 'dean',
         ];
 
-        if ($request->requirement_level === 'mandatory' && !$request->hasFile('resolution_file')) {
+        if ($request->requirement_level === 'mandatory' && !$request->hasFile('resolution_file') && !$request->resolution_document_id) {
             return back()->withErrors(['resolution_file' => 'Resolution of Collection is required for mandatory fees.'])->withInput();
         }
 
+        // Handle accreditation file or document
         if ($request->hasFile('accreditation_file')) {
-            $data['accreditation_file'] = $request->file('accreditation_file')->store('fees/accreditation', 'public');
+            $file = $request->file('accreditation_file');
+            $fileName = time() . '_' . $file->getClientOriginalName();
+            $path = $file->storeAs("documents/{$organization->id}", $fileName, 'public');
+            
+            // Create document record
+            $document = Document::create([
+                'organization_id' => $organization->id,
+                'document_type' => 'Accreditation Certification',
+                'file_path' => $path,
+                'file_name' => $fileName,
+                'file_size' => $file->getSize(),
+                'original_file_name' => $file->getClientOriginalName(),
+                'uploaded_by' => Auth::id(),
+            ]);
+            
+            $data['accreditation_document_id'] = $document->id;
+        } elseif ($request->accreditation_document_id) {
+            $data['accreditation_document_id'] = $request->accreditation_document_id;
         }
 
+        // Handle resolution file or document
         if ($request->hasFile('resolution_file')) {
-            $data['resolution_file'] = $request->file('resolution_file')->store('fees/resolution', 'public');
+            $file = $request->file('resolution_file');
+            $fileName = time() . '_' . $file->getClientOriginalName();
+            $path = $file->storeAs("documents/{$organization->id}", $fileName, 'public');
+            
+            // Create document record
+            $document = Document::create([
+                'organization_id' => $organization->id,
+                'document_type' => 'Resolution of Collection',
+                'file_path' => $path,
+                'file_name' => $fileName,
+                'file_size' => $file->getSize(),
+                'original_file_name' => $file->getClientOriginalName(),
+                'uploaded_by' => Auth::id(),
+            ]);
+            
+            $data['resolution_document_id'] = $document->id;
+        } elseif ($request->resolution_document_id) {
+            $data['resolution_document_id'] = $request->resolution_document_id;
+        }
+
+        // Handle supporting file (optional)
+        if ($request->hasFile('supporting_file')) {
+            $file = $request->file('supporting_file');
+            $fileName = time() . '_' . $file->getClientOriginalName();
+            $path = $file->storeAs("documents/{$organization->id}", $fileName, 'public');
+            
+            // Create document record for supporting document
+            $document = Document::create([
+                'organization_id' => $organization->id,
+                'document_type' => 'Supporting Document',
+                'file_path' => $path,
+                'file_name' => $fileName,
+                'file_size' => $file->getSize(),
+                'original_file_name' => $file->getClientOriginalName(),
+                'uploaded_by' => Auth::id(),
+            ]);
+            
+            $data['supporting_document_id'] = $document->id;
         }
 
         \App\Models\Fee::create($data);
 
-        $approvalMsg = $approvalLevel === 'osa' ? 'OSA' : 'Dean';
-        return redirect()->route('college_org.fees')->with('success', "Fee created successfully and is pending $approvalMsg approval.");
+        // For college organization submissions the workflow is: Dean → OSA
+        return redirect()->route('college_org.fees')->with('success', 'Fee created successfully and is pending Dean approval (then OSA).');
     }
 
     public function show(\App\Models\Fee $fee)
@@ -124,7 +195,7 @@ class CollegeOrgFeesController extends Controller
         $organization = Auth::user()->organization;
         $allowedOrgIds = [$organization->id];
         if ($organization->motherOrganization) $allowedOrgIds[] = $organization->motherOrganization->id;
-        if ($organization->motherOrganization && $organization->motherOrganization->org_code === 'USC') {
+        if ($organization->motherOrganization && $organization->motherOrganization->inherits_osa_fees) {
             $osaId = \App\Models\Organization::where('org_code', 'OSA')->value('id');
             if ($osaId) $allowedOrgIds[] = $osaId;
         }
@@ -172,15 +243,40 @@ class CollegeOrgFeesController extends Controller
         $fee->amount = $request->amount;
         $fee->remittance_percent = $request->remittance_percent ?? null;
         $fee->requirement_level = $request->requirement_level;
+        $fee->recurrence = $request->recurrence;
+
+        $organization = Auth::user()->organization;
 
         if ($request->hasFile('accreditation_file')) {
-            if ($fee->accreditation_file) \Illuminate\Support\Facades\Storage::disk('public')->delete($fee->accreditation_file);
-            $fee->accreditation_file = $request->file('accreditation_file')->store('fees/accreditation', 'public');
+            $file = $request->file('accreditation_file');
+            $fileName = time() . '_' . $file->getClientOriginalName();
+            $path = $file->storeAs("documents/{$organization->id}", $fileName, 'public');
+            $doc = Document::create([
+                'organization_id' => $organization->id,
+                'document_type' => 'Accreditation Certification',
+                'file_path' => $path,
+                'file_name' => $fileName,
+                'file_size' => $file->getSize(),
+                'original_file_name' => $file->getClientOriginalName(),
+                'uploaded_by' => Auth::id(),
+            ]);
+            $fee->accreditation_document_id = $doc->id;
         }
 
         if ($request->hasFile('resolution_file')) {
-            if ($fee->resolution_file) \Illuminate\Support\Facades\Storage::disk('public')->delete($fee->resolution_file);
-            $fee->resolution_file = $request->file('resolution_file')->store('fees/resolution', 'public');
+            $file = $request->file('resolution_file');
+            $fileName = time() . '_' . $file->getClientOriginalName();
+            $path = $file->storeAs("documents/{$organization->id}", $fileName, 'public');
+            $doc = Document::create([
+                'organization_id' => $organization->id,
+                'document_type' => 'Resolution of Collection',
+                'file_path' => $path,
+                'file_name' => $fileName,
+                'file_size' => $file->getSize(),
+                'original_file_name' => $file->getClientOriginalName(),
+                'uploaded_by' => Auth::id(),
+            ]);
+            $fee->resolution_document_id = $doc->id;
         }
 
         $fee->save();
@@ -194,8 +290,19 @@ class CollegeOrgFeesController extends Controller
         if ($fee->organization_id !== $organization->id) abort(403);
         if ($fee->status === 'approved') return back()->with('error', 'Approved fees cannot be deleted.');
 
-        if ($fee->accreditation_file) \Illuminate\Support\Facades\Storage::disk('public')->delete($fee->accreditation_file);
-        if ($fee->resolution_file) \Illuminate\Support\Facades\Storage::disk('public')->delete($fee->resolution_file);
+        // delete associated documents and their files
+        if ($fee->accreditationDocument) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($fee->accreditationDocument->file_path);
+            $fee->accreditationDocument->delete();
+        }
+        if ($fee->resolutionDocument) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($fee->resolutionDocument->file_path);
+            $fee->resolutionDocument->delete();
+        }
+        if ($fee->supportingDocument) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($fee->supportingDocument->file_path);
+            $fee->supportingDocument->delete();
+        }
 
         $fee->delete();
 
