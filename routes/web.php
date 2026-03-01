@@ -23,6 +23,7 @@ use App\Http\Controllers\DocumentController;
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 
 Route::get('/test-route', function () {
     return 'Laravel route works!';
@@ -263,9 +264,20 @@ Route::middleware(['auth', 'role:treasurer,college,student_coordinator,adviser,a
     Route::put('info/name', [CollegeUserController::class, 'updateCollegeName'])->name('college.info.updateName');
     Route::get('/college/students/import/template', function () {
         \App\Services\StudentTemplateGenerator::generateIfNotExists();
-        $file = storage_path('app/private/templates/student_template.csv');
+        
+        $disk = Storage::disk('local');
+        $file = $disk->path('templates/student_template.csv');
 
-        if (!file_exists($file)) {
+        // Fallback: move from old location if it exists
+        if (! file_exists($file)) {
+            $old = $disk->path('private/templates/student_template.csv');
+            if (file_exists($old)) {
+                $disk->move('private/templates/student_template.csv', 'templates/student_template.csv');
+                $file = $disk->path('templates/student_template.csv');
+            }
+        }
+
+        if (! file_exists($file)) {
             abort(404, 'Template not found.');
         }
 
