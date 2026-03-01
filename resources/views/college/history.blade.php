@@ -106,6 +106,7 @@ $tab = request('tab', 'enrollments');
 <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
 
     @if($tab === 'enrollments')
+    
     @if($students->isEmpty())
     <div class="p-8 text-center">
         <p class="text-gray-500 text-sm">
@@ -115,6 +116,8 @@ $tab = request('tab', 'enrollments');
             Try adjusting the school year or semester.
         </p>
     </div>
+
+    
     @else
     <table class="min-w-full text-sm">
         <thead class="bg-gray-50 border-b border-gray-200">
