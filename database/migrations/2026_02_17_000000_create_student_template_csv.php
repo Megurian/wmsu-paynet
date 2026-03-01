@@ -25,6 +25,7 @@ class CreateStudentTemplateCsv extends Migration
      */
     public function down()
     {
+        Storage::disk('local')->delete('templates/student_template.csv');
         Storage::disk('local')->delete('private/templates/student_template.csv');
     }
 }
