@@ -158,7 +158,9 @@
                     {{ $student->yearLevel?->name ?? '—' }} {{ $student->section?->name ?? '—' }}
                 </td>
                 <td class="px-5 py-3">
-                    {{ $student->adviser?->last_name ?? '—' }}
+                    {{ $student->first()->adviser?->first_name ?? '—' }}
+                    {{ $student->first()->adviser?->middle_name ?? '' }}
+                    {{ $student->first()->adviser?->last_name ?? '—' }}
                 </td>
                 <td class="px-5 py-3">
                     @php
