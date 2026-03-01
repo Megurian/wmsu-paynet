@@ -7,7 +7,6 @@
 <div class="mb-6">
     <a href="{{ route('osa.fees') }}" class="text-sm text-gray-600 hover:underline">&larr; Back to Fees</a>
 </div>
-
 <div class="bg-white rounded shadow p-6 max-w-3xl">
     <h2 class="text-2xl font-bold mb-4">{{ $fee->fee_name }}</h2>
 

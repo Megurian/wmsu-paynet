@@ -22,144 +22,104 @@
 </div>
 
 <!-- Fees Section -->
-<div class="bg-white rounded shadow p-6">
-    <h3 class="text-xl font-semibold mb-4">Fee Approval Request</h3>
-    <p class="text-gray-500 italic">Pending fee approval requests for every organization will appear here.</p>
+<div class="bg-gray rounded shadow p-6">
+        <div class="mb-6 flex space-x-2">
+            <a href="{{ route('osa.fees', ['status' => 'pending']) }}"
+            class="px-4 py-2 rounded-full font-medium text-sm transition
+            {{ $status === 'pending' ? 'bg-red-800 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300' }}">
+                Pending Fees
+                <span class="ml-2 inline-block bg-white text-red-800 font-semibold text-xs px-2 py-0.5 rounded-full">
+                    {{ $pendingFees->count() }}
+                </span>
+            </a>
+            <a href="{{ route('osa.fees', ['status' => 'approved']) }}"
+            class="px-4 py-2 rounded-full font-medium text-sm transition
+            {{ $status === 'approved' ? 'bg-red-800 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300' }}">
+                All
+            </a>
+        </div>
+        
+        @if($status === 'pending')
+    <h3 class="text-xl font-semibold mb-4">Pending Fees</h3>
+    <p class="text-gray-500 italic">Pending fee approval requests for every organization will appear here.</p> <br>
 
-    <table class="w-full text-left border-collapse mt-4">
-        <thead>
-            <tr class="bg-gray-100">
-                <th class="border px-4 py-2">Organization</th>
-                <th class="border px-4 py-2">Fee Name</th>
-                <th class="border px-4 py-2">Amount</th>
-                <th class="border px-4 py-2">Requirement</th>
-                <th class="border px-4 py-2">Recurrence</th>
-                <th class="border px-4 py-2">Submitted At</th>
-                <th class="border px-4 py-2 text-center">Action</th>
-            </tr>
-        </thead>
-        <tbody>
-            @forelse($pendingFees as $fee)
-                <tr>
-                    <td class="border px-4 py-2">{{ $fee->organization->name }} ({{ $fee->organization->org_code }})</td>
-                    <td class="border px-4 py-2">
-                        {{ $fee->fee_name }}
+    @forelse($pendingFees as $fee)
+            <div class="bg-white shadow rounded-lg p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <!-- Fee Info -->
+                <div class="flex-1">
+                    <h3 class="text-lg font-semibold text-gray-800">{{ $fee->fee_name }} 
                         @if($fee->appeals->where('status','pending')->count() > 0)
-                            <span class="ml-2 inline-block px-2 py-0.5 text-xs font-semibold bg-yellow-100 text-yellow-800 rounded">Appeal Pending</span>
-                        @endif
-                    </td>
-                    <td class="border px-4 py-2">₱{{ number_format($fee->amount, 2) }}</td>
-                    <td class="border px-4 py-2 capitalize">{{ $fee->requirement_level }}</td>
-                    <td class="border px-4 py-2">{{ ucwords(str_replace('_', ' ', $fee->recurrence ?? 'one_time')) }}</td>
-                    <td class="border px-4 py-2">{{ $fee->created_at->format('Y-m-d') }}</td>
-                    <td class="border px-4 py-2 text-center">
-                        <a href="{{ route('osa.fees.show', $fee->id) }}" class="inline-flex items-center px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">View</a>
-                    </td>
-                </tr>
-            @empty
-                <tr>
-                    <td class="border px-4 py-2" colspan="7">No pending fee approval requests.</td>
-                </tr>
-            @endforelse
-        </tbody>
-    </table>
+                        <span class="ml-2 inline-block px-2 py-0.5 text-xs font-semibold bg-yellow-100 text-yellow-800 rounded">Appeal Pending</span>
+                    @endif
+                    </h3>
+                    <p class="text-sm text-gray-500">
+                        <span class="capitalize font-medium">{{ $fee->requirement_level }}</span>
+                    </p>
 
+                    {{-- SOURCE DISPLAY --}}
+                    <p class="text-sm text-gray-600 mt-1">
+                        From:
+                        <span class="font-semibold">
+                                {{ $fee->organization->name }} ({{ $fee->organization->org_code }})
+                        </span>
+                    </p>
+                    <p class="text-sm text-gray-400 mt-1">Submitted on: {{ $fee->created_at->format('M d, Y') }}</p>
+                </div>
+
+                <div class="flex gap-2 md:gap-3">
+                    <form method="GET" action="{{ route('osa.fees.show', $fee->id) }}">
+                        @csrf
+                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-green-700 transition">
+                            View
+                        </button>
+                    </form>
+                </div>
+            </div>
+            <br>
+        @empty
+            <div class="text-center text-gray-500 py-6">
+                No pending fees to review.
+            </div>
+        @endforelse
+
+    @elseif ($status === 'approved')
     <!-- Approved Fees Section -->
     <div class="mt-8">
         <h3 class="text-xl font-semibold mb-4">Approved Fees</h3>
-
-        <form method="GET" action="{{ route('osa.fees') }}" class="mb-4">
-            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-3 items-end">
-                <div>
-                    <label class="text-sm text-gray-600">Organization</label>
-                    <select name="organization_id" class="border rounded px-2 py-1 w-full">
-                        <option value="">All</option>
-                        @foreach($organizations as $org)
-                            <option value="{{ $org->id }}" {{ request('organization_id') == $org->id ? 'selected' : '' }}>{{ $org->name }} ({{ $org->org_code }})</option>
-                        @endforeach
-                    </select>
+            @forelse($approvedFees as $fee)
+            <div class="bg-white shadow rounded-lg p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div class="flex-1">
+                    <h3 class="text-lg font-semibold text-gray-800">{{ $fee->fee_name }}</h3>
+                    <p class="text-sm text-gray-500"> 
+                        <span class="capitalize font-medium">{{ $fee->requirement_level }}</span>
+                    </p>
+                    <p class="text-sm text-gray-600 mt-1">
+                        From:
+                        <span class="font-semibold">
+                                {{ $fee->organization->name }} ({{ $fee->organization->org_code }})
+                        </span>
+                    </p>
+                    <p class="text-sm text-gray-400 mt-1">
+                        Approved on: {{ optional(\Illuminate\Support\Carbon::parse($fee->approved_at))->format('M d, Y') }}
+                    </p>
                 </div>
-
-                <div>
-                    <label class="text-sm text-gray-600">Organization Type</label>
-                    <select name="organization_role" class="border rounded px-2 py-1 w-full">
-                        <option value="">All</option>
-                        <option value="university_org" {{ request('organization_role') == 'university_org' ? 'selected' : '' }}>University</option>
-                        <option value="college_org" {{ request('organization_role') == 'college_org' ? 'selected' : '' }}>College</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="text-sm text-gray-600">Requirement</label>
-                    <select name="requirement_level" class="border rounded px-2 py-1 w-full">
-                        <option value="">All</option>
-                        <option value="mandatory" {{ request('requirement_level') == 'mandatory' ? 'selected' : '' }}>Mandatory</option>
-                        <option value="optional" {{ request('requirement_level') == 'optional' ? 'selected' : '' }}>Optional</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="text-sm text-gray-600">Recurrence</label>
-                    <select name="recurrence" class="border rounded px-2 py-1 w-full">
-                        <option value="">All</option>
-                        <option value="one_time" {{ request('recurrence') == 'one_time' ? 'selected' : '' }}>One Time</option>
-                        <option value="semestrial" {{ request('recurrence') == 'semestrial' ? 'selected' : '' }}>Semestrial</option>
-                        <option value="annual" {{ request('recurrence') == 'annual' ? 'selected' : '' }}>Annual</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="text-sm text-gray-600">Status</label>
-                    <select name="status" class="border rounded px-2 py-1 w-full">
-                        <option value="approved" {{ (isset($status) ? $status : request('status', 'approved')) == 'approved' ? 'selected' : '' }}>Approved</option>
-                        <option value="pending" {{ (isset($status) ? $status : request('status', 'approved')) == 'pending' ? 'selected' : '' }}>Pending</option>
-                        <option value="disabled" {{ (isset($status) ? $status : request('status', 'approved')) == 'disabled' ? 'selected' : '' }}>Disabled</option>
-                        <option value="all" {{ (isset($status) ? $status : request('status', 'approved')) == 'all' ? 'selected' : '' }}>All</option>
-                    </select>
-                </div>
-
-                <div class="flex items-center">
-                    <button class="px-3 py-1 bg-gray-200 rounded w-full">Filter</button>
+                <div class="flex gap-2 md:gap-3">
+                    <form method="GET" action="{{ route('osa.fees.show', $fee->id) }}">
+                        @csrf
+                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-green-700 transition">
+                            View
+                        </button>
+                    </form>
                 </div>
             </div>
-        </form>
-
-        <table class="w-full text-left border-collapse mt-2">
-            <thead>
-                <tr class="bg-gray-100">
-                    <th class="border px-4 py-2">Organization</th>
-                    <th class="border px-4 py-2">Fee Name</th>
-                    <th class="border px-4 py-2">Amount</th>
-                    <th class="border px-4 py-2">Requirement</th>
-                    <th class="border px-4 py-2">Recurrence</th>
-                    <th class="border px-4 py-2">Status / Updated</th>
-                    <th class="border px-4 py-2 text-center">Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                @forelse($filteredFees as $fee)
-                    <tr>
-                       <td class="border px-4 py-2">
-    {{ optional($fee->organization)->name ?? 'N/A' }} 
-    ({{ optional($fee->organization)->org_code ?? '-' }})
-</td>
-                        <td class="border px-4 py-2">{{ $fee->fee_name }}</td>
-                        <td class="border px-4 py-2">₱{{ number_format($fee->amount, 2) }}</td>
-                        <td class="border px-4 py-2 capitalize">{{ $fee->requirement_level }}</td>
-                        <td class="border px-4 py-2">{{ ucwords(str_replace('_', ' ', $fee->recurrence ?? 'one_time')) }}</td>
-                        <td class="border px-4 py-2">{{ ucfirst($fee->status) }} @ {{ $fee->updated_at->format('Y-m-d') }}</td>
-                        <td class="border px-4 py-2 text-center">
-                            <a href="{{ route('osa.fees.show', $fee->id) }}" class="inline-flex items-center px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">View</a>
-                        </td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td class="border px-4 py-2" colspan="7">No fees found for selected filters.</td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
-    </div>
+            <br>
+            @empty
+                <div class="text-center text-gray-500 py-6">
+                    No approved fees yet.
+                </div>
+            @endforelse
+        </div>
+    @endif
 </div>
 
 <script>

@@ -14,7 +14,13 @@ class StudentTemplateGenerator
      */
     public static function generateIfNotExists(): bool
     {
-        $path = 'private/templates/student_template.csv';
+        $path = 'templates/student_template.csv';
+        $oldPath = 'private/templates/student_template.csv';
+        
+        // Migrate from incorrect location if needed
+        if (Storage::disk('local')->exists($oldPath) && ! Storage::disk('local')->exists($path)) {
+            Storage::disk('local')->move($oldPath, $path);
+        }
 
         if (Storage::disk('local')->exists($path)) {
             return false;
