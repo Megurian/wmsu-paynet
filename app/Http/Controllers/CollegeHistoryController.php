@@ -217,7 +217,7 @@ class CollegeHistoryController extends Controller
                 }
             })
             ->when(request('fee'), fn($q) => $q->whereHas('fees', fn($f) => $f->where('fees.id', request('fee'))))
-            ->when(request('fee_type'), fn($q) => $q->whereHas('fees', fn($f) => $f->where('fee_type', request('fee_type'))))
+           ->when(request('requirement_level'), fn($q) => $q->whereHas('fees', fn($f) => $f->where('requirement_level', request('requirement_level'))))
             ->when(request('recurrence'), fn($q) => $q->whereHas('fees', fn($f) => $f->where('recurrence', request('recurrence'))))
             ->when(request('from_date'), fn($q) => $q->whereDate('created_at', '>=', request('from_date')))
             ->when(request('to_date'), fn($q) => $q->whereDate('created_at', '<=', request('to_date')))

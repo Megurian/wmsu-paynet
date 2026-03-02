@@ -235,11 +235,11 @@
                 </div>
 
                 <div>
-                    <label class="block text-xs font-medium text-gray-600 mb-1">Fee Type</label>
-                    <select name="fee_type" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+                    <label class="block text-xs font-medium text-gray-600 mb-1">Requirement Level</label>
+                    <select name="requirement_level" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
                         <option value="">All</option>
-                        <option value="mandatory" @selected(request('fee_type')=='mandatory' )>Mandatory</option>
-                        <option value="optional" @selected(request('fee_type')=='optional' )>Optional</option>
+                        <option value="mandatory" @selected(request('requirement_level')=='mandatory')>Mandatory</option>
+                        <option value="optional" @selected(request('requirement_level')=='optional')>Optional</option>
                     </select>
                 </div>
 
