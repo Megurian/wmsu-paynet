@@ -59,9 +59,13 @@ class CollegeHistoryController extends Controller
                     ->orWhereHas('organization', fn($org) => $org->where('college_id', $collegeId));
             });
 
-        // Filter fees by selected organization
         if ($selectedOrganization) {
-            $feesQuery->where('organization_id', $selectedOrganization);
+            if ($selectedOrganization === 'college_only') {
+                $feesQuery->where('fee_scope', 'college')
+                    ->whereNull('organization_id'); 
+            } else {
+                $feesQuery->where('organization_id', $selectedOrganization);
+            }
         }
 
         $fees = $feesQuery->orderBy('created_at', 'desc')->get();
@@ -205,17 +209,17 @@ class CollegeHistoryController extends Controller
 
 
     private function getPayments(?int $selectedSY, ?string $selectedSem)
-{
-    return Payment::with(['student', 'fees', 'organization'])
-        ->where('school_year_id', $selectedSY)
-        ->when($selectedSem, fn($q) => $q->whereHas('semester', fn($s) => $s->where('name', $selectedSem)))
-        ->when(request('organization'), fn($q) => $q->where('organization_id', request('organization')))
-        ->when(request('fee'), fn($q) => $q->whereHas('fees', fn($f) => $f->where('fees.id', request('fee'))))
-        ->when(request('fee_type'), fn($q) => $q->whereHas('fees', fn($f) => $f->where('fee_type', request('fee_type'))))
-        ->when(request('recurrence'), fn($q) => $q->whereHas('fees', fn($f) => $f->where('recurrence', request('recurrence'))))
-        ->when(request('from_date'), fn($q) => $q->whereDate('created_at', '>=', request('from_date')))
-        ->when(request('to_date'), fn($q) => $q->whereDate('created_at', '<=', request('to_date')))
-        ->orderBy('created_at', 'desc')
-        ->get();
-}
+    {
+        return Payment::with(['student', 'fees', 'organization'])
+            ->where('school_year_id', $selectedSY)
+            ->when($selectedSem, fn($q) => $q->whereHas('semester', fn($s) => $s->where('name', $selectedSem)))
+            ->when(request('organization'), fn($q) => $q->where('organization_id', request('organization')))
+            ->when(request('fee'), fn($q) => $q->whereHas('fees', fn($f) => $f->where('fees.id', request('fee'))))
+            ->when(request('fee_type'), fn($q) => $q->whereHas('fees', fn($f) => $f->where('fee_type', request('fee_type'))))
+            ->when(request('recurrence'), fn($q) => $q->whereHas('fees', fn($f) => $f->where('recurrence', request('recurrence'))))
+            ->when(request('from_date'), fn($q) => $q->whereDate('created_at', '>=', request('from_date')))
+            ->when(request('to_date'), fn($q) => $q->whereDate('created_at', '<=', request('to_date')))
+            ->orderBy('created_at', 'desc')
+            ->get();
+    }
 }

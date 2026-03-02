@@ -207,6 +207,7 @@
                 <label class="block text-xs font-medium text-gray-600 mb-1">Organization</label>
                 <select name="organization" onchange="this.form.submit()" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
                     <option value="">All Organizations</option>
+                    <option value="college_only" @selected($selectedOrganization=='college_only' )>College Only</option>
                     @foreach($organizations as $org)
                     <option value="{{ $org->id }}" @selected($selectedOrganization==$org->id)>{{ $org->name }}</option>
                     @endforeach
