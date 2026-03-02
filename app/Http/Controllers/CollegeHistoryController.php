@@ -46,7 +46,6 @@ class CollegeHistoryController extends Controller
         );
 
         $payments = $this->getPayments($selectedSY, $selectedSem);
-
         $organizations = \App\Models\Organization::where('college_id', $collegeId)->get();
 
         $selectedOrganization = $request->organization ?? null;
@@ -64,6 +63,22 @@ class CollegeHistoryController extends Controller
 
         $fees = $feesQuery->orderBy('created_at', 'desc')->get();
         $college = auth()->user()->college;
+
+        $totalPayments = $payments->count();
+
+        $totalAmount = $payments->flatMap(fn($p) => $p->fees)->sum(fn($f) => $f->pivot->amount_paid);
+
+        $requirementBreakdown = $payments->flatMap(fn($p) => $p->fees)
+            ->groupBy('requirement_level')
+            ->map(fn($fees) => $fees->sum(fn($f) => $f->pivot->amount_paid));
+
+        $organizationBreakdown = $payments->groupBy(fn($p) => $p->organization?->name ?? $college->name)
+            ->map(fn($payments) => $payments->flatMap(fn($p) => $p->fees)->sum(fn($f) => $f->pivot->amount_paid));
+
+        $feeBreakdown = $payments->flatMap(fn($p) => $p->fees)
+            ->groupBy('fee_name')
+            ->map(fn($fees) => $fees->sum(fn($f) => $f->pivot->amount_paid));
+
 
         return view('college.history', compact(
             'students',
@@ -86,7 +101,14 @@ class CollegeHistoryController extends Controller
             'organizations',
             'fees',
             'selectedOrganization',
-            'college'
+            'college',
+            'students',
+            'payments',
+            'totalPayments',
+            'totalAmount',
+            'requirementBreakdown',
+            'organizationBreakdown',
+            'feeBreakdown',
         ));
     }
 
@@ -217,7 +239,7 @@ class CollegeHistoryController extends Controller
                 }
             })
             ->when(request('fee'), fn($q) => $q->whereHas('fees', fn($f) => $f->where('fees.id', request('fee'))))
-           ->when(request('requirement_level'), fn($q) => $q->whereHas('fees', fn($f) => $f->where('requirement_level', request('requirement_level'))))
+            ->when(request('requirement_level'), fn($q) => $q->whereHas('fees', fn($f) => $f->where('requirement_level', request('requirement_level'))))
             ->when(request('recurrence'), fn($q) => $q->whereHas('fees', fn($f) => $f->where('recurrence', request('recurrence'))))
             ->when(request('from_date'), fn($q) => $q->whereDate('created_at', '>=', request('from_date')))
             ->when(request('to_date'), fn($q) => $q->whereDate('created_at', '<=', request('to_date')))

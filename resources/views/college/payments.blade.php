@@ -1,3 +1,43 @@
+<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+    <div class="bg-blue-50 text-blue-700 rounded-lg p-4 shadow-sm flex flex-col items-center">
+        <span class="text-xs font-semibold uppercase">Total Payments</span>
+        <span class="text-xl font-bold">{{ $totalPayments }}</span>
+    </div>
+
+    <div class="bg-green-50 text-green-700 rounded-lg p-4 shadow-sm flex flex-col items-center">
+        <span class="text-xs font-semibold uppercase">Total Amount Collected</span>
+        <span class="text-xl font-bold">₱ {{ number_format($totalAmount, 2) }}</span>
+    </div>
+
+    <div class="bg-yellow-50 text-yellow-700 rounded-lg p-4 shadow-sm flex flex-col items-center">
+        <span class="text-xs font-semibold uppercase">Mandatory Fees</span>
+        <span class="text-xl font-bold">₱ {{ number_format($requirementBreakdown['mandatory'] ?? 0, 2) }}</span>
+    </div>
+
+    <div class="bg-gray-100 text-gray-700 rounded-lg p-4 shadow-sm flex flex-col items-center">
+        <span class="text-xs font-semibold uppercase">Optional Fees</span>
+        <span class="text-xl font-bold">₱ {{ number_format($requirementBreakdown['optional'] ?? 0, 2) }}</span>
+    </div>
+</div>
+
+<div class="mb-4">
+    <h3 class="text-sm font-semibold mb-2">Breakdown by Organization</h3>
+    <ul class="list-disc pl-5 text-gray-700 text-sm">
+        @foreach($organizationBreakdown as $org => $amount)
+            <li>{{ $org }}: ₱ {{ number_format($amount, 2) }}</li>
+        @endforeach
+    </ul>
+</div>
+
+<div class="mb-4">
+    <h3 class="text-sm font-semibold mb-2">Breakdown by Fee</h3>
+    <ul class="list-disc pl-5 text-gray-700 text-sm">
+        @foreach($feeBreakdown as $feeName => $amount)
+            <li>{{ $feeName }}: ₱ {{ number_format($amount, 2) }}</li>
+        @endforeach
+    </ul>
+</div>
+
 <div x-data="{ search: '', rowsVisible: {{ $payments->count() }}, clear() { 
         this.search = ''; 
         $refs.table.querySelectorAll('tbody tr').forEach(tr => tr.style.display = ''); 
