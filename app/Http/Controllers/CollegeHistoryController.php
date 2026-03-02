@@ -23,19 +23,17 @@ public function history(Request $request)
     $activeSem = Semester::where('is_active', true)->first();
 
     $selectedSY  = $request->school_year ?? $activeSY?->id;
-    $selectedSem = $request->semester ?? '1st';
+    $selectedSem = $request->semester ?? $activeSem?->name; 
 
-    $selectedSchoolYear = SchoolYear::find($selectedSY);
-    $selectedSemester   = Semester::where('name', $selectedSem)->first();
+$selectedSchoolYear = SchoolYear::find($selectedSY);
+$selectedSemester   = Semester::where('name', $selectedSem)->first();
 
-    // ✅ Additional Filters (Enrollments Tab)
     $selectedCourse  = $request->course ?? null;
     $selectedYear    = $request->year ?? null;
     $selectedSection = $request->section ?? null;
     $selectedAdviser = $request->adviser ?? null;
     $selectedStatus  = $request->status ?? null;
 
-    // Filter dropdown data
     $courses  = \App\Models\Course::where('college_id', $collegeId)->get();
     $years    = \App\Models\YearLevel::where('college_id', $collegeId)->get();
     $sections = \App\Models\Section::where('college_id', $collegeId)->get();
@@ -88,7 +86,6 @@ public function history(Request $request)
         ->select('student_enrollments.*')
         ->get();
 
-    // Payments (unchanged)
     $payments = Payment::with(['student', 'fees', 'organization'])
         ->where('school_year_id', $selectedSY)
         ->whereHas('semester', fn($s) => $s->where('name', $selectedSem))
