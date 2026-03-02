@@ -207,7 +207,13 @@ class CollegeHistoryController extends Controller
         return Payment::with(['student', 'fees', 'organization'])
             ->where('school_year_id', $selectedSY)
             ->when($selectedSem, fn($q) => $q->whereHas('semester', fn($s) => $s->where('name', $selectedSem)))
-            ->when(request('organization'), fn($q) => $q->where('organization_id', request('organization')))
+            ->when(request('organization'), function ($q) {
+                if (request('organization') === 'college_only') {
+                    $q->whereNull('organization_id');
+                } else {
+                    $q->where('organization_id', request('organization'));
+                }
+            })
             ->when(request('fee'), fn($q) => $q->whereHas('fees', fn($f) => $f->where('fees.id', request('fee'))))
             ->when(request('fee_type'), fn($q) => $q->whereHas('fees', fn($f) => $f->where('fee_type', request('fee_type'))))
             ->when(request('recurrence'), fn($q) => $q->whereHas('fees', fn($f) => $f->where('recurrence', request('recurrence'))))

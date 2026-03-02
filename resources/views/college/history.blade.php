@@ -203,10 +203,9 @@
                 <input type="hidden" name="school_year" value="{{ $selectedSY }}">
                 <input type="hidden" name="semester" value="{{ $selectedSem }}">
 
-                <!-- Organization -->
                 <div>
                     <label class="block text-xs font-medium text-gray-600 mb-1">Organization</label>
-                    <select id="organization-select" @change="onOrgChange($event.target.value)" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+                   <select  name="organization" id="organization-select" @change="onOrgChange($event.target.value)" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
                         <option value="">Select Organization</option>
                         <option value="college_only" @selected($selectedOrganization=='college_only' )>College Only</option>
                         @foreach($organizations as $org)
@@ -215,18 +214,18 @@
                     </select>
                 </div>
 
-                <!-- Fee -->
                 <div id="fee-filter" class="{{ $selectedOrganization ? '' : 'hidden' }}">
                     <label class="block text-xs font-medium text-gray-600 mb-1">Fee</label>
                     <select name="fee" id="fee-select" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
-                        <option value="">Select Fee</option>
+                        <option value="">All Fees</option>
                         @foreach($fees as $fee)
-                        <option value="{{ $fee->id }}" @selected(request('fee')==$fee->id)>{{ $fee->fee_name }}</option>
+                        <option value="{{ $fee->id }}" @selected(request('fee')==$fee->id)>
+                            {{ $fee->fee_name }}
+                        </option>
                         @endforeach
                     </select>
                 </div>
 
-                <!-- Date Range -->
                 <div>
                     <label class="block text-xs font-medium text-gray-600 mb-1">Date Range</label>
                     <div class="flex gap-2">
@@ -235,7 +234,6 @@
                     </div>
                 </div>
 
-                <!-- Fee Type -->
                 <div>
                     <label class="block text-xs font-medium text-gray-600 mb-1">Fee Type</label>
                     <select name="fee_type" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
@@ -245,17 +243,16 @@
                     </select>
                 </div>
 
-                <!-- Fee Recurrence -->
                 <div>
                     <label class="block text-xs font-medium text-gray-600 mb-1">Fee Recurrence</label>
                     <select name="recurrence" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
                         <option value="">All</option>
                         <option value="one_time" @selected(request('recurrence')=='one_time' )>One-time</option>
-                        <option value="recurring" @selected(request('recurrence')=='recurring' )>Recurring</option>
+                        <option value="semestrial" @selected(request('recurrence')=='recurring' )>Semestrial</option>
+                        <option value="annual" @selected(request('recurrence')=='recurring' )>Annual</option>
                     </select>
                 </div>
 
-                <!-- Apply / Reset Buttons -->
                 <div class="pt-4 flex gap-3">
                     <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 rounded-lg transition">
                         Apply Filters
@@ -301,7 +298,7 @@
             async onOrgChange(orgId) {
                 if (!orgId) {
                     this.feeFilter.classList.add('hidden');
-                    this.feeSelect.innerHTML = '<option value="">Select Fee</option>';
+                    this.feeSelect.innerHTML = '<option value="">All Fees</option>';
                     return;
                 }
 
@@ -311,7 +308,7 @@
                 const res = await fetch(url);
                 const data = await res.json();
 
-                this.feeSelect.innerHTML = '<option value="">Select Fee</option>';
+                this.feeSelect.innerHTML = '<option value="">All Fees</option>';
                 data.forEach(fee => {
                     const option = document.createElement('option');
                     option.value = fee.id;
