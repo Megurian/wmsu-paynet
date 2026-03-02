@@ -4,6 +4,7 @@
 @section('page-title', 'Report & History')
 
 @section('content')
+<div x-data="{ openFilter: false }"></div>
 {{--
 <div class="mb-6">
     <h2 class="text-2xl font-semibold text-gray-800">Student History</h2>
@@ -103,89 +104,127 @@
     </div>
 
     @if($tab === 'enrollments')
-    <div class="border-b border-gray-200 p-4 bg-gray-50">
-        <form method="GET" class="grid grid-cols-1 md:grid-cols-5 gap-4">
-
-            <input type="hidden" name="tab" value="enrollments">
-            <input type="hidden" name="school_year" value="{{ $selectedSY }}">
-            <input type="hidden" name="semester" value="{{ $selectedSem }}">
-
-            {{-- Course --}}
-            <div>
-                <label class="text-xs font-medium text-gray-600">Course</label>
-                <select name="course" onchange="this.form.submit()" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
-                    <option value="">All Courses</option>
-                    @foreach($courses as $course)
-                    <option value="{{ $course->id }}" @selected($selectedCourse==$course->id)>
-                        {{ $course->name }}
-                    </option>
-                    @endforeach
-                </select>
-            </div>
-
-            {{-- Year --}}
-            <div>
-                <label class="text-xs font-medium text-gray-600">Year</label>
-                <select name="year" onchange="this.form.submit()" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
-                    <option value="">All Years</option>
-                    @foreach($years as $year)
-                    <option value="{{ $year->id }}" @selected($selectedYear==$year->id)>
-                        {{ $year->name }}
-                    </option>
-                    @endforeach
-                </select>
-            </div>
-
-            {{-- Section --}}
-            <div>
-                <label class="text-xs font-medium text-gray-600">Section</label>
-                <select name="section" onchange="this.form.submit()" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
-                    <option value="">All Sections</option>
-                    @foreach($sections as $section)
-                    <option value="{{ $section->id }}" @selected($selectedSection==$section->id)>
-                        {{ $section->name }}
-                    </option>
-                    @endforeach
-                </select>
-            </div>
-
-            {{-- Adviser --}}
-            <div>
-                <label class="text-xs font-medium text-gray-600">Adviser</label>
-                <select name="adviser" onchange="this.form.submit()" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
-                    <option value="">All Advisers</option>
-                    @foreach($advisers as $adviser)
-                    <option value="{{ $adviser->id }}" @selected($selectedAdviser==$adviser->id)>
-                        {{ $adviser->first_name }} {{ $adviser->last_name }}
-                    </option>
-                    @endforeach
-                </select>
-            </div>
-
-            {{-- Status --}}
-            <div>
-                <label class="text-xs font-medium text-gray-600">Status</label>
-                <select name="status" onchange="this.form.submit()" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
-                    <option value="">All Status</option>
-                    <option value="assessed" @selected($selectedStatus=='assessed' )>Assessed</option>
-                    <option value="to_assess" @selected($selectedStatus=='to_assess' )>To be Assessed</option>
-                    <option value="pending_payment" @selected($selectedStatus=='pending_payment' )>Pending Payment</option>
-                    <option value="not_enrolled" @selected($selectedStatus=='not_enrolled' )>Not Enrolled</option>
-                </select>
-            </div>
-
-            {{-- Reset --}}
-            <div class="flex items-end">
-                <a href="{{ route('college.history', ['tab'=>'enrollments']) }}" class="text-sm text-gray-500 hover:text-gray-700">
-                    Reset Filters
-                </a>
-            </div>
-        </form>
+    <div class="flex justify-end mt-4">
+        <button @click="openFilter = true" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium
+               bg-gray-100 hover:bg-gray-200 text-gray-700
+               rounded-lg transition">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2l-6 7v5l-4 2v-7L3 6V4z" />
+            </svg>
+            Filters
+        </button>
     </div>
     @endif
 </div>
 
+<!-- Overlay -->
+<div 
+    x-show="openFilter"
+    x-transition.opacity
+    class="fixed inset-0 bg-black/30 z-40"
+    @click="openFilter = false">
+</div>
 
+<!-- Drawer -->
+<div 
+    x-show="openFilter"
+    x-transition:enter="transition ease-out duration-300"
+    x-transition:enter-start="translate-x-full"
+    x-transition:enter-end="translate-x-0"
+    x-transition:leave="transition ease-in duration-200"
+    x-transition:leave-start="translate-x-0"
+    x-transition:leave-end="translate-x-full"
+    class="fixed right-0 top-0 h-full w-80 bg-white shadow-xl z-50 overflow-y-auto"
+>
+
+    <div class="p-6 border-b border-gray-200 flex justify-between items-center">
+        <h2 class="text-lg font-semibold text-gray-800">Filters</h2>
+        <button @click="openFilter = false" class="text-gray-500 hover:text-gray-700 text-xl">&times;</button>
+    </div>
+
+    <form method="GET" class="p-6 space-y-5">
+
+        <input type="hidden" name="tab" value="enrollments">
+        <input type="hidden" name="school_year" value="{{ $selectedSY }}">
+        <input type="hidden" name="semester" value="{{ $selectedSem }}">
+
+        <!-- Course -->
+        <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Course</label>
+            <select name="course" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+                <option value="">All Courses</option>
+                @foreach($courses as $course)
+                <option value="{{ $course->id }}" @selected($selectedCourse==$course->id)>
+                    {{ $course->name }}
+                </option>
+                @endforeach
+            </select>
+        </div>
+
+        <!-- Year -->
+        <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Year</label>
+            <select name="year" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+                <option value="">All Years</option>
+                @foreach($years as $year)
+                <option value="{{ $year->id }}" @selected($selectedYear==$year->id)>
+                    {{ $year->name }}
+                </option>
+                @endforeach
+            </select>
+        </div>
+
+        <!-- Section -->
+        <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Section</label>
+            <select name="section" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+                <option value="">All Sections</option>
+                @foreach($sections as $section)
+                <option value="{{ $section->id }}" @selected($selectedSection==$section->id)>
+                    {{ $section->name }}
+                </option>
+                @endforeach
+            </select>
+        </div>
+
+        <!-- Adviser -->
+        <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Adviser</label>
+            <select name="adviser" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+                <option value="">All Advisers</option>
+                @foreach($advisers as $adviser)
+                <option value="{{ $adviser->id }}" @selected($selectedAdviser==$adviser->id)>
+                    {{ $adviser->first_name }} {{ $adviser->last_name }}
+                </option>
+                @endforeach
+            </select>
+        </div>
+
+        <!-- Status -->
+        <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Status</label>
+            <select name="status" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+                <option value="">All Status</option>
+                <option value="assessed" @selected($selectedStatus=='assessed')>Assessed</option>
+                <option value="to_assess" @selected($selectedStatus=='to_assess')>To be Assessed</option>
+                <option value="pending_payment" @selected($selectedStatus=='pending_payment')>Pending Payment</option>
+                <option value="not_enrolled" @selected($selectedStatus=='not_enrolled')>Not Enrolled</option>
+            </select>
+        </div>
+
+        <div class="pt-4 flex gap-3">
+            <button type="submit"
+                class="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 rounded-lg transition">
+                Apply Filters
+            </button>
+
+            <a href="{{ route('college.history', ['tab'=>'enrollments']) }}"
+               class="flex-1 text-center text-sm text-gray-500 hover:text-gray-700 py-2">
+                Reset
+            </a>
+        </div>
+    </form>
+</div>
 <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
 
     @if($tab === 'enrollments')
@@ -310,5 +349,5 @@
 
 
 </div>
-
+</div>
 @endsection
