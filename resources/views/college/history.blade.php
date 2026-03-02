@@ -205,14 +205,15 @@
             <!-- Organization -->
             <div>
                 <label class="block text-xs font-medium text-gray-600 mb-1">Organization</label>
-                <select name="organization" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+                <select name="organization" onchange="this.form.submit()" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
                     <option value="">All Organizations</option>
                     @foreach($organizations as $org)
-                    <option value="{{ $org->id }}" @selected(request('organization')==$org->id)>{{ $org->name }}</option>
+                    <option value="{{ $org->id }}" @selected($selectedOrganization==$org->id)>{{ $org->name }}</option>
                     @endforeach
                 </select>
             </div>
 
+            <!-- Fee -->
             <div>
                 <label class="block text-xs font-medium text-gray-600 mb-1">Fee</label>
                 <select name="fee" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
