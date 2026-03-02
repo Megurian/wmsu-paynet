@@ -195,8 +195,21 @@
         </form>
     </div>
 
-    <div class=" overflow-hidden">
+    <div class="bg-gray-200 border border-gray-200 rounded shadow-sm p-4 overflow-hidden mt-2">
         @if($tab === 'enrollments')
+
+        @if($tab === 'enrollments')
+        <div class="flex justify-end px-2">
+            <button @click="openFilter = true" class="bg-gray-300 inline-flex items-center gap-2 px-4 py-2 text-sm font-medium
+                                bg-gray-100 hover:bg-gray-200 text-gray-700
+                                rounded-lg transition">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2l-6 7v5l-4 2v-7L3 6V4z" />
+                </svg>
+                Filters
+            </button>
+        </div>
+        @endif
         @if($students->isEmpty())
         <div class="p-8 text-center">
             <p class="text-gray-500 text-sm">
@@ -210,24 +223,14 @@
         <div class="px-4 pb-4">
             <table class="min-w-full border-separate border-spacing-y-3 text-sm">
                 <thead>
-                    <tr class="bg-white border border-gray-200 rounded shadow-sm text-[11px] font-semibold uppercase tracking-wide text-gray-500">
-                        <th class="px-4 py-2 text-center">#</th>
-                        <th class="px-4 py-2 text-left">Student</th>
-                        <th class="px-4 py-2 text-left">Course</th>
-                        <th class="px-4 py-2 text-left">Year & Section</th>
-                        <th class="px-4 py-2 text-left">Adviser</th>
-                        <th class="px-4 py-2 text-left">Status</th>
-                        <th class="px-4 py-2 text-right"> @if($tab === 'enrollments')
-                            <button @click="openFilter = true" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium
-                                bg-gray-100 hover:bg-gray-200 text-gray-700
-                                rounded-lg transition">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2l-6 7v5l-4 2v-7L3 6V4z" />
-                                </svg>
-                                Filters
-                            </button>
-                            @endif
-                        </th>
+                    <tr class="bg-white  text-[11px] font-bold uppercase tracking-wide text-red-600">
+                        <th class="px-4 py-4 text-center">#</th>
+                        <th class="px-4 py-4 text-left">Student</th>
+                        <th class="px-4 py-4 text-left">Course</th>
+                        <th class="px-4 py-4 text-left">Year & Section</th>
+                        <th class="px-4 py-4 text-left">Adviser</th>
+                        <th class="px-4 py-4 text-left">Status</th>
+                        <th class="px-4 py-4 text-right"> </th>
                     </tr>
                 </thead>
 
