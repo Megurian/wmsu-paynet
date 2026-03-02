@@ -1,4 +1,3 @@
-{{-- Summary Cards --}}
 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
     <div class="bg-blue-50 text-blue-700 rounded-lg p-4 shadow-md flex flex-col items-center justify-center">
         <span class="text-xs font-semibold uppercase">Total Payments</span>
@@ -21,34 +20,6 @@
     </div>
 </div>
 
-{{-- Breakdown Sections --}}
-<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-    <div class="bg-white rounded-lg shadow-sm p-4">
-        <h3 class="text-sm font-semibold text-gray-700 mb-3 border-b pb-1">Breakdown by Organization</h3>
-        <ul class="space-y-1 text-gray-700 text-sm">
-            @foreach($organizationBreakdown as $org => $amount)
-                <li class="flex justify-between border-b border-gray-100 py-1">
-                    <span>{{ $org }}</span>
-                    <span class="font-medium">₱ {{ number_format($amount, 2) }}</span>
-                </li>
-            @endforeach
-        </ul>
-    </div>
-
-    <div class="bg-white rounded-lg shadow-sm p-4">
-        <h3 class="text-sm font-semibold text-gray-700 mb-3 border-b pb-1">Breakdown by Fee</h3>
-        <ul class="space-y-1 text-gray-700 text-sm">
-            @foreach($feeBreakdown as $feeName => $amount)
-                <li class="flex justify-between border-b border-gray-100 py-1">
-                    <span>{{ $feeName }}</span>
-                    <span class="font-medium">₱ {{ number_format($amount, 2) }}</span>
-                </li>
-            @endforeach
-        </ul>
-    </div>
-</div>
-
-{{-- Search & Table --}}
 <div x-data="{ search: '', rowsVisible: {{ $payments->count() }}, clear() { 
         this.search = ''; 
         $refs.table.querySelectorAll('tbody tr').forEach(tr => tr.style.display = ''); 
@@ -56,7 +27,7 @@
     } 
 }" class="mb-4">
 
-    <div class="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
+    <div class="flex flex-col md:flex-row justify-end items-center mb-4 gap-4">
         <div class="relative w-full md:w-1/3">
             <input type="text" placeholder="Search payments..." x-model="search" @input="
                 let count = 0;
