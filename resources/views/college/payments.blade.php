@@ -1,4 +1,13 @@
-{{-- resources/views/college/history/payments.blade.php --}}
+
+<div class="flex justify-end gap-2 px-2 mb-2">
+    <button @click="openFilter = true" class="bg-gray-300 inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg hover:bg-gray-200 transition">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2l-6 7v5l-4 2v-7L3 6V4z" />
+        </svg>
+        Filters
+    </button>
+</div>
+
 @if($payments->isEmpty())
 <div class="p-8 text-center">
     <p class="text-gray-500 text-sm">No payment records found for the selected filters.</p>

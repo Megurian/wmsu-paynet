@@ -16,7 +16,6 @@ class CollegeHistoryController extends Controller
     {
         $collegeId = Auth::user()->college_id;
 
-        // Dropdown data
         $schoolYears = SchoolYear::orderBy('sy_start', 'desc')->get();
         $semesters   = Semester::orderBy('id')->get();
         $courses     = \App\Models\Course::where('college_id', $collegeId)->get();
@@ -26,18 +25,15 @@ class CollegeHistoryController extends Controller
             ->where('role', 'adviser')
             ->get();
 
-        // Determine active / selected school year and semester
         $activeSelection = $this->getActiveSchoolYearAndSemester($request);
         extract($activeSelection);
 
-        // Additional filters
         $selectedCourse  = $request->course ?? null;
         $selectedYear    = $request->year ?? null;
         $selectedSection = $request->section ?? null;
         $selectedAdviser = $request->adviser ?? null;
         $selectedStatus  = $request->status ?? null;
 
-        // Students
         $students = $this->getStudents(
             $collegeId,
             $selectedSY,
@@ -49,8 +45,19 @@ class CollegeHistoryController extends Controller
             $selectedStatus
         );
 
-        // Payments
         $payments = $this->getPayments($selectedSY, $selectedSem);
+
+        $organizations = \App\Models\Organization::where('college_id', $collegeId)->get();
+
+        $fees = \App\Models\Fee::with('organization')
+            ->where('status', 'approved')
+            ->where(function ($q) use ($collegeId) {
+                $q->where('fee_scope', 'university-wide')
+                    ->orWhere('fee_scope', 'college')
+                    ->orWhereHas('organization', fn($org) => $org->where('college_id', $collegeId));
+            })
+            ->orderBy('created_at', 'desc')
+            ->get();
 
         return view('college.history', compact(
             'students',
@@ -69,7 +76,9 @@ class CollegeHistoryController extends Controller
             'selectedYear',
             'selectedSection',
             'selectedAdviser',
-            'selectedStatus'
+            'selectedStatus',
+            'organizations',
+            'fees' 
         ));
     }
 
@@ -145,7 +154,7 @@ class CollegeHistoryController extends Controller
         ?int $selectedAdviser,
         ?string $selectedStatus
     ) {
-        $search = request('search'); 
+        $search = request('search');
 
         return StudentEnrollment::with([
             'student',
@@ -192,6 +201,12 @@ class CollegeHistoryController extends Controller
         return Payment::with(['student', 'fees', 'organization'])
             ->where('school_year_id', $selectedSY)
             ->when($selectedSem, fn($q) => $q->whereHas('semester', fn($s) => $s->where('name', $selectedSem)))
+            ->when(request('organization'), fn($q) => $q->where('organization_id', request('organization')))
+            ->when(request('fee'), fn($q) => $q->whereHas('fees', fn($f) => $f->where('id', request('fee'))))
+            ->when(request('fee_type'), fn($q) => $q->whereHas('fees', fn($f) => $f->where('fee_type', request('fee_type'))))
+            ->when(request('recurrence'), fn($q) => $q->whereHas('fees', fn($f) => $f->where('recurrence', request('recurrence'))))
+            ->when(request('from_date'), fn($q) => $q->whereDate('created_at', '>=', request('from_date')))
+            ->when(request('to_date'), fn($q) => $q->whereDate('created_at', '<=', request('to_date')))
             ->orderBy('created_at', 'desc')
             ->get();
     }

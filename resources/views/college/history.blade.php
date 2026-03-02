@@ -113,6 +113,7 @@
             <button @click="openFilter = false" class="text-gray-500 hover:text-gray-700 text-xl">&times;</button>
         </div>
 
+        @if($tab === 'enrollments')
         <form method="GET" class="p-6 space-y-5">
 
             <input type="hidden" name="tab" value="enrollments">
@@ -193,6 +194,72 @@
                 </a>
             </div>
         </form>
+        @endif
+
+        @if($tab === 'payments')
+        <form method="GET" class="p-6 space-y-5">
+            <input type="hidden" name="tab" value="payments">
+            <input type="hidden" name="school_year" value="{{ $selectedSY }}">
+            <input type="hidden" name="semester" value="{{ $selectedSem }}">
+
+            <!-- Organization -->
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Organization</label>
+                <select name="organization" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+                    <option value="">All Organizations</option>
+                    @foreach($organizations as $org)
+                    <option value="{{ $org->id }}" @selected(request('organization')==$org->id)>{{ $org->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Fee</label>
+                <select name="fee" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+                    <option value="">All Fees</option>
+                    @foreach($fees as $fee)
+                    <option value="{{ $fee->id }}" @selected(request('fee')==$fee->id)>{{ $fee->fee_name }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Date Range</label>
+                <div class="flex gap-2">
+                    <input type="date" name="from_date" value="{{ request('from_date') }}" class="w-1/2 rounded-lg border border-gray-300 px-3 py-2 text-sm">
+                    <input type="date" name="to_date" value="{{ request('to_date') }}" class="w-1/2 rounded-lg border border-gray-300 px-3 py-2 text-sm">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Fee Type</label>
+                <select name="fee_type" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+                    <option value="">All</option>
+                    <option value="mandatory" @selected(request('fee_type')=='mandatory' )>Mandatory</option>
+                    <option value="optional" @selected(request('fee_type')=='optional' )>Optional</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Fee Recurrence</label>
+                <select name="recurrence" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+                    <option value="">All</option>
+                    <option value="one_time" @selected(request('recurrence')=='one_time' )>One-time</option>
+                    <option value="recurring" @selected(request('recurrence')=='recurring' )>Recurring</option>
+                </select>
+            </div>
+
+            <div class="pt-4 flex gap-3">
+                <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 rounded-lg transition">
+                    Apply Filters
+                </button>
+
+                <a href="{{ route('college.history', ['tab'=>'payments']) }}" class="flex-1 text-center text-sm text-gray-500 hover:text-gray-700 py-2">
+                    Reset
+                </a>
+            </div>
+        </form>
+        @endif
     </div>
 
 
