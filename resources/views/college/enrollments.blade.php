@@ -1,4 +1,3 @@
-
 @if($tab === 'enrollments')
 
 {{-- Enrollment Summaries --}}
@@ -30,6 +29,17 @@
 </div>
 
 <div x-data="{ search: '{{ request('search') }}', rowsVisible: {{ $students->count() }}, clear() { this.search = ''; $refs.table.querySelectorAll('tbody tr').forEach(tr => tr.style.display = ''); this.rowsVisible = $refs.table.querySelectorAll('tbody tr').length; } }" class="mb-4">
+    <div class="flex justify-between items-center">
+        <div class="text-gray-600 text-sm">
+        Filtered by:
+        <span class="font-semibold">
+            @if($selectedCourse) Course: {{ $courses->firstWhere('id', $selectedCourse)?->name }} @endif
+            @if($selectedYear) | Year: {{ $years->firstWhere('id', $selectedYear)?->name }} @endif
+            @if($selectedSection) | Section: {{ $sections->firstWhere('id', $selectedSection)?->name }} @endif
+            @if($selectedAdviser) | Adviser: {{ $advisers->firstWhere('id', $selectedAdviser)?->first_name }} {{ $advisers->firstWhere('id', $selectedAdviser)?->last_name }} @endif
+            @if($selectedStatus) | Status: {{ ucfirst(str_replace('_', ' ', $selectedStatus)) }} @endif
+        </span>
+    </div>
     <div class="flex justify-end gap-2 px-2 mb-2 ">
         <div class="relative">
             <input type="text" placeholder="Search student..." x-model="search" @input="
@@ -52,6 +62,7 @@
 
         <button @click="openFilter = true" class="bg-gray-300 inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition"> <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2l-6 7v5l-4 2v-7L3 6V4z" /> </svg> Filters </button>
+    </div>
     </div>
     <div x-ref="table" class="overflow-x-auto">
         <table class="min-w-full text-sm">
