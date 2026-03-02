@@ -1,6 +1,36 @@
+
 @if($tab === 'enrollments')
+
+{{-- Enrollment Summaries --}}
+<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 mb-4">
+    <div class="bg-blue-50 text-blue-700 rounded-lg p-4 flex flex-col items-center justify-center shadow-sm">
+        <span class="text-xs font-semibold uppercase">Total Students</span>
+        <span class="text-xl font-bold">{{ $students->count() }}</span>
+    </div>
+
+    <div class="bg-green-50 text-green-700 rounded-lg p-4 flex flex-col items-center justify-center shadow-sm">
+        <span class="text-xs font-semibold uppercase">Assessed</span>
+        <span class="text-xl font-bold">{{ $students->whereNotNull('assessed_at')->count() }}</span>
+    </div>
+
+    <div class="bg-yellow-50 text-yellow-700 rounded-lg p-4 flex flex-col items-center justify-center shadow-sm">
+        <span class="text-xs font-semibold uppercase">To be Assessed</span>
+        <span class="text-xl font-bold">{{ $students->whereNotNull('validated_at')->count() }}</span>
+    </div>
+
+    <div class="bg-blue-100 text-blue-700 rounded-lg p-4 flex flex-col items-center justify-center shadow-sm">
+        <span class="text-xs font-semibold uppercase">Pending Payment</span>
+        <span class="text-xl font-bold">{{ $students->whereNotNull('advised_at')->count() }}</span>
+    </div>
+
+    <div class="bg-gray-100 text-gray-500 rounded-lg p-4 flex flex-col items-center justify-center shadow-sm">
+        <span class="text-xs font-semibold uppercase">Not Enrolled</span>
+        <span class="text-xl font-bold">{{ $students->whereNull('assessed_at')->whereNull('validated_at')->whereNull('advised_at')->count() }}</span>
+    </div>
+</div>
+
 <div x-data="{ search: '{{ request('search') }}', rowsVisible: {{ $students->count() }}, clear() { this.search = ''; $refs.table.querySelectorAll('tbody tr').forEach(tr => tr.style.display = ''); this.rowsVisible = $refs.table.querySelectorAll('tbody tr').length; } }" class="mb-4">
-    <div class="flex justify-end gap-2 px-2 mb-2">
+    <div class="flex justify-end gap-2 px-2 mb-2 ">
         <div class="relative">
             <input type="text" placeholder="Search student..." x-model="search" @input="
                     let count = 0;
@@ -23,7 +53,6 @@
         <button @click="openFilter = true" class="bg-gray-300 inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition"> <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2l-6 7v5l-4 2v-7L3 6V4z" /> </svg> Filters </button>
     </div>
-
     <div x-ref="table" class="overflow-x-auto">
         <table class="min-w-full text-sm">
             <thead class="bg-gray-50 border-b border-gray-200">
