@@ -200,168 +200,130 @@
 
         @if($tab === 'enrollments')
         @if($tab === 'enrollments')
-            <div x-data="{search: '{{ request('search') }}',clear() { this.search = '' }}" class="flex justify-end gap-2 px-2 mb-2">
+        <div x-data="{ search: '{{ request('search') }}', rowsVisible: {{ $students->count() }}, clear() { this.search = ''; $refs.table.querySelectorAll('tbody tr').forEach(tr => tr.style.display = ''); this.rowsVisible = $refs.table.querySelectorAll('tbody tr').length; } }" class="mb-4">
+            <div class="flex justify-end gap-2 px-2 mb-2">
                 <div class="relative">
-                    <input type="text" placeholder="Search student..." x-model="search" @input="$refs.table.querySelectorAll('tbody tr').forEach(tr => {
-                    let text = tr.innerText.toLowerCase();
-                    tr.style.display = text.includes(search.toLowerCase()) ? '' : 'none';
-                })" class="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
-
-                    <button type="button" x-show="search.length > 0" @click="clear(); $refs.table.querySelectorAll('tbody tr').forEach(tr => tr.style.display='');" class="absolute right-1 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm font-bold px-1">
+                    <input type="text" placeholder="Search student..." x-model="search" @input="
+                    let count = 0;
+                    $refs.table.querySelectorAll('tbody tr').forEach(tr => {
+                        let text = tr.innerText.toLowerCase();
+                        if(text.includes(search.toLowerCase())) {
+                            tr.style.display = '';
+                            count++;
+                        } else {
+                            tr.style.display = 'none';
+                        }
+                    });
+                    rowsVisible = count;
+                " class="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
+                    <button type="button" x-show="search.length > 0" @click="clear()" class="absolute right-1 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm font-bold px-1">
                         &times;
                     </button>
                 </div>
 
-                <button @click="openFilter = true" class="bg-gray-300 inline-flex items-center gap-2 px-4 py-2 text-sm font-medium
-            bg-gray-100 hover:bg-gray-200 text-gray-700
-            rounded-lg transition">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2l-6 7v5l-4 2v-7L3 6V4z" />
-                    </svg>
-                    Filters
-                </button>
+                <button @click="openFilter = true" class="bg-gray-300 inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition"> <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2l-6 7v5l-4 2v-7L3 6V4z" /> </svg> Filters </button>
             </div>
+
+            <div x-ref="table" class="px-4 pb-4 overflow-x-auto">
+                <table class="min-w-full border-separate border-spacing-y-3 text-sm">
+                    <thead>
+                        <tr class="bg-white text-[11px] font-bold uppercase tracking-wide text-red-600">
+                            <th class="px-4 py-4 text-center">#</th>
+                            <th class="px-4 py-4 text-left">Student</th>
+                            <th class="px-4 py-4 text-left">Course</th>
+                            <th class="px-4 py-4 text-left">Year & Section</th>
+                            <th class="px-4 py-4 text-left">Adviser</th>
+                            <th class="px-4 py-4 text-left">Status</th>
+                            <th class="px-4 py-4 text-right"> </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($students as $student)
+                        <tr class="bg-white shadow-sm rounded-xl hover:shadow-md transition">
+                            <td class="px-4 py-4 text-center text-gray-400 align-middle rounded-l-xl">{{ $loop->iteration }}</td>
+                            <td class="px-4 py-4 align-middle">{{ strtoupper($student->student->last_name) }}, {{ strtoupper($student->student->first_name) }}</td>
+                            <td class="px-4 py-4">{{ $student->course?->name ?? '—' }}</td>
+                            <td class="px-4 py-4">{{ $student->yearLevel?->name ?? '—' }} {{ $student->section?->name ?? '—' }}</td>
+                            <td class="px-4 py-4">{{ $student->adviser?->first_name ?? '—' }} {{ $student->adviser?->last_name ?? '' }}</td>
+                            <td class="px-4 py-4">
+                                <span class="px-3 py-1 text-xs font-semibold rounded-full
+                            @php
+                                if($student->assessed_at) echo 'bg-green-100 text-green-700';
+                                elseif($student->validated_at) echo 'bg-yellow-100 text-yellow-700';
+                                elseif($student->advised_at) echo 'bg-blue-100 text-blue-700';
+                                else echo 'bg-gray-100 text-gray-500';
+                            @endphp
+                        ">
+                                    @php
+                                    if($student->assessed_at) echo 'Assessed';
+                                    elseif($student->validated_at) echo 'To be Assessed';
+                                    elseif($student->advised_at) echo 'Pending Payment';
+                                    else echo 'Not Enrolled';
+                                    @endphp
+                                </span>
+                            </td>
+                            <td class="px-4 py-4 text-right align-middle rounded-r-xl">
+                                <a href="{{ route('college.students.history', $student->student->id) }}" class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition">View</a>
+                            </td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+
+            <div x-show="rowsVisible === 0" class="p-8 text-center">
+                <p class="text-gray-500 text-sm">No student history found for the selected filters.</p>
+                <p class="text-xs text-gray-400 mt-1">Try adjusting the school year or semester.</p>
+            </div>
+        </div>
         @endif
-        @if($students->isEmpty())
+
+        @elseif($tab === 'payments')
+        @if($payments->isEmpty())
         <div class="p-8 text-center">
-            <p class="text-gray-500 text-sm">
-                No student history found for the selected filters.
-            </p>
-            <p class="text-xs text-gray-400 mt-1">
-                Try adjusting the school year or semester.
-            </p>
+            <p class="text-gray-500 text-sm">No payment records found for the selected filters.</p>
         </div>
         @else
+        <table class="min-w-full text-sm">
+            <thead class="bg-gray-50 border-b border-gray-200">
+                <tr class="text-left text-[11px] font-semibold uppercase tracking-wide text-gray-600">
+                    <th class="px-4 py-3">#</th>
+                    <th class="px-5 py-3">Organization</th>
+                    <th class="px-5 py-3">Student</th>
+                    <th class="px-5 py-3">Fee Name</th>
+                    <th class="px-5 py-3">Amount Paid</th>
+                    <th class="px-5 py-3">Date Paid</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100 text-gray-700">
+                @foreach($payments as $payment)
+                @foreach($payment->fees as $fee)
+                <tr class="hover:bg-gray-50 transition">
+                    <td class="px-4 py-3 text-gray-500">{{ $loop->parent->iteration }}</td>
 
-        <div x-ref="table" class="px-4 pb-4">
-            <table class="min-w-full border-separate border-spacing-y-3 text-sm">
-                <thead>
-                    <tr class="bg-white  text-[11px] font-bold uppercase tracking-wide text-red-600">
-                        <th class="px-4 py-4 text-center">#</th>
-                        <th class="px-4 py-4 text-left">Student</th>
-                        <th class="px-4 py-4 text-left">Course</th>
-                        <th class="px-4 py-4 text-left">Year & Section</th>
-                        <th class="px-4 py-4 text-left">Adviser</th>
-                        <th class="px-4 py-4 text-left">Status</th>
-                        <th class="px-4 py-4 text-right"> </th>
-                    </tr>
-                </thead>
+                    <td class="px-5 py-3 flex items-center gap-2">
+                        @if($payment->organization?->logo)
+                        <img src="{{ asset('storage/' . $payment->organization->logo) }}" alt="{{ $payment->organization->name }}" class="w-6 h-6 rounded-full object-cover">
+                        @endif
+                        <span>{{ $payment->organization?->name ?? '—' }}</span>
+                    </td>
 
-                <tbody>
-                    @foreach($students as $student)
-                    @php
-                    if($student->assessed_at) {
-                    $status = 'Assessed';
-                    $badgeColor = 'bg-green-100 text-green-700';
-                    } elseif($student->validated_at) {
-                    $status = 'To be Assessed';
-                    $badgeColor = 'bg-yellow-100 text-yellow-700';
-                    } elseif($student->advised_at) {
-                    $status = 'Pending Payment';
-                    $badgeColor = 'bg-blue-100 text-blue-700';
-                    } else {
-                    $status = 'Not Enrolled';
-                    $badgeColor = 'bg-gray-100 text-gray-500';
-                    }
-                    @endphp
+                    <td class="px-5 py-3">
+                        {{ strtoupper($payment->student->last_name) }},
+                        {{ strtoupper($payment->student->first_name) }}
+                    </td>
+                    <td class="px-5 py-3">{{ $fee->fee_name }}</td>
+                    <td class="px-5 py-3">{{ number_format($fee->pivot->amount_paid, 2) }}</td>
+                    <td class="px-5 py-3">{{ $payment->created_at->format('F d, Y H:i') }}</td>
+                </tr>
+                @endforeach
+                @endforeach
+            </tbody>
+        </table>
+        @endif
+        @endif
 
-                    <tr class="bg-white shadow-sm rounded-xl hover:shadow-md transition">
 
-                        <td class="px-4 py-4 text-center text-gray-400 align-middle rounded-l-xl">
-                            {{ $loop->iteration }}
-                        </td>
-
-                        <td class="px-4 py-4 align-middle">
-                            <p class="font-semibold text-gray-800">
-                                {{ strtoupper($student->student->last_name) }},
-                                {{ strtoupper($student->student->first_name) }}
-                            </p>
-                            <p class="text-xs text-gray-500 mt-1">
-                                ID: {{ $student->student->student_id }}
-                            </p>
-                        </td>
-
-                        <td class="px-4 py-4 text-gray-700 align-middle">
-                            {{ $student->course?->name ?? '—' }}
-                        </td>
-
-                        <td class="px-4 py-4 text-gray-700 align-middle">
-                            {{ $student->yearLevel?->name ?? '—' }}
-                            {{ $student->section?->name ?? '—' }}
-                        </td>
-
-                        <td class="px-4 py-4 text-gray-700 align-middle">
-                            {{ $student->adviser?->first_name ?? '—' }}
-                            {{ $student->adviser?->last_name ?? '' }}
-                        </td>
-
-                        <td class="px-4 py-4 align-middle">
-                            <span class="px-3 py-1 text-xs font-semibold rounded-full {{ $badgeColor }}">
-                                {{ $status }}
-                            </span>
-                        </td>
-
-                        <td class="px-4 py-4 text-right align-middle rounded-r-xl">
-                            <a href="{{ route('college.students.history', $student->student->id) }}" class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition">
-                                View
-                            </a>
-                        </td>
-
-                    </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </div>
     </div>
-    @endif
-
-    @elseif($tab === 'payments')
-    @if($payments->isEmpty())
-    <div class="p-8 text-center">
-        <p class="text-gray-500 text-sm">No payment records found for the selected filters.</p>
-    </div>
-    @else
-    <table class="min-w-full text-sm">
-        <thead class="bg-gray-50 border-b border-gray-200">
-            <tr class="text-left text-[11px] font-semibold uppercase tracking-wide text-gray-600">
-                <th class="px-4 py-3">#</th>
-                <th class="px-5 py-3">Organization</th>
-                <th class="px-5 py-3">Student</th>
-                <th class="px-5 py-3">Fee Name</th>
-                <th class="px-5 py-3">Amount Paid</th>
-                <th class="px-5 py-3">Date Paid</th>
-            </tr>
-        </thead>
-        <tbody class="divide-y divide-gray-100 text-gray-700">
-            @foreach($payments as $payment)
-            @foreach($payment->fees as $fee)
-            <tr class="hover:bg-gray-50 transition">
-                <td class="px-4 py-3 text-gray-500">{{ $loop->parent->iteration }}</td>
-
-                {{-- Organization with logo --}}
-                <td class="px-5 py-3 flex items-center gap-2">
-                    @if($payment->organization?->logo)
-                    <img src="{{ asset('storage/' . $payment->organization->logo) }}" alt="{{ $payment->organization->name }}" class="w-6 h-6 rounded-full object-cover">
-                    @endif
-                    <span>{{ $payment->organization?->name ?? '—' }}</span>
-                </td>
-
-                <td class="px-5 py-3">
-                    {{ strtoupper($payment->student->last_name) }},
-                    {{ strtoupper($payment->student->first_name) }}
-                </td>
-                <td class="px-5 py-3">{{ $fee->fee_name }}</td>
-                <td class="px-5 py-3">{{ number_format($fee->pivot->amount_paid, 2) }}</td>
-                <td class="px-5 py-3">{{ $payment->created_at->format('F d, Y H:i') }}</td>
-            </tr>
-            @endforeach
-            @endforeach
-        </tbody>
-    </table>
-    @endif
-    @endif
-
-
-</div>
 </div>
 @endsection
