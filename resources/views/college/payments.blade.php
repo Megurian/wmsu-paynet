@@ -1,4 +1,3 @@
-
 <div class="flex justify-end gap-2 px-2 mb-2">
     <button @click="openFilter = true" class="bg-gray-300 inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg hover:bg-gray-200 transition">
         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -20,6 +19,8 @@
             <th class="px-5 py-3">Organization</th>
             <th class="px-5 py-3">Student</th>
             <th class="px-5 py-3">Fee Name</th>
+            <th class="px-5 py-3">Requirement</th> 
+            <th class="px-5 py-3">Status</th>
             <th class="px-5 py-3">Amount Paid</th>
             <th class="px-5 py-3">Date Paid</th>
         </tr>
@@ -31,40 +32,45 @@
             <td class="px-4 py-3 text-gray-500">{{ $loop->parent->iteration }}</td>
 
             <td class="px-5 py-3 flex items-center gap-2">
+                @if($payment->organization)
 
-    {{-- If payment belongs to an organization --}}
-    @if($payment->organization)
+                @if($payment->organization->logo)
+                <img src="{{ asset('storage/' . $payment->organization->logo) }}" alt="{{ $payment->organization->name }}" class="w-6 h-6 rounded-full object-cover">
+                @endif
 
-        @if($payment->organization->logo)
-            <img 
-                src="{{ asset('storage/' . $payment->organization->logo) }}"
-                alt="{{ $payment->organization->name }}"
-                class="w-6 h-6 rounded-full object-cover">
-        @endif
+                <span>{{ $payment->organization->name }}</span>
+                @else
+                @if($college->logo)
+                <img src="{{ asset('storage/' . $college->logo) }}" alt="{{ $college->name }}" class="w-6 h-6 rounded-full object-cover">
+                @endif
+                <span>{{ $college->name }}</span>
+                @endif
 
-        <span>{{ $payment->organization->name }}</span>
-
-    {{-- If College Only --}}
-    @else
-
-        @if($college->logo)
-            <img 
-                src="{{ asset('storage/' . $college->logo) }}"
-                alt="{{ $college->name }}"
-                class="w-6 h-6 rounded-full object-cover">
-        @endif
-
-        <span>{{ $college->name }}</span>
-
-    @endif
-
-</td>
+            </td>
 
             <td class="px-5 py-3">
                 {{ strtoupper($payment->student->last_name) }},
                 {{ strtoupper($payment->student->first_name) }}
             </td>
             <td class="px-5 py-3">{{ $fee->fee_name }}</td>
+
+            <td class="px-5 py-3">
+                @if($fee->requirement_level === 'mandatory')
+                <span class="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-700">
+                    Mandatory
+                </span>
+                @else
+                <span class="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600">
+                    Optional
+                </span>
+                @endif
+            </td>
+
+            <td class="px-5 py-3">
+                <span class="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-700">
+                    Paid
+                </span>
+            </td>
             <td class="px-5 py-3">{{ number_format($fee->pivot->amount_paid, 2) }}</td>
             <td class="px-5 py-3">{{ $payment->created_at->format('F d, Y H:i') }}</td>
         </tr>
