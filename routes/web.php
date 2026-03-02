@@ -302,6 +302,8 @@ Route::middleware(['auth', 'role:treasurer,college,student_coordinator,adviser,a
     
     Route::get('/college/students/{student}/history', [CollegeHistoryController::class, 'showStudentHistory'])
         ->name('college.students.history');
+
+    Route::get('/college/history/fees', [CollegeHistoryController::class, 'getFeesByOrg']);
        
 });
 

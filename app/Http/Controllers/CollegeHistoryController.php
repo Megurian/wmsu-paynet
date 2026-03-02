@@ -47,22 +47,16 @@ class CollegeHistoryController extends Controller
 
         $payments = $this->getPayments($selectedSY, $selectedSem);
 
-        $selectedOrganization = $request->organization ?? null;
-
         $organizations = \App\Models\Organization::where('college_id', $collegeId)->get();
 
+        $selectedOrganization = $request->organization ?? null;
+
         $feesQuery = \App\Models\Fee::with('organization')
-            ->where('status', 'approved')
-            ->where(function ($q) use ($collegeId) {
-                $q->where('fee_scope', 'university-wide')
-                    ->orWhere('fee_scope', 'college')
-                    ->orWhereHas('organization', fn($org) => $org->where('college_id', $collegeId));
-            });
+            ->where('status', 'approved');
 
         if ($selectedOrganization) {
             if ($selectedOrganization === 'college_only') {
-                $feesQuery->where('fee_scope', 'college')
-                    ->whereNull('organization_id'); 
+                $feesQuery->where('fee_scope', 'college')->whereNull('organization_id');
             } else {
                 $feesQuery->where('organization_id', $selectedOrganization);
             }
@@ -221,5 +215,23 @@ class CollegeHistoryController extends Controller
             ->when(request('to_date'), fn($q) => $q->whereDate('created_at', '<=', request('to_date')))
             ->orderBy('created_at', 'desc')
             ->get();
+    }
+
+    public function getFeesByOrg(Request $request)
+    {
+        $collegeId = Auth::user()->college_id;
+        $orgId = $request->organization;
+
+        $feesQuery = \App\Models\Fee::with('organization')->where('status', 'approved');
+
+        if ($orgId === 'college_only') {
+            $feesQuery->where('fee_scope', 'college')->whereNull('organization_id');
+        } elseif ($orgId) {
+            $feesQuery->where('organization_id', $orgId);
+        }
+
+        $fees = $feesQuery->orderBy('created_at', 'desc')->get(['id', 'fee_name']);
+
+        return response()->json($fees);
     }
 }
