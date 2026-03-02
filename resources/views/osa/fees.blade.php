@@ -95,9 +95,9 @@
                     </p>
                     <p class="text-sm text-gray-600 mt-1">
                         From:
-                        <span class="font-semibold">
+                        {{-- <span class="font-semibold">
                                 {{ $fee->organization->name }} ({{ $fee->organization->org_code }})
-                        </span>
+                        </span> --}}
                     </p>
                     <p class="text-sm text-gray-400 mt-1">
                         Approved on: {{ optional(\Illuminate\Support\Carbon::parse($fee->approved_at))->format('M d, Y') }}

@@ -17,16 +17,31 @@ public function history(Request $request)
     $collegeId = Auth::user()->college_id;
 
     $schoolYears = SchoolYear::orderBy('sy_start', 'desc')->get();
-    $semesters = Semester::orderBy('id')->get();
+    $semesters   = Semester::orderBy('id')->get();
 
-    $activeSY = SchoolYear::where('is_active', true)->first();
+    $activeSY  = SchoolYear::where('is_active', true)->first();
     $activeSem = Semester::where('is_active', true)->first();
 
-    $selectedSY = $request->school_year ?? $activeSY?->id;
+    $selectedSY  = $request->school_year ?? $activeSY?->id;
     $selectedSem = $request->semester ?? '1st';
 
     $selectedSchoolYear = SchoolYear::find($selectedSY);
     $selectedSemester   = Semester::where('name', $selectedSem)->first();
+
+    // ✅ Additional Filters (Enrollments Tab)
+    $selectedCourse  = $request->course ?? null;
+    $selectedYear    = $request->year ?? null;
+    $selectedSection = $request->section ?? null;
+    $selectedAdviser = $request->adviser ?? null;
+    $selectedStatus  = $request->status ?? null;
+
+    // Filter dropdown data
+    $courses  = \App\Models\Course::where('college_id', $collegeId)->get();
+    $years    = \App\Models\YearLevel::where('college_id', $collegeId)->get();
+    $sections = \App\Models\Section::where('college_id', $collegeId)->get();
+    $advisers = \App\Models\User::where('college_id', $collegeId)
+                    ->where('role', 'adviser')
+                    ->get();
 
     $students = StudentEnrollment::with([
         'student',
@@ -39,16 +54,41 @@ public function history(Request $request)
     ])
         ->join('students', 'student_enrollments.student_id', '=', 'students.id')
         ->where('student_enrollments.college_id', $collegeId)
-        ->when($selectedSY, fn($q) => $q->where('student_enrollments.school_year_id', $selectedSY))
+        ->when($selectedSY, fn($q) =>
+            $q->where('student_enrollments.school_year_id', $selectedSY)
+        )
         ->when($selectedSem, fn($q) =>
             $q->whereHas('semester', fn($s) => $s->where('name', $selectedSem))
         )
+        ->when($selectedCourse, fn($q) =>
+            $q->where('student_enrollments.course_id', $selectedCourse)
+        )
+        ->when($selectedYear, fn($q) =>
+            $q->where('student_enrollments.year_level_id', $selectedYear)
+        )
+        ->when($selectedSection, fn($q) =>
+            $q->where('student_enrollments.section_id', $selectedSection)
+        )
+        ->when($selectedAdviser, fn($q) =>
+            $q->where('student_enrollments.adviser_id', $selectedAdviser)
+        )
+        ->when($selectedStatus, function ($q) use ($selectedStatus) {
+            match ($selectedStatus) {
+                'assessed' => $q->whereNotNull('assessed_at'),
+                'to_assess' => $q->whereNull('assessed_at')
+                                 ->whereNotNull('validated_at'),
+                'pending_payment' => $q->whereNull('validated_at')
+                                        ->whereNotNull('advised_at'),
+                'not_enrolled' => $q->whereNull('advised_at'),
+                default => null
+            };
+        })
         ->orderBy('students.last_name')
         ->orderBy('students.first_name')
         ->select('student_enrollments.*')
         ->get();
 
-    // Payments within selected SY & Semester
+    // Payments (unchanged)
     $payments = Payment::with(['student', 'fees', 'organization'])
         ->where('school_year_id', $selectedSY)
         ->whereHas('semester', fn($s) => $s->where('name', $selectedSem))
@@ -57,13 +97,22 @@ public function history(Request $request)
 
     return view('college.history', compact(
         'students',
+        'payments',
         'schoolYears',
         'semesters',
         'selectedSY',
         'selectedSem',
         'selectedSchoolYear',
         'selectedSemester',
-        'payments'
+        'courses',
+        'years',
+        'sections',
+        'advisers',
+        'selectedCourse',
+        'selectedYear',
+        'selectedSection',
+        'selectedAdviser',
+        'selectedStatus'
     ));
 }
 

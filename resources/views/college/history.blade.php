@@ -1,7 +1,7 @@
 @extends('layouts.dashboard')
 
-@section('title', 'Student History')
-@section('page-title', 'Student History')
+@section('title', 'Report & History')
+@section('page-title', 'Report & History')
 
 @section('content')
 {{--
@@ -73,9 +73,13 @@
         </form>
     </div>
 
+
+    @php
+    $tab = request('tab', 'enrollments');
+    @endphp
     {{-- Sub-tabs (Pill badges) --}}
     <div class="mt-4 border-b border-gray-200">
-        <nav class="-mb-px flex space-x-4" aria-label="Tabs">
+        <nav class="-px flex space-x-4" aria-label="Tabs">
             <a href="{{ route('college.history', array_merge(request()->query(), ['tab' => 'enrollments'])) }}" class="px-3 py-2 font-medium text-sm rounded-t-lg
                       @if(request('tab', 'enrollments') === 'enrollments')
                           bg-blue-100 text-blue-700
@@ -83,7 +87,7 @@
                           text-gray-500 hover:text-gray-700
                       @endif
                       ">
-                Student Enrollments
+                Enrollment Records
             </a>
 
             <a href="{{ route('college.history', array_merge(request()->query(), ['tab' => 'payments'])) }}" class="px-3 py-2 font-medium text-sm rounded-t-lg
@@ -93,20 +97,99 @@
                           text-gray-500 hover:text-gray-700
                       @endif
                       ">
-                Payments
+                Payment Records
             </a>
         </nav>
     </div>
+
+    @if($tab === 'enrollments')
+    <div class="border-b border-gray-200 p-4 bg-gray-50">
+        <form method="GET" class="grid grid-cols-1 md:grid-cols-5 gap-4">
+
+            <input type="hidden" name="tab" value="enrollments">
+            <input type="hidden" name="school_year" value="{{ $selectedSY }}">
+            <input type="hidden" name="semester" value="{{ $selectedSem }}">
+
+            {{-- Course --}}
+            <div>
+                <label class="text-xs font-medium text-gray-600">Course</label>
+                <select name="course" onchange="this.form.submit()" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+                    <option value="">All Courses</option>
+                    @foreach($courses as $course)
+                    <option value="{{ $course->id }}" @selected($selectedCourse==$course->id)>
+                        {{ $course->name }}
+                    </option>
+                    @endforeach
+                </select>
+            </div>
+
+            {{-- Year --}}
+            <div>
+                <label class="text-xs font-medium text-gray-600">Year</label>
+                <select name="year" onchange="this.form.submit()" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+                    <option value="">All Years</option>
+                    @foreach($years as $year)
+                    <option value="{{ $year->id }}" @selected($selectedYear==$year->id)>
+                        {{ $year->name }}
+                    </option>
+                    @endforeach
+                </select>
+            </div>
+
+            {{-- Section --}}
+            <div>
+                <label class="text-xs font-medium text-gray-600">Section</label>
+                <select name="section" onchange="this.form.submit()" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+                    <option value="">All Sections</option>
+                    @foreach($sections as $section)
+                    <option value="{{ $section->id }}" @selected($selectedSection==$section->id)>
+                        {{ $section->name }}
+                    </option>
+                    @endforeach
+                </select>
+            </div>
+
+            {{-- Adviser --}}
+            <div>
+                <label class="text-xs font-medium text-gray-600">Adviser</label>
+                <select name="adviser" onchange="this.form.submit()" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+                    <option value="">All Advisers</option>
+                    @foreach($advisers as $adviser)
+                    <option value="{{ $adviser->id }}" @selected($selectedAdviser==$adviser->id)>
+                        {{ $adviser->first_name }} {{ $adviser->last_name }}
+                    </option>
+                    @endforeach
+                </select>
+            </div>
+
+            {{-- Status --}}
+            <div>
+                <label class="text-xs font-medium text-gray-600">Status</label>
+                <select name="status" onchange="this.form.submit()" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+                    <option value="">All Status</option>
+                    <option value="assessed" @selected($selectedStatus=='assessed' )>Assessed</option>
+                    <option value="to_assess" @selected($selectedStatus=='to_assess' )>To be Assessed</option>
+                    <option value="pending_payment" @selected($selectedStatus=='pending_payment' )>Pending Payment</option>
+                    <option value="not_enrolled" @selected($selectedStatus=='not_enrolled' )>Not Enrolled</option>
+                </select>
+            </div>
+
+            {{-- Reset --}}
+            <div class="flex items-end">
+                <a href="{{ route('college.history', ['tab'=>'enrollments']) }}" class="text-sm text-gray-500 hover:text-gray-700">
+                    Reset Filters
+                </a>
+            </div>
+        </form>
+    </div>
+    @endif
 </div>
 
-@php
-$tab = request('tab', 'enrollments');
-@endphp
 
 <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
 
     @if($tab === 'enrollments')
-    
+
     @if($students->isEmpty())
     <div class="p-8 text-center">
         <p class="text-gray-500 text-sm">
@@ -116,8 +199,6 @@ $tab = request('tab', 'enrollments');
             Try adjusting the school year or semester.
         </p>
     </div>
-
-    
     @else
     <table class="min-w-full text-sm">
         <thead class="bg-gray-50 border-b border-gray-200">
