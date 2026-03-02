@@ -13,7 +13,7 @@
     </p>
 </div> --}}
 
-    <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-4 mb-6">
+    <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-4 mb-4">
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
             @if($selectedSchoolYear)
             <div class="md:w-1/2">
@@ -194,10 +194,9 @@
             </div>
         </form>
     </div>
-    <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
 
+    <div class=" overflow-hidden">
         @if($tab === 'enrollments')
-
         @if($students->isEmpty())
         <div class="p-8 text-center">
             <p class="text-gray-500 text-sm">
@@ -208,18 +207,17 @@
             </p>
         </div>
         @else
-        <table class="min-w-full text-sm">
-            <thead class="bg-gray-50 border-b border-gray-200">
-                <tr class="text-left text-[11px] font-semibold uppercase tracking-wide text-gray-600">
-                    <th class="px-4 py-3 text-center">#</th>
-                    <th class="px-5 py-3">Student ID</th>
-                    <th class="px-5 py-3">Name</th>
-                    <th class="px-5 py-3">Course</th>
-                    <th class="px-5 py-3">Year & Section</th>
-                    <th class="px-5 py-3">Adviser</th>
-                    <th class="px-5 py-3">Status</th>
-                    <th class="px-5 py-3">
-                        @if($tab === 'enrollments')
+        <div class="px-4 pb-4">
+            <table class="min-w-full border-separate border-spacing-y-3 text-sm">
+                <thead>
+                    <tr class="bg-white border border-gray-200 rounded shadow-sm text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+                        <th class="px-4 py-2 text-center">#</th>
+                        <th class="px-4 py-2 text-left">Student</th>
+                        <th class="px-4 py-2 text-left">Course</th>
+                        <th class="px-4 py-2 text-left">Year & Section</th>
+                        <th class="px-4 py-2 text-left">Adviser</th>
+                        <th class="px-4 py-2 text-left">Status</th>
+                        <th class="px-4 py-2 text-right"> @if($tab === 'enrollments')
                             <button @click="openFilter = true" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium
                                 bg-gray-100 hover:bg-gray-200 text-gray-700
                                 rounded-lg transition">
@@ -228,57 +226,76 @@
                                 </svg>
                                 Filters
                             </button>
-                        @endif
-                    </th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-100 text-gray-700">
-                @foreach($students as $student)
-                <tr class="hover:bg-gray-50 transition">
-                    <td class="px-4 py-3 text-center text-gray-500">{{ $loop->iteration }}</td>
-                    <td class="px-5 py-3 font-medium">{{ $student->student->student_id }}</td>
-                    <td class="px-5 py-3">
-                        {{ strtoupper($student->student->last_name) }},
-                        {{ strtoupper($student->student->first_name) }}
-                        {{ strtoupper($student->student->middle_name) }}.
-                        {{ strtoupper($student->student->suffix) }}
-                    </td>
-                    <td class="px-5 py-3">{{ $student->course?->name ?? '—' }}</td>
-                    <td class="px-5 py-3">{{ $student->yearLevel?->name ?? '—' }} {{ $student->section?->name ?? '—' }}</td>
-                    <td class="px-5 py-3">
-                        {{ $student->adviser?->first_name ?? '—' }}
-                        {{ $student->adviser?->middle_name ?? '' }}
-                        {{ $student->adviser?->last_name ?? '—' }}
-                    </td>
-                    <td class="px-5 py-3">
-                        @php
-                        if($student->assessed_at) {
-                        $status = 'Assessed';
-                        $badgeColor = 'bg-green-100 text-green-700';
-                        } elseif($student->validated_at) {
-                        $status = 'To be Assessed';
-                        $badgeColor = 'bg-yellow-100 text-yellow-700';
-                        } elseif($student->advised_at) {
-                        $status = 'Pending Payment';
-                        $badgeColor = 'bg-blue-100 text-blue-700';
-                        } else {
-                        $status = 'Not Enrolled';
-                        $badgeColor = 'bg-gray-100 text-gray-500';
-                        }
-                        @endphp
-                        <span class="px-2 py-1 text-xs font-semibold rounded-full {{ $badgeColor }}">
-                            {{ $status }}
-                        </span>
-                    </td>
-                    <td class="px-5 py-3">
-                        <a href="{{ route('college.students.history', $student->student->id) }}" class="inline-block px-3 py-1 text-xs font-semibold text-white bg-blue-600 rounded hover:bg-blue-700 transition">
-                            View
-                        </a>
-                    </td>
-                </tr>
-                @endforeach
-            </tbody>
-        </table>
+                            @endif
+                        </th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    @foreach($students as $student)
+                    @php
+                    if($student->assessed_at) {
+                    $status = 'Assessed';
+                    $badgeColor = 'bg-green-100 text-green-700';
+                    } elseif($student->validated_at) {
+                    $status = 'To be Assessed';
+                    $badgeColor = 'bg-yellow-100 text-yellow-700';
+                    } elseif($student->advised_at) {
+                    $status = 'Pending Payment';
+                    $badgeColor = 'bg-blue-100 text-blue-700';
+                    } else {
+                    $status = 'Not Enrolled';
+                    $badgeColor = 'bg-gray-100 text-gray-500';
+                    }
+                    @endphp
+
+                    <tr class="bg-white shadow-sm rounded-xl hover:shadow-md transition">
+
+                        <td class="px-4 py-4 text-center text-gray-400 align-middle rounded-l-xl">
+                            {{ $loop->iteration }}
+                        </td>
+
+                        <td class="px-4 py-4 align-middle">
+                            <p class="font-semibold text-gray-800">
+                                {{ strtoupper($student->student->last_name) }},
+                                {{ strtoupper($student->student->first_name) }}
+                            </p>
+                            <p class="text-xs text-gray-500 mt-1">
+                                ID: {{ $student->student->student_id }}
+                            </p>
+                        </td>
+
+                        <td class="px-4 py-4 text-gray-700 align-middle">
+                            {{ $student->course?->name ?? '—' }}
+                        </td>
+
+                        <td class="px-4 py-4 text-gray-700 align-middle">
+                            {{ $student->yearLevel?->name ?? '—' }}
+                            {{ $student->section?->name ?? '—' }}
+                        </td>
+
+                        <td class="px-4 py-4 text-gray-700 align-middle">
+                            {{ $student->adviser?->first_name ?? '—' }}
+                            {{ $student->adviser?->last_name ?? '' }}
+                        </td>
+
+                        <td class="px-4 py-4 align-middle">
+                            <span class="px-3 py-1 text-xs font-semibold rounded-full {{ $badgeColor }}">
+                                {{ $status }}
+                            </span>
+                        </td>
+
+                        <td class="px-4 py-4 text-right align-middle rounded-r-xl">
+                            <a href="{{ route('college.students.history', $student->student->id) }}" class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition">
+                                View
+                            </a>
+                        </td>
+
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
         @endif
 
         @elseif($tab === 'payments')
