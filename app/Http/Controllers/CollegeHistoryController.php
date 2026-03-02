@@ -11,7 +11,7 @@ use Illuminate\Http\Request;
 
 class CollegeHistoryController extends Controller
 {
-    
+
     public function history(Request $request)
     {
         $collegeId = Auth::user()->college_id;
@@ -23,8 +23,8 @@ class CollegeHistoryController extends Controller
         $years       = \App\Models\YearLevel::where('college_id', $collegeId)->get();
         $sections    = \App\Models\Section::where('college_id', $collegeId)->get();
         $advisers    = \App\Models\User::where('college_id', $collegeId)
-                                      ->where('role', 'adviser')
-                                      ->get();
+            ->where('role', 'adviser')
+            ->get();
 
         // Determine active / selected school year and semester
         $activeSelection = $this->getActiveSchoolYearAndSemester($request);
@@ -77,7 +77,13 @@ class CollegeHistoryController extends Controller
     public function showStudentHistory($studentId)
     {
         $studentEnrollments = StudentEnrollment::with([
-            'student', 'course', 'yearLevel', 'section', 'schoolYear', 'semester', 'adviser'
+            'student',
+            'course',
+            'yearLevel',
+            'section',
+            'schoolYear',
+            'semester',
+            'adviser'
         ])
             ->where('student_id', $studentId)
             ->orderBy('school_year_id', 'desc')
@@ -95,8 +101,8 @@ class CollegeHistoryController extends Controller
             ->where('status', 'approved')
             ->where(function ($q) use ($collegeId) {
                 $q->where('fee_scope', 'university-wide')
-                  ->orWhere('fee_scope', 'college')
-                  ->orWhereHas('organization', fn($org) => $org->where('college_id', $collegeId));
+                    ->orWhere('fee_scope', 'college')
+                    ->orWhereHas('organization', fn($org) => $org->where('college_id', $collegeId));
             })
             ->orderBy('created_at', 'desc')
             ->get();
@@ -139,8 +145,16 @@ class CollegeHistoryController extends Controller
         ?int $selectedAdviser,
         ?string $selectedStatus
     ) {
+        $search = request('search'); 
+
         return StudentEnrollment::with([
-            'student', 'course', 'yearLevel', 'section', 'schoolYear', 'semester', 'adviser'
+            'student',
+            'course',
+            'yearLevel',
+            'section',
+            'schoolYear',
+            'semester',
+            'adviser'
         ])
             ->join('students', 'student_enrollments.student_id', '=', 'students.id')
             ->where('student_enrollments.college_id', $collegeId)
@@ -159,13 +173,20 @@ class CollegeHistoryController extends Controller
                     default => null
                 };
             })
+            ->when($search, function ($q, $search) {
+                $q->where(function ($sq) use ($search) {
+                    $sq->where('students.first_name', 'like', "%{$search}%")
+                        ->orWhere('students.last_name', 'like', "%{$search}%")
+                        ->orWhere('students.student_id', 'like', "%{$search}%");
+                });
+            })
             ->orderBy('students.last_name')
             ->orderBy('students.first_name')
             ->select('student_enrollments.*')
             ->get();
     }
 
-   
+
     private function getPayments(?int $selectedSY, ?string $selectedSem)
     {
         return Payment::with(['student', 'fees', 'organization'])
