@@ -31,11 +31,34 @@
             <td class="px-4 py-3 text-gray-500">{{ $loop->parent->iteration }}</td>
 
             <td class="px-5 py-3 flex items-center gap-2">
-                @if($payment->organization?->logo)
-                <img src="{{ asset('storage/' . $payment->organization->logo) }}" alt="{{ $payment->organization->name }}" class="w-6 h-6 rounded-full object-cover">
-                @endif
-                <span>{{ $payment->organization?->name ?? '—' }}</span>
-            </td>
+
+    {{-- If payment belongs to an organization --}}
+    @if($payment->organization)
+
+        @if($payment->organization->logo)
+            <img 
+                src="{{ asset('storage/' . $payment->organization->logo) }}"
+                alt="{{ $payment->organization->name }}"
+                class="w-6 h-6 rounded-full object-cover">
+        @endif
+
+        <span>{{ $payment->organization->name }}</span>
+
+    {{-- If College Only --}}
+    @else
+
+        @if($college->logo)
+            <img 
+                src="{{ asset('storage/' . $college->logo) }}"
+                alt="{{ $college->name }}"
+                class="w-6 h-6 rounded-full object-cover">
+        @endif
+
+        <span>{{ $college->name }}</span>
+
+    @endif
+
+</td>
 
             <td class="px-5 py-3">
                 {{ strtoupper($payment->student->last_name) }},

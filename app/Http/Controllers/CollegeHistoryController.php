@@ -63,6 +63,7 @@ class CollegeHistoryController extends Controller
         }
 
         $fees = $feesQuery->orderBy('created_at', 'desc')->get();
+$college = auth()->user()->college;
 
         return view('college.history', compact(
             'students',
@@ -84,7 +85,8 @@ class CollegeHistoryController extends Controller
             'selectedStatus',
             'organizations',
             'fees',
-            'selectedOrganization'
+            'selectedOrganization',
+            'college'
         ));
     }
 
