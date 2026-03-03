@@ -442,4 +442,108 @@ class OrganizationPaymentController extends Controller
             'optionalCollected'
         ));
     }
+
+  public function generateReport(Request $request)
+{
+    $organization = auth()->user()->organization;
+
+    $activeSYId = SchoolYear::where('is_active', true)->value('id');
+    $activeSemId = Semester::where('is_active', true)->value('id');
+
+    // Use active if none selected (same logic as records())
+    $schoolYearId = $request->input('school_year_id', $activeSYId);
+    $semesterId = $request->input('semester_id', $activeSemId);
+
+    $paymentsQuery = Payment::with([
+        'student',
+        'fees',
+        'enrollment.course',
+        'enrollment.yearLevel',
+        'enrollment.section'
+    ])
+    ->where('organization_id', $organization->id)
+    ->where('school_year_id', $schoolYearId)
+    ->where('semester_id', $semesterId);
+
+    // SEARCH
+    if ($request->filled('search')) {
+        $query = $request->search;
+
+        $paymentsQuery->whereHas('student', function ($q) use ($query) {
+            $q->where('student_id', 'like', "%{$query}%")
+              ->orWhere('first_name', 'like', "%{$query}%")
+              ->orWhere('last_name', 'like', "%{$query}%");
+        });
+    }
+
+    // FEE
+    if ($request->filled('fee_id')) {
+        $paymentsQuery->whereHas('fees', function ($q) use ($request) {
+            $q->where('fees.id', $request->fee_id);
+        });
+    }
+
+    // DATE RANGE
+    if ($request->filled('date_from')) {
+        $paymentsQuery->whereDate('created_at', '>=', $request->date_from);
+    }
+
+    if ($request->filled('date_to')) {
+        $paymentsQuery->whereDate('created_at', '<=', $request->date_to);
+    }
+
+    // COURSE
+    if ($request->filled('course_id')) {
+        $paymentsQuery->whereHas('enrollment.course', function ($q) use ($request) {
+            $q->where('id', $request->course_id);
+        });
+    }
+
+    // YEAR LEVEL
+    if ($request->filled('year_level_id')) {
+        $paymentsQuery->whereHas('enrollment.yearLevel', function ($q) use ($request) {
+            $q->where('id', $request->year_level_id);
+        });
+    }
+
+    // SECTION
+    if ($request->filled('section_id')) {
+        $paymentsQuery->whereHas('enrollment.section', function ($q) use ($request) {
+            $q->where('id', $request->section_id);
+        });
+    }
+
+    $payments = $paymentsQuery->latest()->get();
+
+    if ($request->format === 'pdf') {
+
+        $html = view('college_org.reports.payment_report_pdf', compact(
+            'payments',
+            'schoolYearId',
+            'semesterId'
+        ))->render();
+
+        $mpdf = new \Mpdf\Mpdf(['format' => 'A4']);
+        $mpdf->WriteHTML($html);
+
+        return response(
+            $mpdf->Output('payment-report.pdf', 'S'),
+            200,
+            [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="payment-report.pdf"'
+            ]
+        );
+    }
+
+    if ($request->format === 'excel') {
+
+        return \Maatwebsite\Excel\Facades\Excel::download(
+            new \App\Exports\PaymentReportExport($payments),
+            'payment-report.xlsx'
+        );
+    }
+
+    abort(404);
+}
 }

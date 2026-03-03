@@ -165,7 +165,9 @@ Route::middleware(['auth', 'role:college_org'])->group(function () {
     Route::get('college_org/search-students', [OrganizationPaymentController::class, 'searchStudents'])->name('college_org.search_students');
     // Route::get('/college/students/search', [OrganizationPaymentController::class, 'searchStudents'])
     //  ->name('college.students.search');
-
+Route::get('/college-org/generate-report', 
+    [OrganizationPaymentController::class, 'generateReport']
+)->name('college_org.generate_report');
     Route::get('/college/students/search', [OrganizationPaymentController::class,'searchStudents']);
    Route::get('/college_org/students/{student}/fees',
     [OrganizationPaymentController::class,'getStudentFees'])

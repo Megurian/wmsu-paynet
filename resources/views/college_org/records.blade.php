@@ -99,8 +99,6 @@
 
     </div>
 
-
-    <!-- TABLE SECTION -->
     <div class="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
         <div class=" flex justify-between items-center px-4 py-3 border-b border-gray-100">
             <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide">
@@ -209,6 +207,9 @@
                                 Reset
                             </button>
                         </div>
+                         <button type="button" @click="$dispatch('open-report-modal')" class="w-full px-4 py-2 bg-gray-800 text-white rounded-lg text-sm hover:bg-gray-900 transition">
+                                Generate Report
+                            </button>
                     </form>
                 </div>
             </div>
@@ -269,6 +270,45 @@
         </div>
     </div>
 
+</div>
+
+<div x-data="{ open: false }" x-on:open-report-modal.window="open = true">
+    <div x-show="open" class="fixed inset-0 bg-black bg-opacity-40 z-50" x-transition @click="open = false">
+    </div>
+
+    <div x-show="open" x-transition class="fixed inset-0 flex items-center justify-center z-50">
+
+        <div class="bg-white w-96 rounded-2xl shadow-xl p-6 space-y-6">
+
+            <div class="text-center">
+                <h3 class="text-lg font-semibold text-gray-800">
+                    Generate Payment Report
+                </h3>
+                <p class="text-sm text-gray-500 mt-1">
+                    Choose report format
+                </p>
+            </div>
+
+            <div class="space-y-3">
+
+                <!-- PDF -->
+                <a href="{{ route('college_org.generate_report', array_merge(request()->all(), ['format' => 'pdf'])) }}" target="_blank" class="block w-full text-center px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition">
+                    Generate as PDF
+                </a>
+
+                <!-- Excel -->
+                <a href="{{ route('college_org.generate_report', array_merge(request()->all(), ['format' => 'excel'])) }}" class="block w-full text-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
+                    Generate as Excel
+                </a>
+
+            </div>
+
+            <button @click="open = false" class="w-full text-sm text-gray-500 hover:text-gray-700">
+                Cancel
+            </button>
+
+        </div>
+    </div>
 </div>
 
 @endsection
