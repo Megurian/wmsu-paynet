@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Auth;
 
 class UniversityOrgReportsController extends Controller
 {
-   public function paymentCollectionReport(Request $request)
+  public function paymentCollectionReport(Request $request)
 {
     $motherOrg = Auth::user()->organization;
 
@@ -29,41 +29,68 @@ class UniversityOrgReportsController extends Controller
     $schoolYearId = $request->input('school_year_id', $activeSYId);
     $semesterId = $request->input('semester_id', $activeSemId);
 
-    $payments = Payment::with(['student', 'fees', 'organization'])
-        ->whereIn('organization_id', $childOrgs->pluck('id'))
+    $orgReports = $childOrgs->map(function ($org) use ($schoolYearId, $semesterId) {
+
+    $enrollments = \App\Models\StudentEnrollment::with('student')
+        ->where('college_id', $org->college_id)
         ->where('school_year_id', $schoolYearId)
         ->where('semester_id', $semesterId)
         ->get();
 
-    $orgPayments = $childOrgs->map(function ($org) use ($payments) {
-        $orgPayments = $payments->where('organization_id', $org->id);
+    $students = $enrollments->pluck('student')->unique('id');
 
-        $totalCollected = $orgPayments->sum('amount_due');
+    $fees = $org->fees;
 
-        $paidCount = $orgPayments->filter(function ($p) {
-            return $p->fees->sum(fn($f) => $f->pivot->amount_paid ?? 0) >= $p->fees->sum('amount');
-        })->count();
+    $totalFeeAmount = $fees->sum('amount');
 
-        $totalStudents = $orgPayments->pluck('student')->unique('id')->count();
-        $pendingCount = $totalStudents - $paidCount;
-        $paidPercentage = $totalStudents > 0 ? round(($paidCount / $totalStudents) * 100, 0) : 0;
+    $payments = \App\Models\Payment::with('fees')
+        ->where('organization_id', $org->id)
+        ->where('school_year_id', $schoolYearId)
+        ->where('semester_id', $semesterId)
+        ->get();
+
+    $studentReports = $students->map(function ($student) use ($payments, $totalFeeAmount) {
+
+        $studentPayments = $payments->where('student_id', $student->id);
+
+        $totalPaid = $studentPayments->flatMap(function ($payment) {
+            return $payment->fees->map(function ($fee) {
+                return $fee->pivot->amount_paid ?? 0;
+            });
+        })->sum();
+
+        $status = $totalPaid >= $totalFeeAmount && $totalFeeAmount > 0
+            ? 'PAID'
+            : 'PENDING';
 
         return [
-            'organization' => $org,
-            'payments' => $orgPayments,
-            'total_collected' => $totalCollected,
-            'total_students' => $totalStudents,
-            'paid_count' => $paidCount,
-            'pending_count' => $pendingCount,
-            'paid_percentage' => $paidPercentage,
+            'student' => $student,
+            'total_paid' => $totalPaid,
+            'status' => $status,
         ];
     });
 
+    $paidCount = $studentReports->where('status', 'PAID')->count();
+    $pendingCount = $studentReports->where('status', 'PENDING')->count();
+
+    return [
+        'organization' => $org,
+        'students' => $studentReports,
+        'total_students' => $studentReports->count(),
+        'paid_count' => $paidCount,
+        'pending_count' => $pendingCount,
+        'paid_percentage' => $studentReports->count() > 0
+            ? round(($paidCount / $studentReports->count()) * 100)
+            : 0,
+    ];
+});
+
+
     return view('university_org.reports', [
         'motherOrg' => $motherOrg,
-        'orgPayments' => $orgPayments,
-        'schoolYearId' => $schoolYearId,
-        'semesterId' => $semesterId,
+    'orgReports' => $orgReports,
+    'schoolYearId' => $schoolYearId,
+    'semesterId' => $semesterId,
     ]);
 }
 }
