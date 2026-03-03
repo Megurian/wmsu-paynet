@@ -301,29 +301,29 @@ class OrganizationPaymentController extends Controller
     // }
 
     public function records(Request $request)
-    {
-        $user = auth()->user();
+{
+    $user = auth()->user();
+    $organizationId = $user->organization->id;
 
-        $activeSY = SchoolYear::where('is_active', true)->first();
-        $activeSem = Semester::where('is_active', true)->first();
+    $schoolYearId = $request->input('school_year_id') ?? SchoolYear::where('is_active', true)->value('id');
+    $semesterId = $request->input('semester_id') ?? Semester::where('is_active', true)->value('id');
 
-        $payments = Payment::with([
-            'student',
-            'fees',
-            'enrollment.course',
-            'enrollment.yearLevel',
-            'enrollment.section'
-        ])
-            ->whereHas('fees', function ($q) use ($user) {
-                $q->where('organization_id', $user->organization->id);
-            })
-            ->whereHas('enrollment', function ($q) use ($activeSY, $activeSem) {
-                $q->where('school_year_id', $activeSY->id)
-                    ->where('semester_id', $activeSem->id);
-            })
-            ->latest()
-            ->get();
+    $payments = Payment::with([
+        'student',
+        'fees',
+        'enrollment.course',
+        'enrollment.yearLevel',
+        'enrollment.section'
+    ])
+    ->where('organization_id', $organizationId)
+    ->where('school_year_id', $schoolYearId)
+    ->where('semester_id', $semesterId)
+    ->latest()
+    ->get();
 
-        return view('college_org.records', compact('payments'));
-    }
+    $schoolYears = SchoolYear::orderBy('sy_start', 'desc')->get();
+    $semesters = Semester::orderBy('id')->get();
+
+    return view('college_org.records', compact('payments', 'schoolYears', 'semesters'));
 }
+ }

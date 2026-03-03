@@ -169,13 +169,7 @@ Route::middleware(['auth', 'role:college_org'])->group(function () {
     [OrganizationPaymentController::class,'getStudentFees'])
     ->name('college_org.students.fees');
     Route::post('/college_org/payment/collect', [OrganizationPaymentController::class,'collectPayment']);
-    // receipt route is disabled while email receipts are being implemented
-    // Route::get(
-    // '/college_org/receipt/pdf/{payment}',
-    // [OrganizationPaymentController::class, 'downloadReceipt']
-    //)->name('college_org.payment.receipt');
-
-    // Documents routes
+    
     Route::get('/college_org/documents', [DocumentController::class, 'index'])->name('college_org.documents.index')->defaults('role', 'college_org');
     Route::post('/college_org/documents', [DocumentController::class, 'store'])->name('college_org.documents.store')->defaults('role', 'college_org');
     Route::get('/college_org/documents/{document}/preview', [DocumentController::class, 'preview'])->name('college_org.documents.preview');

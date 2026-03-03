@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Fee;
 
+use App\Models\Payment;
+
 class LocalOrgsController extends Controller
 {
     public function index()
@@ -92,5 +94,24 @@ class LocalOrgsController extends Controller
             return redirect()->route('college.local_organizations')->with('status', 'Submission canceled successfully.');
         }
         return redirect()->back()->with('error', 'Cannot cancel this submission.');
+    }
+
+
+    public function records(Organization $org)
+    {
+        $payments = Payment::with([
+            'student',
+            'enrollment.course',
+            'enrollment.yearLevel',
+            'enrollment.section',
+            'fees'
+        ])
+            ->whereHas('fees', function ($query) use ($org) {
+                $query->where('organization_id', $org->id);
+            })
+            ->latest()
+            ->get();
+
+        return view('college.local_organizations.college_org.records', compact('payments', 'org'));
     }
 }

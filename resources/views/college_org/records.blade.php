@@ -11,6 +11,40 @@
     </p>
 </div>
 
+<form method="GET" action="{{ route('college_org.records') }}">
+    <div class="grid grid-cols-1 md:grid-cols-7 gap-4">
+        <!-- Your search, course, year, section inputs -->
+
+        <div>
+            <select id="filter-sy" name="school_year_id" class="w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500">
+                <option value="">School Year</option>
+                @foreach($schoolYears as $sy)
+                <option value="{{ $sy->id }}" {{ request('school_year_id') == $sy->id ? 'selected' : '' }}>
+                    {{ \Carbon\Carbon::parse($sy->sy_start)->year }} - {{ \Carbon\Carbon::parse($sy->sy_end)->year }}
+                </option>
+                @endforeach
+            </select>
+        </div>
+
+        <!-- Semester Dropdown -->
+        <div>
+            <select id="filter-sem" name="semester_id" class="w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500">
+                <option value="">Semester</option>
+                @foreach($semesters as $sem)
+                <option value="{{ $sem->id }}" {{ request('semester_id') == $sem->id ? 'selected' : '' }}>
+                    {{ ucfirst($sem->name) }}
+                </option>
+                @endforeach
+            </select>
+        </div>
+        <div>
+            <button type="submit" class="w-full bg-red-500 text-white py-2 px-4 rounded-md hover:bg-red-600">
+                Filter
+            </button>
+        </div>
+    </div>
+</form>
+
 <!-- Records Section -->
 <div class="mb-8">
     <div class="mt-4 bg-white p-4 rounded-lg shadow-sm border border-gray-200">
