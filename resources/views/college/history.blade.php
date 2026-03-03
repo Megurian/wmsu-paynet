@@ -193,54 +193,8 @@
                     Reset
                 </a>
             </div>
-
-            <button type="button" @click="$dispatch('open-report-modal')" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium py-2 rounded-lg transition">
-                Generate Report
-            </button>
         </form>
         @endif
-
-        <!-- Report Format Modal -->
-        <div x-data="{ open:false }" x-on:open-report-modal.window="open=true">
-
-            <!-- Overlay -->
-            <div x-show="open" x-transition.opacity class="fixed inset-0 bg-black/40 z-50" @click="open=false">
-            </div>
-
-            <!-- Modal -->
-            <div x-show="open" x-transition class="fixed inset-0 flex items-center justify-center z-50">
-
-                <div class="bg-white w-96 rounded-xl shadow-xl p-6 space-y-5">
-                    <div>
-                        <h2 class="text-lg font-semibold text-gray-800">
-                            Generate Report
-                        </h2>
-                        <p class="text-sm text-gray-500 mt-1">
-                            Choose report format for the current filtered data.
-                        </p>
-                    </div>
-
-                    <div class="space-y-3">
-
-                        <!-- PDF -->
-                        <a href="{{ route('college.history.report', array_merge(request()->query(), ['format'=>'pdf'])) }}" class="block w-full text-center bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg text-sm font-medium transition">
-                            Download as PDF
-                        </a>
-
-                        <!-- Excel -->
-                        <a href="{{ route('college.history.report', array_merge(request()->query(), ['format'=>'excel'])) }}" class="block w-full text-center bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg text-sm font-medium transition">
-                            Download as Excel
-                        </a>
-                    </div>
-
-                    <div class="text-right">
-                        <button @click="open=false" class="text-sm text-gray-500 hover:text-gray-700">
-                            Cancel
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
 
         @if($tab === 'payments')
         <div x-data="paymentsFilter()" x-init="init()" class="space-y-5">
@@ -323,6 +277,52 @@
             </form>
         </div>
         @endif
+
+         <button type="button" @click="$dispatch('open-report-modal')" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium py-2 rounded-lg transition">
+                Generate Report
+            </button>
+
+         <!-- Report Format Modal -->
+        <div x-data="{ open:false }" x-on:open-report-modal.window="open=true">
+
+            <!-- Overlay -->
+            <div x-show="open" x-transition.opacity class="fixed inset-0 bg-black/40 z-50" @click="open=false">
+            </div>
+
+            <!-- Modal -->
+            <div x-show="open" x-transition class="fixed inset-0 flex items-center justify-center z-50">
+
+                <div class="bg-white w-96 rounded-xl shadow-xl p-6 space-y-5">
+                    <div>
+                        <h2 class="text-lg font-semibold text-gray-800">
+                            Generate Report
+                        </h2>
+                        <p class="text-sm text-gray-500 mt-1">
+                            Choose report format for the current filtered data.
+                        </p>
+                    </div>
+
+                    <div class="space-y-3">
+
+                        <!-- PDF -->
+                        <a href="{{ route('college.history.report', array_merge(request()->query(), ['format'=>'pdf'])) }}" class="block w-full text-center bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg text-sm font-medium transition">
+                            Download as PDF
+                        </a>
+
+                        <!-- Excel -->
+                        <a href="{{ route('college.history.report', array_merge(request()->query(), ['format'=>'excel'])) }}" class="block w-full text-center bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg text-sm font-medium transition">
+                            Download as Excel
+                        </a>
+                    </div>
+
+                    <div class="text-right">
+                        <button @click="open=false" class="text-sm text-gray-500 hover:text-gray-700">
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
 
