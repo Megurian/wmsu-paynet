@@ -1,23 +1,22 @@
 @if($tab === 'enrollments')
 
-{{-- Enrollment Summaries --}}
 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 mb-4">
     <div class="bg-blue-50 text-blue-700 rounded-lg p-4 flex flex-col items-center justify-center shadow-sm">
         <span class="text-xs font-semibold uppercase">Total Students</span>
         <span class="text-xl font-bold">{{ $students->count() }}</span>
     </div>
 
-    <div class="bg-green-50 text-green-700 rounded-lg p-4 flex flex-col items-center justify-center shadow-sm">
-        <span class="text-xs font-semibold uppercase">Assessed</span>
+    <div class="bg-indigo-100 text-indigo-700 rounded-lg p-4 flex flex-col items-center justify-center shadow-sm">
+        <span class="text-xs font-semibold uppercase">Assessment Completed</span>
         <span class="text-xl font-bold">{{ $students->whereNotNull('assessed_at')->count() }}</span>
     </div>
 
-    <div class="bg-yellow-50 text-yellow-700 rounded-lg p-4 flex flex-col items-center justify-center shadow-sm">
-        <span class="text-xs font-semibold uppercase">To be Assessed</span>
+    <div class="bg-green-100 text-green-700 rounded-lg p-4 flex flex-col items-center justify-center shadow-sm">
+        <span class="text-xs font-semibold uppercase">Payment Completed</span>
         <span class="text-xl font-bold">{{ $students->whereNotNull('validated_at')->count() }}</span>
     </div>
 
-    <div class="bg-blue-100 text-blue-700 rounded-lg p-4 flex flex-col items-center justify-center shadow-sm">
+    <div class="bg-yellow-100 text-yellow-700 rounded-lg p-4 flex flex-col items-center justify-center shadow-sm">
         <span class="text-xs font-semibold uppercase">Pending Payment</span>
         <span class="text-xl font-bold">{{ $students->whereNotNull('advised_at')->count() }}</span>
     </div>
@@ -91,15 +90,15 @@
                     <td class="px-5 py-3">
                         <span class="px-3 py-1 text-xs font-semibold rounded-full
                         @php
-                            if($student->assessed_at) echo 'bg-green-100 text-green-700';
-                            elseif($student->validated_at) echo 'bg-yellow-100 text-yellow-700';
-                            elseif($student->advised_at) echo 'bg-blue-100 text-blue-700';
+                            if($student->assessed_at) echo 'bg-indigo-600 text-white';
+                            elseif($student->validated_at) echo 'bg-green-600 text-white';
+                            elseif($student->advised_at) echo 'bg-yellow-600 text-white';
                             else echo 'bg-gray-100 text-gray-500';
                         @endphp
                     ">
                             @php
-                            if($student->assessed_at) echo 'Assessed';
-                            elseif($student->validated_at) echo 'To be Assessed';
+                            if($student->assessed_at) echo 'Assessment Completed';
+                            elseif($student->validated_at) echo 'For Asessment';
                             elseif($student->advised_at) echo 'Pending Payment';
                             else echo 'Not Enrolled';
                             @endphp

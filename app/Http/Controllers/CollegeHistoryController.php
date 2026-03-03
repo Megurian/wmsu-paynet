@@ -158,6 +158,47 @@ class CollegeHistoryController extends Controller
             ->get();
     }
 
+     public function showStudentHistory($studentId)
+    {
+        $studentEnrollments = StudentEnrollment::with([
+            'student',
+            'course',
+            'yearLevel',
+            'section',
+            'schoolYear',
+            'semester',
+            'adviser'
+        ])
+            ->where('student_id', $studentId)
+            ->orderBy('school_year_id', 'desc')
+            ->orderBy('semester_id', 'desc')
+            ->get();
+
+        if ($studentEnrollments->isEmpty()) {
+            abort(404, 'Student history not found.');
+        }
+
+        $studentInfo = $studentEnrollments->first()->student;
+        $collegeId   = auth()->user()->college_id;
+
+        $fees = \App\Models\Fee::with('organization')
+            ->where('status', 'approved')
+            ->where(function ($q) use ($collegeId) {
+                $q->where('fee_scope', 'university-wide')
+                    ->orWhere('fee_scope', 'college')
+                    ->orWhereHas('organization', fn($org) => $org->where('college_id', $collegeId));
+            })
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        $payments = Payment::with('fees')
+            ->where('student_id', $studentId)
+            ->get()
+            ->keyBy('transaction_id');
+
+        return view('college.student-history-info', compact('studentEnrollments', 'studentInfo', 'fees', 'payments'));
+    }
+
     private function getPayments(?int $selectedSY, ?string $selectedSem)
     {
         $collegeId = auth()->user()->college_id;
