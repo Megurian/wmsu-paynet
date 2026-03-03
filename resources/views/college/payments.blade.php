@@ -1,9 +1,24 @@
+
 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-    <div class="bg-blue-50 text-blue-700 rounded-lg p-4 shadow-md flex flex-col items-center justify-center"> <span class="text-xs font-semibold uppercase">Total Payments</span> <span class="text-2xl font-bold">{{ $totalPayments }}</span> </div>
-    <div class="bg-green-50 text-green-700 rounded-lg p-4 shadow-md flex flex-col items-center justify-center"> <span class="text-xs font-semibold uppercase">Total Amount Collected</span> <span class="text-2xl font-bold">₱ {{ number_format($totalAmount, 2) }}</span> </div>
-    <div class="bg-red-50 text-red-700 rounded-lg p-4 shadow-md flex flex-col items-center justify-center"> <span class="text-xs font-semibold uppercase">Mandatory Fees</span> <span class="text-2xl font-bold">₱ {{ number_format($requirementBreakdown['mandatory'] ?? 0, 2) }}</span> </div>
-    <div class="bg-yellow-50 text-yellow-700 rounded-lg p-4 shadow-md flex flex-col items-center justify-center"> <span class="text-xs font-semibold uppercase">Optional Fees</span> <span class="text-2xl font-bold">₱ {{ number_format($requirementBreakdown['optional'] ?? 0, 2) }}</span> </div>
+    <div class="bg-blue-50 text-blue-700 rounded-lg p-4 shadow-md flex flex-col items-center justify-center">
+        <span class="text-xs font-semibold uppercase">Total Payments</span>
+        <span class="text-2xl font-bold">{{ $totalPayments }}</span>
+        <span class="text-xs text-gray-500 mt-1">Unpaid: {{ $totalUnpaid }}</span>
+    </div>
+    <div class="bg-green-50 text-green-700 rounded-lg p-4 shadow-md flex flex-col items-center justify-center">
+        <span class="text-xs font-semibold uppercase">Total Amount Collected</span>
+        <span class="text-2xl font-bold">₱ {{ number_format($totalAmount, 2) }}</span>
+    </div>
+    <div class="bg-red-50 text-red-700 rounded-lg p-4 shadow-md flex flex-col items-center justify-center">
+        <span class="text-xs font-semibold uppercase">Mandatory Fees</span>
+        <span class="text-2xl font-bold">₱ {{ number_format($requirementBreakdown['mandatory'] ?? 0, 2) }}</span>
+    </div>
+    <div class="bg-yellow-50 text-yellow-700 rounded-lg p-4 shadow-md flex flex-col items-center justify-center">
+        <span class="text-xs font-semibold uppercase">Optional Fees</span>
+        <span class="text-2xl font-bold">₱ {{ number_format($requirementBreakdown['optional'] ?? 0, 2) }}</span>
+    </div>
 </div>
+
 <div x-data="{ search: '', rowsVisible: {{ $payments->count() }}, clear() { this.search = ''; $refs.table.querySelectorAll('tbody tr').forEach(tr => tr.style.display = ''); this.rowsVisible = $refs.table.querySelectorAll('tbody tr').length; } }" class="mb-4">
     <div class="flex flex-col md:flex-row justify-end items-center mb-4 gap-4">
         <div class="relative w-full md:w-1/3"> <input type="text" placeholder="Search payments..." x-model="search" @input=" let count = 0; $refs.table.querySelectorAll('tbody tr').forEach(tr => { let text = tr.innerText.toLowerCase(); if(text.includes(search.toLowerCase())) { tr.style.display = ''; count++; } else { tr.style.display = 'none'; } }); rowsVisible = count; " class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"> <button type="button" x-show="search.length > 0" @click="clear()" class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm font-bold">&times;</button> </div> <button @click="openFilter = true" class="bg-gray-100 hover:bg-gray-200 text-gray-700 inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition"> <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

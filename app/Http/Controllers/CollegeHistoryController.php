@@ -14,8 +14,6 @@ class CollegeHistoryController extends Controller
     public function history(Request $request)
     {
         $collegeId = Auth::user()->college_id;
-
-        // Load filter data
         $schoolYears   = SchoolYear::orderBy('sy_start', 'desc')->get();
         $semesters     = Semester::orderBy('id')->get();
         $courses       = \App\Models\Course::where('college_id', $collegeId)->get();
@@ -24,11 +22,9 @@ class CollegeHistoryController extends Controller
         $advisers      = \App\Models\User::where('college_id', $collegeId)->where('role', 'adviser')->get();
         $organizations = \App\Models\Organization::where('college_id', $collegeId)->get();
 
-        // Selected school year and semester
         $activeSelection = $this->getActiveSchoolYearAndSemester($request);
         extract($activeSelection);
 
-        // Selected filters
         $selectedCourse       = $request->course ?? null;
         $selectedYear         = $request->year ?? null;
         $selectedSection      = $request->section ?? null;
@@ -36,7 +32,6 @@ class CollegeHistoryController extends Controller
         $selectedStatus       = $request->status ?? null;
         $selectedOrganization = $request->organization ?? null;
 
-        // Students filtered
         $students = $this->getStudents(
             $collegeId,
             $selectedSY,
@@ -48,10 +43,8 @@ class CollegeHistoryController extends Controller
             $selectedStatus
         );
 
-        // Payments filtered
         $payments = $this->getPayments($selectedSY, $selectedSem);
 
-        // Fees filtered by selected organization
         $feesQuery = \App\Models\Fee::with('organization')->where('status', 'approved');
         if ($selectedOrganization) {
             if ($selectedOrganization === 'college_only') {
@@ -64,10 +57,17 @@ class CollegeHistoryController extends Controller
 
         $college = auth()->user()->college;
 
-        // Stats for summary cards
-        $totalPayments = $payments->count();
-        $totalAmount   = $payments->flatMap(fn($p) => $p->fees)->sum(fn($f) => $f->pivot->amount_paid);
-        $requirementBreakdown = $payments->flatMap(fn($p) => $p->fees)
+        $paidFees = $payments->flatMap(fn($p) => $p->fees)
+            ->filter(fn($f) => $f->pivot->amount_paid > 0);
+
+        $unpaidFees = $payments->flatMap(fn($p) => $p->fees)
+            ->filter(fn($f) => $f->pivot->amount_paid == 0);
+
+        $totalPayments = $paidFees->count(); 
+        $totalUnpaid   = $unpaidFees->count(); 
+        $totalAmount   = $paidFees->sum(fn($f) => $f->pivot->amount_paid);
+
+        $requirementBreakdown = $paidFees
             ->groupBy('requirement_level')
             ->map(fn($fees) => $fees->sum(fn($f) => $f->pivot->amount_paid));
 
@@ -94,6 +94,7 @@ class CollegeHistoryController extends Controller
             'selectedOrganization',
             'college',
             'totalPayments',
+            'totalUnpaid',
             'totalAmount',
             'requirementBreakdown'
         ));
