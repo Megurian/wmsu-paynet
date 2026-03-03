@@ -266,40 +266,6 @@ class OrganizationPaymentController extends Controller
         ]);
     }
 
-    // public function downloadReceipt(Payment $payment)
-    // {
-    //     $payment->load([
-    //         'student',
-    //         'fees',
-    //         'enrollment.course',
-    //         'enrollment.yearLevel',
-    //         'enrollment.section',
-    //         'collector'
-    //     ]);
-    //
-    //     $html = view('college_org.receipt_pdf', compact('payment'))->render();
-    //
-    //     $mpdf = new Mpdf([
-    //         'mode' => 'utf-8',
-    //         'format' => 'A4',
-    //     ]);
-    //
-    //     $mpdf->WriteHTML($html);
-    //
-    //     if (!$payment->fees->contains('organization_id', auth()->user()->organization->id)) {
-    //         abort(403);
-    //     }
-    //
-    //     return response(
-    //         $mpdf->Output('receipt-' . $payment->transaction_id . '.pdf', 'S'),
-    //         200,
-    //         [
-    //             'Content-Type' => 'application/pdf',
-    //             'Content-Disposition' => 'inline; filename="receipt-' . $payment->transaction_id . '.pdf"'
-    //         ]
-    //     );
-    // }
-
     public function records(Request $request)
     {
         $user = auth()->user();
@@ -423,107 +389,99 @@ class OrganizationPaymentController extends Controller
         ));
     }
 
-    public function generateReport(Request $request)
-    {
-        $organization = auth()->user()->organization;
+ public function generateReport(Request $request)
+{
+    $organization = auth()->user()->organization;
 
-        $activeSYId = SchoolYear::where('is_active', true)->value('id');
-        $activeSemId = Semester::where('is_active', true)->value('id');
+    $activeSYId = SchoolYear::where('is_active', true)->value('id');
+    $activeSemId = Semester::where('is_active', true)->value('id');
 
-        // Use active if none selected (same logic as records())
-        $schoolYearId = $request->input('school_year_id', $activeSYId);
-        $semesterId = $request->input('semester_id', $activeSemId);
+    $schoolYearId = $request->input('school_year_id', $activeSYId);
+    $semesterId = $request->input('semester_id', $activeSemId);
 
-        $paymentsQuery = Payment::with([
-            'student',
-            'fees',
-            'enrollment.course',
-            'enrollment.yearLevel',
-            'enrollment.section'
-        ])
-            ->where('organization_id', $organization->id)
-            ->where('school_year_id', $schoolYearId)
-            ->where('semester_id', $semesterId);
+    $students = Student::whereHas('enrollments', function ($q) use ($organization, $schoolYearId, $semesterId) {
+        $q->where('college_id', $organization->college_id)
+          ->where('school_year_id', $schoolYearId)
+          ->where('semester_id', $semesterId)
+          ->whereIn('status', ['FOR_PAYMENT_VALIDATION', 'ENROLLED']);
+    })->with(['enrollments' => function ($q) use ($schoolYearId, $semesterId) {
+        $q->where('school_year_id', $schoolYearId)
+          ->where('semester_id', $semesterId)
+          ->whereIn('status', ['FOR_PAYMENT_VALIDATION', 'ENROLLED']);
+    }, 'enrollments.course', 'enrollments.yearLevel', 'enrollments.section'])->get();
 
-        // SEARCH
-        if ($request->filled('search')) {
-            $query = $request->search;
+    $payments = Payment::with(['fees', 'student'])
+        ->where('organization_id', $organization->id)
+        ->where('school_year_id', $schoolYearId)
+        ->where('semester_id', $semesterId)
+        ->get();
 
-            $paymentsQuery->whereHas('student', function ($q) use ($query) {
-                $q->where('student_id', 'like', "%{$query}%")
-                    ->orWhere('first_name', 'like', "%{$query}%")
-                    ->orWhere('last_name', 'like', "%{$query}%");
-            });
+    $studentsWithPayments = $students->map(function ($student) use ($payments, $organization) {
+        $enrollment = $student->enrollments->first();
+        $studentPayments = $payments->where('student_id', $student->id);
+
+        $organizationIds = [$organization->id];
+        if ($organization->mother_organization_id) $organizationIds[] = $organization->mother_organization_id;
+        if ($organization->motherOrganization?->inherits_osa_fees) {
+            $osaId = \App\Models\Organization::where('org_code', 'OSA')->value('id');
+            if ($osaId) $organizationIds[] = $osaId;
         }
 
-        // FEE
-        if ($request->filled('fee_id')) {
-            $paymentsQuery->whereHas('fees', function ($q) use ($request) {
-                $q->where('fees.id', $request->fee_id);
-            });
+        $allFees = Fee::where('status', 'approved')
+            ->whereIn('organization_id', $organizationIds)
+            ->get();
+
+        $paidFeeIds = $studentPayments->pluck('fees.*.id')->flatten()->unique()->toArray();
+
+        $pendingFees = $allFees->whereNotIn('id', $paidFeeIds)->values();
+
+        return [
+            'student' => $student,
+            'payments' => $studentPayments,
+            'pendingFees' => $pendingFees,
+            'has_paid' => $studentPayments->isNotEmpty(),
+            'total_paid' => $studentPayments->sum('amount_due'),
+            'total_pending' => $pendingFees->sum('amount')
+        ];
+    });
+
+    if ($request->filled('payment_status')) {
+        $status = $request->payment_status;
+        if ($status === 'paid') {
+            $studentsWithPayments = $studentsWithPayments->filter(fn($s) => $s['has_paid'])->values();
         }
-
-        // DATE RANGE
-        if ($request->filled('date_from')) {
-            $paymentsQuery->whereDate('created_at', '>=', $request->date_from);
+        if ($status === 'pending') {
+            $studentsWithPayments = $studentsWithPayments->filter(fn($s) => !$s['has_paid'] || $s['total_pending'] > 0)->values();
         }
-
-        if ($request->filled('date_to')) {
-            $paymentsQuery->whereDate('created_at', '<=', $request->date_to);
-        }
-
-        // COURSE
-        if ($request->filled('course_id')) {
-            $paymentsQuery->whereHas('enrollment.course', function ($q) use ($request) {
-                $q->where('id', $request->course_id);
-            });
-        }
-
-        // YEAR LEVEL
-        if ($request->filled('year_level_id')) {
-            $paymentsQuery->whereHas('enrollment.yearLevel', function ($q) use ($request) {
-                $q->where('id', $request->year_level_id);
-            });
-        }
-
-        // SECTION
-        if ($request->filled('section_id')) {
-            $paymentsQuery->whereHas('enrollment.section', function ($q) use ($request) {
-                $q->where('id', $request->section_id);
-            });
-        }
-
-        $payments = $paymentsQuery->latest()->get();
-
-        if ($request->format === 'pdf') {
-
-            $html = view('college_org.reports.payment_report_pdf', compact(
-                'payments',
-                'schoolYearId',
-                'semesterId'
-            ))->render();
-
-            $mpdf = new \Mpdf\Mpdf(['format' => 'A4']);
-            $mpdf->WriteHTML($html);
-
-            return response(
-                $mpdf->Output('payment-report.pdf', 'S'),
-                200,
-                [
-                    'Content-Type' => 'application/pdf',
-                    'Content-Disposition' => 'inline; filename="payment-report.pdf"'
-                ]
-            );
-        }
-
-        if ($request->format === 'excel') {
-
-            return \Maatwebsite\Excel\Facades\Excel::download(
-                new \App\Exports\PaymentReportExport($payments),
-                'payment-report.xlsx'
-            );
-        }
-
-        abort(404);
     }
+
+    if ($request->format === 'pdf') {
+        $html = view('college_org.reports.payment_report_pdf', [
+            'studentsWithPayments' => $studentsWithPayments,
+            'schoolYearId' => $schoolYearId,
+            'semesterId' => $semesterId
+        ])->render();
+
+        $mpdf = new \Mpdf\Mpdf(['format' => 'A4']);
+        $mpdf->WriteHTML($html);
+
+        return response(
+            $mpdf->Output('payment-report.pdf', 'S'),
+            200,
+            [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="payment-report.pdf"'
+            ]
+        );
+    }
+
+    if ($request->format === 'excel') {
+        return \Maatwebsite\Excel\Facades\Excel::download(
+            new \App\Exports\PaymentReportExport($studentsWithPayments),
+            'payment-report.xlsx'
+        );
+    }
+
+    abort(404);
+}
 }

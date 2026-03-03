@@ -82,6 +82,7 @@
             text-align: center;
             color: #888;
         }
+
     </style>
 </head>
 
@@ -90,8 +91,7 @@
     <div class="header">
 
         @if(optional(auth()->user()->organization)->logo)
-            <img src="{{ public_path('storage/' . auth()->user()->organization->logo) }}" 
-                 class="logo">
+        <img src="{{ public_path('storage/' . auth()->user()->organization->logo) }}" class="logo">
         @endif
 
         <div class="org-name">
@@ -131,33 +131,49 @@
         <tbody>
             @php $total = 0; @endphp
 
-            @forelse($payments as $index => $payment)
-                @php $total += $payment->amount_due; @endphp
-                <tr>
-                    <td>{{ $index + 1 }}</td>
-                    <td>{{ $payment->student->student_id ?? '-' }}</td>
-                    <td>
-                        {{ $payment->student->last_name ?? '' }},
-                        {{ $payment->student->first_name ?? '' }}
-                    </td>
-                    <td>
-                            @foreach($payment->fees as $fee)
-                            <div>{{ $fee->fee_name }}</div>
-                            @endforeach
-                        </td>
-                    <td>
-                        {{ $payment->created_at->format('Y-m-d') }}
-                    </td>
-                    <td class="text-right">
-                        {{ number_format($payment->amount_due, 2) }}
-                    </td>
-                </tr>
+            @forelse($studentsWithPayments as $index => $item)
+            @php
+            $student = $item['student'];
+            $studentPayments = $item['payments'];
+            $pendingFees = $item['pendingFees'];
+            @endphp
+
+            @if($studentPayments->isNotEmpty())
+            @foreach($studentPayments as $payment)
+            @php $total += $payment->amount_due; @endphp
+            <tr>
+                <td>{{ $loop->parent->index + 1 }}</td>
+                <td>{{ $student->student_id ?? '-' }}</td>
+                <td>{{ $student->last_name }}, {{ $student->first_name }}</td>
+                <td>
+                    @foreach($payment->fees as $fee)
+                    <div>{{ $fee->fee_name }}</div>
+                    @endforeach
+                </td>
+                <td>{{ $payment->created_at->format('Y-m-d') }}</td>
+                <td class="text-right">{{ number_format($payment->amount_due, 2) }}</td>
+            </tr>
+            @endforeach
+            @endif
+
+            @if($pendingFees->isNotEmpty())
+            @foreach($pendingFees as $fee)
+            <tr>
+                <td>{{ $loop->parent->index + 1 }}</td>
+                <td>{{ $student->student_id ?? '-' }}</td>
+                <td>{{ $student->last_name }}, {{ $student->first_name }}</td>
+                <td>{{ $fee->fee_name }} <small>(Pending)</small></td>
+                <td>-</td>
+                <td class="text-right">{{ number_format($fee->amount, 2) }}</td>
+            </tr>
+            @php $total += $fee->amount; @endphp
+            @endforeach
+            @endif
+
             @empty
-                <tr>
-                    <td colspan="6" style="text-align:center;">
-                        No payment records found.
-                    </td>
-                </tr>
+            <tr>
+                <td colspan="6" style="text-align:center;">No payment records found.</td>
+            </tr>
             @endforelse
         </tbody>
     </table>
@@ -169,7 +185,7 @@
 
 
     <div class="footer">
-        This is a system-generated report. 
+        This is a system-generated report.
     </div>
 
 </body>
