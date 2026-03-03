@@ -250,7 +250,7 @@ class CollegeHistoryController extends Controller
             }
         }
 
-        return $payments;
+        return $payments->sortByDesc(fn($p) => $p->created_at)->values();
     }
 
     public function getFeesByOrg(Request $request)
