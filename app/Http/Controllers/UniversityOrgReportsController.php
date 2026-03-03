@@ -49,25 +49,40 @@ class UniversityOrgReportsController extends Controller
         ->where('semester_id', $semesterId)
         ->get();
 
-    $studentReports = $students->map(function ($student) use ($payments, $totalFeeAmount) {
+    $studentReports = $students->map(function ($student) use ($payments, $fees) {
 
-        $studentPayments = $payments->where('student_id', $student->id);
+    $studentPayments = $payments->where('student_id', $student->id);
 
-        $totalPaid = $studentPayments->flatMap(function ($payment) {
-            return $payment->fees->map(function ($fee) {
-                return $fee->pivot->amount_paid ?? 0;
-            });
+    $feeBreakdown = $fees->map(function ($fee) use ($studentPayments) {
+
+        $paidAmount = $studentPayments->flatMap(function ($payment) use ($fee) {
+            return $payment->fees
+                ->where('id', $fee->id)
+                ->map(fn($f) => $f->pivot->amount_paid ?? 0);
         })->sum();
 
-        $status = $totalPaid >= $totalFeeAmount && $totalFeeAmount > 0
+        $status = $paidAmount >= $fee->amount
             ? 'PAID'
             : 'PENDING';
 
         return [
-            'student' => $student,
-            'total_paid' => $totalPaid,
+            'fee_name' => $fee->fee_name,
+            'fee_amount' => $fee->amount,
+            'paid_amount' => $paidAmount,
             'status' => $status,
         ];
+    });
+
+    $totalPaid = $feeBreakdown->sum('paid_amount');
+    $allPaid = $feeBreakdown->every(fn($f) => $f['status'] === 'PAID');
+
+    return [
+        'student' => $student,
+        'total_paid' => $totalPaid,
+        'status' => $allPaid ? 'PAID' : 'PENDING',
+        'fees' => $feeBreakdown,
+    ];
+
     });
 
     $paidCount = $studentReports->where('status', 'PAID')->count();
