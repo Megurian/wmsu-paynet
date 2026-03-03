@@ -253,6 +253,19 @@
                     </select>
                 </div>
 
+                <div>
+    <label class="block text-xs font-medium text-gray-600 mb-1">Payment Status</label>
+    <select name="payment_status" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+        <option value="">All</option>
+        <option value="paid" @selected(request('payment_status')=='paid')>
+            Paid
+        </option>
+        <option value="unpaid" @selected(request('payment_status')=='unpaid')>
+            Unpaid
+        </option>
+    </select>
+</div>
+
                 <div class="pt-4 flex gap-3">
                     <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 rounded-lg transition">
                         Apply Filters

@@ -228,9 +228,19 @@ class CollegeHistoryController extends Controller
 
     private function getPayments(?int $selectedSY, ?string $selectedSem)
     {
-        return Payment::with(['student', 'fees', 'organization'])
+        $paymentStatus = request('payment_status');
+
+        $paymentsQuery = Payment::with(['student', 'fees', 'organization'])
             ->where('school_year_id', $selectedSY)
-            ->when($selectedSem, fn($q) => $q->whereHas('semester', fn($s) => $s->where('name', $selectedSem)))
+            ->when(
+                $selectedSem,
+                fn($q) =>
+                $q->whereHas(
+                    'semester',
+                    fn($s) =>
+                    $s->where('name', $selectedSem)
+                )
+            )
             ->when(request('organization'), function ($q) {
                 if (request('organization') === 'college_only') {
                     $q->whereNull('organization_id');
@@ -238,13 +248,66 @@ class CollegeHistoryController extends Controller
                     $q->where('organization_id', request('organization'));
                 }
             })
-            ->when(request('fee'), fn($q) => $q->whereHas('fees', fn($f) => $f->where('fees.id', request('fee'))))
-            ->when(request('requirement_level'), fn($q) => $q->whereHas('fees', fn($f) => $f->where('requirement_level', request('requirement_level'))))
-            ->when(request('recurrence'), fn($q) => $q->whereHas('fees', fn($f) => $f->where('recurrence', request('recurrence'))))
-            ->when(request('from_date'), fn($q) => $q->whereDate('created_at', '>=', request('from_date')))
-            ->when(request('to_date'), fn($q) => $q->whereDate('created_at', '<=', request('to_date')))
-            ->orderBy('created_at', 'desc')
-            ->get();
+            ->when(
+                request('fee'),
+                fn($q) =>
+                $q->whereHas(
+                    'fees',
+                    fn($f) =>
+                    $f->where('fees.id', request('fee'))
+                )
+            )
+            ->when(
+                request('requirement_level'),
+                fn($q) =>
+                $q->whereHas(
+                    'fees',
+                    fn($f) =>
+                    $f->where('requirement_level', request('requirement_level'))
+                )
+            )
+            ->when(
+                request('recurrence'),
+                fn($q) =>
+                $q->whereHas(
+                    'fees',
+                    fn($f) =>
+                    $f->where('recurrence', request('recurrence'))
+                )
+            )
+            ->when(
+                request('from_date'),
+                fn($q) =>
+                $q->whereDate('created_at', '>=', request('from_date'))
+            )
+            ->when(
+                request('to_date'),
+                fn($q) =>
+                $q->whereDate('created_at', '<=', request('to_date'))
+            );
+
+        if ($paymentStatus === 'paid') {
+            return $paymentsQuery->orderBy('created_at', 'desc')->get();
+        }
+
+        if ($paymentStatus === 'unpaid') {
+            $paidStudentIds = $paymentsQuery->pluck('student_id')->unique();
+
+            return StudentEnrollment::with('student')
+                ->where('school_year_id', $selectedSY)
+                ->when(
+                    $selectedSem,
+                    fn($q) =>
+                    $q->whereHas(
+                        'semester',
+                        fn($s) =>
+                        $s->where('name', $selectedSem)
+                    )
+                )
+                ->whereNotIn('student_id', $paidStudentIds)
+                ->get();
+        }
+        return $paymentsQuery->orderBy('created_at', 'desc')->get();
     }
 
     public function getFeesByOrg(Request $request)

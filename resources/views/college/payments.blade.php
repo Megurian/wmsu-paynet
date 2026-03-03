@@ -70,40 +70,72 @@
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-100 text-gray-700">
-                @foreach($payments as $payment)
-                @foreach($payment->fees as $fee)
-                <tr class="hover:bg-gray-50 transition">
-                    <td class="px-4 py-3 text-gray-500">{{ $loop->parent->iteration }}</td>
-                    <td class="px-5 py-3 flex items-center gap-2">
-                        @if($payment->organization)
-                            @if($payment->organization->logo)
-                                <img src="{{ asset('storage/' . $payment->organization->logo) }}" alt="{{ $payment->organization->name }}" class="w-6 h-6 rounded-full object-cover">
-                            @endif
-                            <span>{{ $payment->organization->name }}</span>
-                        @else
-                            @if($college->logo)
-                                <img src="{{ asset('storage/' . $college->logo) }}" alt="{{ $college->name }}" class="w-6 h-6 rounded-full object-cover">
-                            @endif
-                            <span>{{ $college->name }}</span>
+
+    @foreach($payments as $record)
+        @if(isset($record->fees) && $record->fees->count() > 0)
+            @foreach($record->fees as $fee)
+            <tr class="hover:bg-gray-50 transition">
+                <td class="px-4 py-3 text-gray-500">{{ $loop->parent->iteration }}</td>
+
+                <td class="px-5 py-3 flex items-center gap-2">
+                    @if($record->organization)
+                        @if($record->organization->logo)
+                            <img src="{{ asset('storage/' . $record->organization->logo) }}" alt="{{ $record->organization->name }}" class="w-6 h-6 rounded-full object-cover">
                         @endif
-                    </td>
-                    <td class="px-5 py-3">{{ strtoupper($payment->student->last_name) }}, {{ strtoupper($payment->student->first_name) }}</td>
-                    <td class="px-5 py-3">{{ $fee->fee_name }}</td>
-                    <td class="px-5 py-3">
-                        <span class="inline-flex px-2 py-1 text-xs font-medium rounded-full 
+                        <span>{{ $record->organization->name }}</span>
+                    @else
+                        @if($college->logo)
+                            <img src="{{ asset('storage/' . $college->logo) }}" alt="{{ $college->name }}" class="w-6 h-6 rounded-full object-cover">
+                        @endif
+                        <span>{{ $college->name }}</span>
+                    @endif
+                </td>
+
+                <td class="px-5 py-3">{{ strtoupper($record->student->last_name) }}, {{ strtoupper($record->student->first_name) }}</td>
+
+                <td class="px-5 py-3">{{ $fee->fee_name }}</td>
+
+                <td class="px-5 py-3">
+                    <span class="inline-flex px-2 py-1 text-xs font-medium rounded-full 
                         {{ $fee->requirement_level === 'mandatory' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600' }}">
-                            {{ ucfirst($fee->requirement_level) }}
-                        </span>
-                    </td>
-                    <td class="px-5 py-3">
-                        <span class="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-700">Paid</span>
-                    </td>
-                    <td class="px-5 py-3">₱ {{ number_format($fee->pivot->amount_paid, 2) }}</td>
-                    <td class="px-5 py-3">{{ $payment->created_at->format('F d, Y H:i') }}</td>
-                </tr>
-                @endforeach
-                @endforeach
-            </tbody>
+                        {{ ucfirst($fee->requirement_level) }}
+                    </span>
+                </td>
+
+                <td class="px-5 py-3">
+                    <span class="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-700">Paid</span>
+                </td>
+
+                <td class="px-5 py-3">₱ {{ number_format($fee->pivot->amount_paid ?? 0, 2) }}</td>
+
+                <td class="px-5 py-3">{{ $record->created_at->format('F d, Y H:i') }}</td>
+            </tr>
+            @endforeach
+        @else
+            <tr class="hover:bg-red-50 transition">
+                <td class="px-4 py-3 text-gray-500">{{ $loop->iteration }}</td>
+
+                <td class="px-5 py-3 flex items-center gap-2">
+                    @if($college->logo)
+                        <img src="{{ asset('storage/' . $college->logo) }}" alt="{{ $college->name }}" class="w-6 h-6 rounded-full object-cover">
+                    @endif
+                    <span>{{ $college->name }}</span>
+                </td>
+
+                <td class="px-5 py-3">{{ strtoupper($record->student->last_name) }}, {{ strtoupper($record->student->first_name) }}</td>
+
+                <td class="px-5 py-3 text-red-600">No Payment Record</td>
+                <td class="px-5 py-3">—</td>
+                <td class="px-5 py-3">
+                    <span class="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-700">Unpaid</span>
+                </td>
+                <td class="px-5 py-3">—</td>
+                <td class="px-5 py-3">—</td>
+            </tr>
+        @endif
+    @endforeach
+
+</tbody>
         </table>
     </div>
 
