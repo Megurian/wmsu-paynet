@@ -9,6 +9,7 @@ use App\Http\Controllers\CollegeStudentController;
 use App\Http\Controllers\CollegeHistoryController;
 use App\Http\Controllers\ValidateStudentsController;
 use App\Http\Controllers\UniversityOrgFeesController;
+use App\Http\Controllers\UniversityOrgReportsController;
 use App\Http\Controllers\UniversityOrgOfficesController;
 use App\Http\Controllers\CollegeUserController;
 use App\Http\Middleware\CheckActiveSchoolYear;
@@ -109,9 +110,8 @@ Route::middleware(['auth', 'role:university_org'])->group(function () {
         return view('university_org.remittance');
     })->name('university_org.remittance');
 
-    Route::get('/university_org/reports', function () {
-        return view('university_org.reports');
-    })->name('university_org.reports');
+    Route::get('/university_org/reports', [UniversityOrgReportsController::class, 'paymentCollectionReport'])
+    ->name('university_org.reports');
 
     Route::get('/university-org/fees', [UniversityOrgFeesController::class, 'index'])->name('university_org.fees');
     Route::get('/university-org/fees/create', [UniversityOrgFeesController::class, 'create'])->name('university_org.fees.create');
@@ -135,6 +135,7 @@ Route::middleware(['auth', 'role:university_org'])->group(function () {
     Route::post('/university-org/documents', [DocumentController::class, 'store'])->name('university_org.documents.store')->defaults('role', 'university_org');
     Route::get('/university-org/documents/{document}/preview', [DocumentController::class, 'preview'])->name('university_org.documents.preview');
     Route::delete('/university-org/documents/{document}', [DocumentController::class, 'destroy'])->name('university_org.documents.destroy');
+
 });
 
 Route::middleware(['auth', 'role:college_org'])->group(function () {
@@ -161,21 +162,19 @@ Route::middleware(['auth', 'role:college_org'])->group(function () {
         '/college_org/records',
         [OrganizationPaymentController::class, 'records']
     )->name('college_org.records');
+    // routes/web.php
+    Route::get('college_org/search-students', [OrganizationPaymentController::class, 'searchStudents'])->name('college_org.search_students');
     // Route::get('/college/students/search', [OrganizationPaymentController::class, 'searchStudents'])
     //  ->name('college.students.search');
-
+Route::get('/college-org/generate-report', 
+    [OrganizationPaymentController::class, 'generateReport']
+)->name('college_org.generate_report');
     Route::get('/college/students/search', [OrganizationPaymentController::class,'searchStudents']);
    Route::get('/college_org/students/{student}/fees',
     [OrganizationPaymentController::class,'getStudentFees'])
     ->name('college_org.students.fees');
     Route::post('/college_org/payment/collect', [OrganizationPaymentController::class,'collectPayment']);
-    // receipt route is disabled while email receipts are being implemented
-    // Route::get(
-    // '/college_org/receipt/pdf/{payment}',
-    // [OrganizationPaymentController::class, 'downloadReceipt']
-    //)->name('college_org.payment.receipt');
-
-    // Documents routes
+    
     Route::get('/college_org/documents', [DocumentController::class, 'index'])->name('college_org.documents.index')->defaults('role', 'college_org');
     Route::post('/college_org/documents', [DocumentController::class, 'store'])->name('college_org.documents.store')->defaults('role', 'college_org');
     Route::get('/college_org/documents/{document}/preview', [DocumentController::class, 'preview'])->name('college_org.documents.preview');
@@ -302,7 +301,10 @@ Route::middleware(['auth', 'role:treasurer,college,student_coordinator,adviser,a
     
     Route::get('/college/students/{student}/history', [CollegeHistoryController::class, 'showStudentHistory'])
         ->name('college.students.history');
-       
+
+    Route::get('/college/history/fees', [CollegeHistoryController::class, 'getFeesByOrg']);
+       Route::get('/college/history/report', [CollegeHistoryController::class, 'generateReport'])
+    ->name('college.history.report');
 });
 
     Route::middleware(['auth','role:assessor,student_coordinator'])->group(function(){
