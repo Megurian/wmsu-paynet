@@ -17,7 +17,6 @@
     </div>
 
 
-    <!-- QUICK FILTER BAR -->
     <div class="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
         <form method="GET" action="{{ route('college_org.records') }}" class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
 
@@ -58,8 +57,6 @@
         </form>
     </div>
 
-
-    <!-- SUMMARY CARDS -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
 
         <div class="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
@@ -145,6 +142,15 @@
                         </div>
 
                         <div>
+                            <label class="block text-gray-700 mb-1">Payment Status</label>
+                            <select name="payment_status" class="w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500">
+                                <option value="">All</option>
+                                <option value="paid" {{ request('payment_status') == 'paid' ? 'selected' : '' }}>Paid</option>
+                                <option value="pending" {{ request('payment_status') == 'pending' ? 'selected' : '' }}>Pending</option>
+                            </select>
+                        </div>
+
+                        <div>
                             <label class="block text-gray-700 mb-1">Requirement Level</label>
                             <select name="requirement_level" class="w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500">
                                 <option value="">All</option>
@@ -207,9 +213,9 @@
                                 Reset
                             </button>
                         </div>
-                         <button type="button" @click="$dispatch('open-report-modal')" class="w-full px-4 py-2 bg-gray-800 text-white rounded-lg text-sm hover:bg-gray-900 transition">
-                                Generate Report
-                            </button>
+                        <button type="button" @click="$dispatch('open-report-modal')" class="w-full px-4 py-2 bg-gray-800 text-white rounded-lg text-sm hover:bg-gray-900 transition">
+                            Generate Report
+                        </button>
                     </form>
                 </div>
             </div>
@@ -230,38 +236,43 @@
                 </thead>
 
                 <tbody class="divide-y divide-gray-100">
-                    @forelse($payments as $payment)
+                    @forelse($studentsWithPayments as $item)
                     <tr class="hover:bg-gray-50 transition">
                         <td class="px-6 py-4">
                             <div class="font-medium text-gray-800">
-                                {{ $payment->student->last_name }}, {{ $payment->student->first_name }}
+                                {{ $item['student']->last_name }}, {{ $item['student']->first_name }}
                             </div>
                             <div class="text-xs text-gray-500">
-                                {{ $payment->student->student_id }}
+                                {{ $item['student']->student_id }}
                             </div>
                         </td>
-
                         <td class="px-6 py-4">
-                            @foreach($payment->fees as $fee)
+                            @if($item['has_paid'])
+                            @foreach($item['payments']->first()->fees as $fee)
                             <div>{{ $fee->fee_name }}</div>
                             @endforeach
+                            @else
+                            <span class="text-gray-400 italic">Pending Payment</span>
+                            @endif
                         </td>
-
                         <td class="px-6 py-4 font-semibold text-green-600">
-                            ₱{{ number_format($payment->amount_due, 2) }}
+                            ₱{{ number_format($item['total_paid'], 2) }}
                         </td>
-
-                        <td class="px-6 py-4">{{ $payment->enrollment->course->name ?? '-' }}</td>
-                        <td class="px-6 py-4">{{ $payment->enrollment->yearLevel->name ?? '-' }}</td>
-                        <td class="px-6 py-4">{{ $payment->enrollment->section->name ?? '-' }}</td>
+                        <td class="px-6 py-4">{{ $item['student']->enrollments->first()->course->name ?? '-' }}</td>
+                        <td class="px-6 py-4">{{ $item['student']->enrollments->first()->yearLevel->name ?? '-' }}</td>
+                        <td class="px-6 py-4">{{ $item['student']->enrollments->first()->section->name ?? '-' }}</td>
                         <td class="px-6 py-4 text-gray-500">
-                            {{ $payment->created_at->format('M d, Y') }}
+                            @if($item['has_paid'])
+                            {{ $item['payments']->first()->created_at->format('M d, Y') }}
+                            @else
+                            -
+                            @endif
                         </td>
                     </tr>
                     @empty
                     <tr>
                         <td colspan="7" class="px-6 py-10 text-center text-gray-500">
-                            No payment records found.
+                            No students found.
                         </td>
                     </tr>
                     @endforelse
