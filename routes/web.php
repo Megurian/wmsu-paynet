@@ -9,6 +9,7 @@ use App\Http\Controllers\CollegeStudentController;
 use App\Http\Controllers\CollegeHistoryController;
 use App\Http\Controllers\ValidateStudentsController;
 use App\Http\Controllers\UniversityOrgFeesController;
+use App\Http\Controllers\UniversityOrgReportsController;
 use App\Http\Controllers\UniversityOrgOfficesController;
 use App\Http\Controllers\CollegeUserController;
 use App\Http\Middleware\CheckActiveSchoolYear;
@@ -109,9 +110,8 @@ Route::middleware(['auth', 'role:university_org'])->group(function () {
         return view('university_org.remittance');
     })->name('university_org.remittance');
 
-    Route::get('/university_org/reports', function () {
-        return view('university_org.reports');
-    })->name('university_org.reports');
+    Route::get('/university_org/reports', [UniversityOrgReportsController::class, 'paymentCollectionReport'])
+    ->name('university_org.reports');
 
     Route::get('/university-org/fees', [UniversityOrgFeesController::class, 'index'])->name('university_org.fees');
     Route::get('/university-org/fees/create', [UniversityOrgFeesController::class, 'create'])->name('university_org.fees.create');
@@ -135,6 +135,7 @@ Route::middleware(['auth', 'role:university_org'])->group(function () {
     Route::post('/university-org/documents', [DocumentController::class, 'store'])->name('university_org.documents.store')->defaults('role', 'university_org');
     Route::get('/university-org/documents/{document}/preview', [DocumentController::class, 'preview'])->name('university_org.documents.preview');
     Route::delete('/university-org/documents/{document}', [DocumentController::class, 'destroy'])->name('university_org.documents.destroy');
+
 });
 
 Route::middleware(['auth', 'role:college_org'])->group(function () {
