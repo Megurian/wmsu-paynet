@@ -29,8 +29,8 @@
                 <option value="">Semester</option>
                 @foreach($semesters as $sem)
                 <option value="{{ $sem->id }}" {{ (request('semester_id', $semesterId) == $sem->id) ? 'selected' : '' }}>
-                {{ ucfirst($sem->name) }}
-            </option>
+                    {{ ucfirst($sem->name) }}
+                </option>
                 @endforeach
             </select>
         </div>
@@ -54,7 +54,11 @@
 
     <div x-show="open" x-transition:enter="transform transition ease-in-out duration-300" x-transition:enter-start="translate-x-full" x-transition:enter-end="translate-x-0" x-transition:leave="transform transition ease-in-out duration-300" x-transition:leave-start="translate-x-0" x-transition:leave-end="translate-x-full" class="fixed right-0 top-0 h-full w-96 bg-white shadow-lg z-50 p-6 overflow-y-auto">
 
-        <h3 class="text-xl font-semibold mb-4">Filter Payments</h3>
+        <!-- Title + Close button -->
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-semibold">Filter Payments</h3>
+            <button @click="open = false" class="text-gray-500 hover:text-gray-700 text-lg font-bold">&times;</button>
+        </div>
 
         <form method="GET" action="{{ route('college_org.records') }}" class="space-y-4">
             <div>
@@ -136,9 +140,13 @@
             </div>
 
             <div class="flex justify-end space-x-2 mt-4">
-                <button type="button" @click="open = false" class="px-4 py-2 border rounded-md text-gray-700 hover:bg-gray-100">Cancel</button>
-                <button type="submit" class="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600">Apply Filters</button>
-            </div>
+        <button type="submit" class="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600">Apply Filters</button>
+        <button type="button" 
+                onclick="window.location='{{ route('college_org.records') }}'"
+                class="px-4 py-2 border rounded-md text-gray-700 hover:bg-gray-100">
+            Reset
+        </button>
+    </div>
         </form>
     </div>
 </div>

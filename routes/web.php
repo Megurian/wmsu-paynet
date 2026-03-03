@@ -161,6 +161,8 @@ Route::middleware(['auth', 'role:college_org'])->group(function () {
         '/college_org/records',
         [OrganizationPaymentController::class, 'records']
     )->name('college_org.records');
+    // routes/web.php
+    Route::get('college_org/search-students', [OrganizationPaymentController::class, 'searchStudents'])->name('college_org.search_students');
     // Route::get('/college/students/search', [OrganizationPaymentController::class, 'searchStudents'])
     //  ->name('college.students.search');
 
