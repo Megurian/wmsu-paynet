@@ -302,6 +302,7 @@ class OrganizationPaymentController extends Controller
 
     public function records(Request $request)
     {
+
         $user = auth()->user();
         $organization = $user->organization;
         $organizationId = $organization->id;
@@ -323,6 +324,16 @@ class OrganizationPaymentController extends Controller
             ->where('organization_id', $organizationId)
             ->where('school_year_id', $schoolYearId)
             ->where('semester_id', $semesterId);
+
+
+        if ($request->filled('search')) {
+            $query = $request->input('search');
+            $paymentsQuery->whereHas('student', function ($q) use ($query) {
+                $q->where('student_id', 'like', "%{$query}%")
+                    ->orWhere('first_name', 'like', "%{$query}%")
+                    ->orWhere('last_name', 'like', "%{$query}%");
+            });
+        }
 
         if ($request->filled('fee_id')) {
             $paymentsQuery->whereHas('fees', function ($q) use ($request) {
@@ -369,6 +380,25 @@ class OrganizationPaymentController extends Controller
 
         $payments = $paymentsQuery->latest()->get();
 
+        $totalTransactions = $payments->count();
+        $totalCollected = $payments->sum('amount_due');
+        $totalStudents = $payments->pluck('student_id')->unique()->count();
+        $todayCollections = $payments->where('created_at', '>=', now()->startOfDay())->sum('amount_due');
+
+        $mandatoryCollected = 0;
+        $optionalCollected = 0;
+
+        foreach ($payments as $payment) {
+            foreach ($payment->fees as $fee) {
+                if ($fee->requirement_level === 'mandatory') {
+                    $mandatoryCollected += $fee->pivot->amount_paid ?? $fee->amount;
+                }
+                if ($fee->requirement_level === 'optional') {
+                    $optionalCollected += $fee->pivot->amount_paid ?? $fee->amount;
+                }
+            }
+        }
+
 
         $schoolYears = SchoolYear::orderBy('sy_start', 'desc')->get();
         $semesters = Semester::orderBy('id')->get();
@@ -403,7 +433,13 @@ class OrganizationPaymentController extends Controller
             'yearLevels',
             'sections',
             'schoolYearId',
-            'semesterId'
+            'semesterId',
+            'totalTransactions',
+            'totalCollected',
+            'totalStudents',
+            'todayCollections',
+            'mandatoryCollected',
+            'optionalCollected'
         ));
     }
 }

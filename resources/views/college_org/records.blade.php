@@ -42,19 +42,18 @@
     </div>
 </form>
 
+
 <div x-data="{ open: false }">
 
     <div class="mb-4 flex justify-end">
-        <button @click="open = true" class="bg-red-500 text-white py-2 px-4 rounded-md hover:bg-red-600">
-            Filter
-        </button>
-    </div>
 
+        <button @click="open = true" class="bg-gray-300 inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition"> <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2l-6 7v5l-4 2v-7L3 6V4z" /> </svg> Filters </button>
+    </div>
     <div x-show="open" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-50" x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-50" x-transition:leave-end="opacity-0" class="fixed inset-0 bg-black bg-opacity-50 z-40" @click="open = false"></div>
 
     <div x-show="open" x-transition:enter="transform transition ease-in-out duration-300" x-transition:enter-start="translate-x-full" x-transition:enter-end="translate-x-0" x-transition:leave="transform transition ease-in-out duration-300" x-transition:leave-start="translate-x-0" x-transition:leave-end="translate-x-full" class="fixed right-0 top-0 h-full w-96 bg-white shadow-lg z-50 p-6 overflow-y-auto">
 
-        <!-- Title + Close button -->
         <div class="flex justify-between items-center mb-4">
             <h3 class="text-xl font-semibold">Filter Payments</h3>
             <button @click="open = false" class="text-gray-500 hover:text-gray-700 text-lg font-bold">&times;</button>
@@ -140,15 +139,51 @@
             </div>
 
             <div class="flex justify-end space-x-2 mt-4">
-        <button type="submit" class="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600">Apply Filters</button>
-        <button type="button" 
-                onclick="window.location='{{ route('college_org.records') }}'"
-                class="px-4 py-2 border rounded-md text-gray-700 hover:bg-gray-100">
-            Reset
-        </button>
-    </div>
+                <button type="submit" class="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600">Apply Filters</button>
+                <button type="button" onclick="window.location='{{ route('college_org.records') }}'" class="px-4 py-2 border rounded-md text-gray-700 hover:bg-gray-100">
+                    Reset
+                </button>
+            </div>
         </form>
     </div>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6 mb-6">
+    <div class="bg-blue-50 border border-blue-200 rounded-xl p-5 shadow-sm">
+        <p class="text-sm text-blue-600 font-medium">Total Transactions</p>
+        <p class="text-2xl font-bold text-blue-800 mt-2">
+            {{ $totalTransactions }}
+        </p>
+    </div>
+
+    <div class="bg-green-50 border border-green-200 rounded-xl p-5 shadow-sm">
+        <p class="text-sm text-green-600 font-medium">Total Collected</p>
+        <p class="text-2xl font-bold text-green-800 mt-2">
+            ₱{{ number_format($totalCollected, 2) }}
+        </p>
+    </div>
+
+    <div class="bg-red-50 border border-red-200 rounded-xl p-5 shadow-sm">
+        <p class="text-sm text-red-600 font-medium">Mandatory Collected</p>
+        <p class="text-2xl font-bold text-red-800 mt-2">
+            ₱{{ number_format($mandatoryCollected, 2) }}
+        </p>
+    </div>
+
+    <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-5 shadow-sm">
+        <p class="text-sm text-yellow-600 font-medium">Optional Collected</p>
+        <p class="text-2xl font-bold text-yellow-800 mt-2">
+            ₱{{ number_format($optionalCollected, 2) }}
+        </p>
+    </div>
+
+    <div class="bg-gray-100 border border-gray-300 rounded-xl p-5 shadow-sm">
+        <p class="text-sm text-gray-600 font-medium">Today's Collection</p>
+        <p class="text-2xl font-bold text-gray-800 mt-2">
+            ₱{{ number_format($todayCollections, 2) }}
+        </p>
+    </div>
+
 </div>
 
 <div class="bg-white rounded-lg shadow-md p-6">
