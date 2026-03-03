@@ -13,27 +13,24 @@
 
 <form method="GET" action="{{ route('college_org.records') }}">
     <div class="grid grid-cols-1 md:grid-cols-7 gap-4">
-        <!-- Your search, course, year, section inputs -->
-
         <div>
             <select id="filter-sy" name="school_year_id" class="w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500">
                 <option value="">School Year</option>
                 @foreach($schoolYears as $sy)
-                <option value="{{ $sy->id }}" {{ request('school_year_id') == $sy->id ? 'selected' : '' }}>
+                <option value="{{ $sy->id }}" {{ (request('school_year_id', $schoolYearId) == $sy->id) ? 'selected' : '' }}>
                     {{ \Carbon\Carbon::parse($sy->sy_start)->year }} - {{ \Carbon\Carbon::parse($sy->sy_end)->year }}
                 </option>
                 @endforeach
             </select>
         </div>
 
-        <!-- Semester Dropdown -->
         <div>
             <select id="filter-sem" name="semester_id" class="w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500">
                 <option value="">Semester</option>
                 @foreach($semesters as $sem)
-                <option value="{{ $sem->id }}" {{ request('semester_id') == $sem->id ? 'selected' : '' }}>
-                    {{ ucfirst($sem->name) }}
-                </option>
+                <option value="{{ $sem->id }}" {{ (request('semester_id', $semesterId) == $sem->id) ? 'selected' : '' }}>
+                {{ ucfirst($sem->name) }}
+            </option>
                 @endforeach
             </select>
         </div>
@@ -45,59 +42,104 @@
     </div>
 </form>
 
-<!-- Records Section -->
-<div class="mb-8">
-    <div class="mt-4 bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-        <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
-            <!-- Search Bar -->
-            <div class="relative">
-                <input type="text" id="search" placeholder="Search..." class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500">
-                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
-                    </svg>
+<div x-data="{ open: false }">
+
+    <div class="mb-4 flex justify-end">
+        <button @click="open = true" class="bg-red-500 text-white py-2 px-4 rounded-md hover:bg-red-600">
+            Filter
+        </button>
+    </div>
+
+    <div x-show="open" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-50" x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-50" x-transition:leave-end="opacity-0" class="fixed inset-0 bg-black bg-opacity-50 z-40" @click="open = false"></div>
+
+    <div x-show="open" x-transition:enter="transform transition ease-in-out duration-300" x-transition:enter-start="translate-x-full" x-transition:enter-end="translate-x-0" x-transition:leave="transform transition ease-in-out duration-300" x-transition:leave-start="translate-x-0" x-transition:leave-end="translate-x-full" class="fixed right-0 top-0 h-full w-96 bg-white shadow-lg z-50 p-6 overflow-y-auto">
+
+        <h3 class="text-xl font-semibold mb-4">Filter Payments</h3>
+
+        <form method="GET" action="{{ route('college_org.records') }}" class="space-y-4">
+            <div>
+                <label class="block text-gray-700 mb-1">Fee</label>
+                <select name="fee_id" class="w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500">
+                    <option value="">All Fees</option>
+                    @foreach($fees as $fee)
+                    <option value="{{ $fee->id }}" {{ request('fee_id') == $fee->id ? 'selected' : '' }}>
+                        {{ $fee->fee_name }}
+                    </option>
+                    @endforeach
+                </select>
+            </div>
+            <div>
+                <label class="block text-gray-700 mb-1">Fee Recurrence</label>
+                <select name="fee_recurrence" class="w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500">
+                    <option value="">Any</option>
+                    <option value="one_time" {{ request('recurrence') == 'one_time' ? 'selected' : '' }}>One Time</option>
+                    <option value="semestrial" {{ request('recurrence') == 'semestrial' ? 'selected' : '' }}>Semestrial</option>
+                    <option value="annual" {{ request('recurrence') == 'annual' ? 'selected' : '' }}>Annual</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-gray-700 mb-1">Requirement Level</label>
+                <select name="requirement_level" class="w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500">
+                    <option value="">All</option>
+                    <option value="mandatory" {{ request('requirement_level') == 'mandatory' ? 'selected' : '' }}>Mandatory</option>
+                    <option value="optional" {{ request('requirement_level') == 'optional' ? 'selected' : '' }}>Optional</option>
+                </select>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2">
+                <div>
+                    <label class="block text-gray-700 mb-1">From</label>
+                    <input type="date" name="date_from" value="{{ request('date_from') }}" class="w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500">
+                </div>
+                <div>
+                    <label class="block text-gray-700 mb-1">To</label>
+                    <input type="date" name="date_to" value="{{ request('date_to') }}" class="w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500">
                 </div>
             </div>
 
-            <!-- Course Dropdown -->
             <div>
-                <select class="w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500">
-                    <option value="">Course</option>
-                    <option value="CS">Computer Science</option>
-                    <option value="IT">Information Technology</option>
-                    <option value="ACT">Associate in Computer Technology</option>
-                    <option value="IS">Information Systems</option>
+                <label class="block text-gray-700 mb-1">Course</label>
+                <select name="course_id" class="w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500">
+                    <option value="">All Courses</option>
+                    @foreach($courses as $course)
+                    <option value="{{ $course->id }}" {{ request('course_id') == $course->id ? 'selected' : '' }}>
+                        {{ $course->name }}
+                    </option>
+                    @endforeach
                 </select>
             </div>
 
-            <!-- Year Level Dropdown -->
-            <div>
-                <select class="w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500">
-                    <option value="">Year Level</option>
-                    <option value="1">1st Year</option>
-                    <option value="2">2nd Year</option>
-                    <option value="3">3rd Year</option>
-                    <option value="4">4th Year</option>
-                    <option value="5">5th Year</option>
-                </select>
+            <div class="grid grid-cols-2 gap-2">
+                <div>
+                    <label class="block text-gray-700 mb-1">Year Level</label>
+                    <select name="year_level_id" class="w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500">
+                        <option value="">All Years</option>
+                        @foreach($yearLevels as $year)
+                        <option value="{{ $year->id }}" {{ request('year_level_id') == $year->id ? 'selected' : '' }}>
+                            {{ $year->name }}
+                        </option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-gray-700 mb-1">Section</label>
+                    <select name="section_id" class="w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500">
+                        <option value="">All Sections</option>
+                        @foreach($sections as $section)
+                        <option value="{{ $section->id }}" {{ request('section_id') == $section->id ? 'selected' : '' }}>
+                            {{ $section->name }}
+                        </option>
+                        @endforeach
+                    </select>
+                </div>
             </div>
 
-            <!-- Section Dropdown -->
-            <div>
-                <select class="w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500">
-                    <option value="">Section</option>
-                    <option value="A">A</option>
-                    <option value="B">B</option>
-                    <option value="C">C</option>
-                    <option value="D">D</option>
-                </select>
+            <div class="flex justify-end space-x-2 mt-4">
+                <button type="button" @click="open = false" class="px-4 py-2 border rounded-md text-gray-700 hover:bg-gray-100">Cancel</button>
+                <button type="submit" class="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600">Apply Filters</button>
             </div>
-
-            <!-- Date Picker -->
-            <div>
-                <input type="date" class="w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500">
-            </div>
-        </div>
+        </form>
     </div>
 </div>
 
@@ -120,51 +162,23 @@
             <tbody>
                 @forelse($payments as $payment)
                 <tr class="hover:bg-gray-50">
-                    <td class="py-2 px-4 border-b">
-                        {{ $payment->student->student_id }}
-                    </td>
-
-                    <td class="py-2 px-4 border-b">
-                        {{ $payment->student->last_name }},
-                        {{ $payment->student->first_name }}
-                    </td>
-
+                    <td class="py-2 px-4 border-b">{{ $payment->student->student_id }}</td>
+                    <td class="py-2 px-4 border-b">{{ $payment->student->last_name }}, {{ $payment->student->first_name }}</td>
                     <td class="py-2 px-4 border-b">
                         @foreach($payment->fees as $fee)
                         <div>{{ $fee->fee_name }}</div>
                         @endforeach
                     </td>
-
-                    <td class="py-2 px-4 border-b font-semibold text-green-600">
-                        ₱{{ number_format($payment->amount_due, 2) }}
-                    </td>
-
-                    <td class="py-2 px-4 border-b">
-                        {{ $payment->enrollment->course->name ?? '-' }}
-                    </td>
-
-                    <td class="py-2 px-4 border-b">
-                        {{ $payment->enrollment->yearLevel->name ?? '-' }}
-                    </td>
-
-                    <td class="py-2 px-4 border-b">
-                        {{ $payment->enrollment->section->name ?? '-' }}
-                    </td>
-
-                    <td class="py-2 px-4 border-b">
-                        {{ $payment->created_at->format('M d, Y') }}
-                    </td>
-
-                    <td class="py-2 px-4 border-b">
-                        {{-- receipt link removed; receipts will be emailed --}}
-                        <span class="text-gray-500 text-sm">emailed</span>
-                    </td>
+                    <td class="py-2 px-4 border-b font-semibold text-green-600">₱{{ number_format($payment->amount_due, 2) }}</td>
+                    <td class="py-2 px-4 border-b">{{ $payment->enrollment->course->name ?? '-' }}</td>
+                    <td class="py-2 px-4 border-b">{{ $payment->enrollment->yearLevel->name ?? '-' }}</td>
+                    <td class="py-2 px-4 border-b">{{ $payment->enrollment->section->name ?? '-' }}</td>
+                    <td class="py-2 px-4 border-b">{{ $payment->created_at->format('M d, Y') }}</td>
+                    <td class="py-2 px-4 border-b"><span class="text-gray-500 text-sm">emailed</span></td>
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="9" class="text-center py-6 text-gray-500">
-                        No payment records found.
-                    </td>
+                    <td colspan="9" class="text-center py-6 text-gray-500">No payment records found.</td>
                 </tr>
                 @endforelse
             </tbody>

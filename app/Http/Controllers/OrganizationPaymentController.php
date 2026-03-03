@@ -300,30 +300,124 @@ class OrganizationPaymentController extends Controller
     //     );
     // }
 
-    public function records(Request $request)
+public function records(Request $request)
 {
     $user = auth()->user();
-    $organizationId = $user->organization->id;
+    $organization = $user->organization;
+    $organizationId = $organization->id;
+    $collegeId = $organization->college_id;
 
-    $schoolYearId = $request->input('school_year_id') ?? SchoolYear::where('is_active', true)->value('id');
-    $semesterId = $request->input('semester_id') ?? Semester::where('is_active', true)->value('id');
+    // Get active S.Y. and Sem
+$activeSYId = SchoolYear::where('is_active', true)->value('id');
+$activeSemId = Semester::where('is_active', true)->value('id');
 
-    $payments = Payment::with([
-        'student',
-        'fees',
-        'enrollment.course',
-        'enrollment.yearLevel',
-        'enrollment.section'
-    ])
-    ->where('organization_id', $organizationId)
-    ->where('school_year_id', $schoolYearId)
-    ->where('semester_id', $semesterId)
-    ->latest()
-    ->get();
+// Use request input or default to active
+$schoolYearId = $request->input('school_year_id', $activeSYId);
+$semesterId = $request->input('semester_id', $activeSemId);
+
+$paymentsQuery = Payment::with([
+    'student',
+    'fees',
+    'enrollment.course',
+    'enrollment.yearLevel',
+    'enrollment.section'
+])
+->where('organization_id', $organizationId)
+->where('school_year_id', $schoolYearId)
+->where('semester_id', $semesterId);
+
+    // Filter by Fee
+    if ($request->filled('fee_id')) {
+        $paymentsQuery->whereHas('fees', function($q) use ($request) {
+            $q->where('fees.id', $request->fee_id);
+        });
+    }
+
+    // Filter by Fee Recurrence
+    if ($request->filled('fee_recurrence')) {
+        $paymentsQuery->whereHas('fees', function($q) use ($request) {
+            $q->where('recurrence', $request->fee_recurrence);
+        });
+    }
+
+    // Filter by Requirement Level
+    if ($request->filled('requirement_level')) {
+        $paymentsQuery->whereHas('fees', function($q) use ($request) {
+            $q->where('requirement_level', $request->requirement_level);
+        });
+    }
+
+    // Filter by Date Range
+    if ($request->filled('date_from')) {
+        $paymentsQuery->whereDate('created_at', '>=', $request->date_from);
+    }
+    if ($request->filled('date_to')) {
+        $paymentsQuery->whereDate('created_at', '<=', $request->date_to);
+    }
+
+    // Filter by Course
+    if ($request->filled('course_id')) {
+        $paymentsQuery->whereHas('enrollment.course', function($q) use ($request) {
+            $q->where('id', $request->course_id);
+        });
+    }
+
+    // Filter by Year Level
+    if ($request->filled('year_level_id')) {
+        $paymentsQuery->whereHas('enrollment.yearLevel', function($q) use ($request) {
+            $q->where('id', $request->year_level_id);
+        });
+    }
+
+    // Filter by Section
+    if ($request->filled('section_id')) {
+        $paymentsQuery->whereHas('enrollment.section', function($q) use ($request) {
+            $q->where('id', $request->section_id);
+        });
+    }
+
+    $payments = $paymentsQuery->latest()->get();
+
+    // Filter options for dropdowns
 
     $schoolYears = SchoolYear::orderBy('sy_start', 'desc')->get();
     $semesters = Semester::orderBy('id')->get();
 
-    return view('college_org.records', compact('payments', 'schoolYears', 'semesters'));
+   // Determine organizations whose fees should appear
+$organizationIds = [$organization->id];
+if ($organization->mother_organization_id) {
+    $organizationIds[] = $organization->mother_organization_id;
+}
+
+// Include OSA fees if mother org inherits them
+if ($organization->motherOrganization?->inherits_osa_fees) {
+    $osaId = \App\Models\Organization::where('org_code', 'OSA')->value('id');
+    if ($osaId) {
+        $organizationIds[] = $osaId;
+    }
+}
+
+// Fetch fees for dropdown
+$fees = Fee::where('status', 'approved')
+    ->whereIn('organization_id', $organizationIds)
+    ->orderBy('created_at', 'desc')
+    ->get();
+
+    // Only courses, years, and sections under this college
+    $courses = \App\Models\Course::where('college_id', $collegeId)->get();
+    $yearLevels = \App\Models\YearLevel::where('college_id', $collegeId)->get();
+    $sections = \App\Models\Section::where('college_id', $collegeId)->get();
+
+    return view('college_org.records', compact(
+        'payments',
+        'schoolYears',
+        'semesters',
+        'fees',
+        'courses',
+        'yearLevels',
+        'sections',
+        'schoolYearId',
+        'semesterId'
+    ));
 }
  }
