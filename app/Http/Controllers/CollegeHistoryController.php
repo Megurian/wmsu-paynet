@@ -8,6 +8,7 @@ use App\Models\SchoolYear;
 use App\Models\Semester;
 use App\Models\Payment;
 use Illuminate\Http\Request;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class CollegeHistoryController extends Controller
 {
@@ -63,8 +64,8 @@ class CollegeHistoryController extends Controller
         $unpaidFees = $payments->flatMap(fn($p) => $p->fees)
             ->filter(fn($f) => $f->pivot->amount_paid == 0);
 
-        $totalPayments = $paidFees->count(); 
-        $totalUnpaid   = $unpaidFees->count(); 
+        $totalPayments = $paidFees->count();
+        $totalUnpaid   = $unpaidFees->count();
         $totalAmount   = $paidFees->sum(fn($f) => $f->pivot->amount_paid);
 
         $requirementBreakdown = $paidFees
@@ -158,7 +159,7 @@ class CollegeHistoryController extends Controller
             ->get();
     }
 
-     public function showStudentHistory($studentId)
+    public function showStudentHistory($studentId)
     {
         $studentEnrollments = StudentEnrollment::with([
             'student',
@@ -310,5 +311,51 @@ class CollegeHistoryController extends Controller
         $fees = $feesQuery->orderBy('created_at', 'desc')->get(['id', 'fee_name']);
 
         return response()->json($fees);
+    }
+
+
+    private function generatePdfReport($data, $tab, $selectedSchoolYear, $selectedSem)
+    {
+        $pdf = Pdf::loadView('college.reports.history-pdf', compact(
+            'data',
+            'tab',
+            'selectedSchoolYear',
+            'selectedSem'
+        ));
+
+        return $pdf->download("{$tab}-report.pdf");
+    }
+    public function generateReport(Request $request)
+    {
+        $format = $request->format;
+        $tab    = $request->tab ?? 'enrollments';
+
+        $activeSelection = $this->getActiveSchoolYearAndSemester($request);
+        extract($activeSelection);
+
+        if ($tab === 'payments') {
+            $data = $this->getPayments($selectedSY, $selectedSem);
+        } else {
+            $data = $this->getStudents(
+                auth()->user()->college_id,
+                $selectedSY,
+                $selectedSem,
+                $request->course,
+                $request->year,
+                $request->section,
+                $request->adviser,
+                $request->status
+            );
+        }
+
+        if ($format === 'pdf') {
+            return $this->generatePdfReport($data, $tab, $selectedSchoolYear, $selectedSem);
+        }
+
+        if ($format === 'excel') {
+            return $this->generateExcelReport($data, $tab);
+        }
+
+        abort(404);
     }
 }

@@ -304,7 +304,8 @@ Route::middleware(['auth', 'role:treasurer,college,student_coordinator,adviser,a
         ->name('college.students.history');
 
     Route::get('/college/history/fees', [CollegeHistoryController::class, 'getFeesByOrg']);
-       
+       Route::get('/college/history/report', [CollegeHistoryController::class, 'generateReport'])
+    ->name('college.history.report');
 });
 
     Route::middleware(['auth','role:assessor,student_coordinator'])->group(function(){
