@@ -59,4 +59,6 @@ class Organization extends Model
     {
         return $this->hasMany(Document::class);
     }
+
+ 
 }
