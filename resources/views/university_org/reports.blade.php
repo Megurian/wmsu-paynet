@@ -13,7 +13,7 @@
                 <select name="school_year_id" class="border-gray-300 rounded">
                     @foreach($schoolYears as $sy)
                     <option value="{{ $sy->id }}" {{ $selectedSY && $selectedSY->id == $sy->id ? 'selected' : '' }}>
-                         {{ \Carbon\Carbon::parse($sy->sy_start)->year }} - {{ \Carbon\Carbon::parse($sy->sy_end)->year }}
+                        {{ \Carbon\Carbon::parse($sy->sy_start)->year }} - {{ \Carbon\Carbon::parse($sy->sy_end)->year }}
                     </option>
                     @endforeach
                 </select>
@@ -32,7 +32,7 @@
         </form>
     </div>
 
-    
+
     @if($motherOrg)
     <div class="p-4 bg-gray-100 rounded shadow">
         <h2 class="text-lg font-semibold">University Organization:</h2>
@@ -47,16 +47,67 @@
         </div>
     </div>
 
+    {{-- Summary Cards --}}
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div class="p-4 bg-blue-100 rounded shadow flex flex-col justify-between">
+            <div>
+                <p class="text-sm text-gray-600">Total Child Organizations</p>
+                <p class="text-2xl font-bold">{{ $totalChildOrgs }}</p>
+            </div>
+            <a href="#childOrgsSection" class="text-blue-700 text-sm mt-2 hover:underline">View All</a>
+        </div>
+
+        <div class="p-4 bg-green-100 rounded shadow flex flex-col justify-between">
+            <div>
+                <p class="text-sm text-gray-600">Active Fees</p>
+                <p class="text-2xl font-bold">{{ $totalActiveFees }}</p>
+            </div>
+            <a href="#feesSection" class="text-green-700 text-sm mt-2 hover:underline">View All</a>
+        </div>
+
+        <div class="p-4 bg-yellow-100 rounded shadow flex flex-col justify-between">
+            <div>
+                <p class="text-sm text-gray-600">Total Students Enrolled</p>
+                <p class="text-2xl font-bold">{{ $totalStudentsEnrolled }}</p>
+            </div>
+            <a href="#studentsSection" class="text-yellow-700 text-sm mt-2 hover:underline">View All</a>
+        </div>
+
+        <div class="p-4 bg-purple-100 rounded shadow flex flex-col justify-between">
+            <div>
+                <p class="text-sm text-gray-600">Total Payments Collected</p>
+                <p class="text-2xl font-bold">PHP {{ number_format($totalPaymentsCollected, 2) }}</p>
+            </div>
+            <a href="#paymentsSection" class="text-purple-700 text-sm mt-2 hover:underline">View All</a>
+        </div>
+    </div>
+
+    @if($recentOrgs->isNotEmpty())
+    <div class="p-4 bg-blue-50 rounded shadow mb-6">
+        <h3 class="text-md font-semibold mb-2">Recently Added Organizations</h3>
+        <ul class="space-y-1">
+            @foreach($recentOrgs as $org)
+            <li class="flex items-center space-x-2 p-2 bg-white rounded border">
+                @if($org->logo)
+                <img src="{{ asset('storage/' . $org->logo) }}" alt="Logo" class="w-8 h-8 object-contain rounded border">
+                @endif
+                <div class="text-sm text-gray-700">
+                    <p class="font-medium">{{ $org->name }}</p>
+                    <p class="text-xs text-gray-500">Code: {{ $org->org_code }} | College: {{ $org->college?->name ?? 'N/A' }}</p>
+                </div>
+            </li>
+            @endforeach
+        </ul>
+    </div>
+    @endif
+
     <div>
         <h3 class="text-md font-semibold mb-2">Child Organizations</h3>
-
         @if($childOrgs->isEmpty())
         <p class="text-gray-500">No child organizations found.</p>
         @else
         <div class="space-y-6">
             @foreach($childOrgs as $org)
-
-            
             <div class="p-4 border rounded space-y-3">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center space-x-4">
