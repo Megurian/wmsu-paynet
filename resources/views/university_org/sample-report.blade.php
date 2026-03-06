@@ -1,3 +1,4 @@
+```php
 @extends('layouts.dashboard')
 
 @section('title', 'Payment Collection Report')
@@ -32,7 +33,6 @@
         </form>
     </div>
 
-    
     @if($motherOrg)
     <div class="p-4 bg-gray-100 rounded shadow">
         <h2 class="text-lg font-semibold">University Organization:</h2>
@@ -55,8 +55,6 @@
         @else
         <div class="space-y-6">
             @foreach($childOrgs as $org)
-
-            
             <div class="p-4 border rounded space-y-3">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center space-x-4">
@@ -73,7 +71,6 @@
                         Admin: {{ $org->orgAdmin?->first_name ?? 'N/A' }} {{ $org->orgAdmin?->last_name ?? '' }}
                     </div>
                 </div>
-
 
                 {{-- Fees List --}}
                 <div class="mt-2 pl-16">
@@ -124,3 +121,5 @@
     @endif
 </div>
 @endsection
+
+```
