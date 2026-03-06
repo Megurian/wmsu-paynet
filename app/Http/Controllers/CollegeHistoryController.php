@@ -46,15 +46,23 @@ class CollegeHistoryController extends Controller
 
         $payments = $this->getPayments($selectedSY, $selectedSem);
 
-        $feesQuery = \App\Models\Fee::with('organization')
+        $selectedSemId = Semester::where('name', $selectedSem)->value('id'); // returns null if not found
+
+$feesQuery = \App\Models\Fee::with('organization')
     ->where('status', 'approved')
-    ->where(function($q) use ($selectedSY, $selectedSem) {
+    ->where(function($q) use ($selectedSY, $selectedSemId) {
         $q->whereNull('created_school_year_id')
-          ->orWhere('created_school_year_id', '<=', $selectedSY)
-          ->where(function($q2) use ($selectedSem) {
-              $q2->whereNull('created_semester_id')
-                 ->orWhere('created_semester_id', '<=', Semester::where('name', $selectedSem)->first()?->id);
-          });
+          ->orWhere('created_school_year_id', '<=', $selectedSY);
+
+        if ($selectedSemId) {
+            $q->where(function($q2) use ($selectedSemId) {
+                $q2->whereNull('created_semester_id')
+                   ->orWhere('created_semester_id', '<=', $selectedSemId);
+            });
+        } else {
+            // If no semester selected, just ignore the semester condition
+            $q->whereNull('created_semester_id');
+        }
     });
         if ($selectedOrganization) {
             if ($selectedOrganization === 'college_only') {
@@ -231,16 +239,23 @@ class CollegeHistoryController extends Controller
             request('status')
         );
 
-        $feesQuery = \App\Models\Fee::with('organization')
+        $selectedSemId = Semester::where('name', $selectedSem)->value('id'); // returns null if not found
+
+$feesQuery = \App\Models\Fee::with('organization')
     ->where('status', 'approved')
-    // Only include fees created in or before the selected S.Y. and semester
-    ->where(function($q) use ($selectedSY, $selectedSem) {
+    ->where(function($q) use ($selectedSY, $selectedSemId) {
         $q->whereNull('created_school_year_id')
-          ->orWhere('created_school_year_id', '<=', $selectedSY)
-          ->where(function($q2) use ($selectedSem) {
-              $q2->whereNull('created_semester_id')
-                 ->orWhere('created_semester_id', '<=', Semester::where('name', request('semester'))->first()?->id);
-          });
+          ->orWhere('created_school_year_id', '<=', $selectedSY);
+
+        if ($selectedSemId) {
+            $q->where(function($q2) use ($selectedSemId) {
+                $q2->whereNull('created_semester_id')
+                   ->orWhere('created_semester_id', '<=', $selectedSemId);
+            });
+        } else {
+            // If no semester selected, just ignore the semester condition
+            $q->whereNull('created_semester_id');
+        }
     });
         if ($organizationId) {
             if ($organizationId === 'college_only') {
