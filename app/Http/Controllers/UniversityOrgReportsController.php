@@ -10,6 +10,7 @@ use App\Models\SchoolYear;
 use App\Models\Semester;
 use App\Models\Student;
 use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
 
 class UniversityOrgReportsController extends Controller
 {
@@ -107,6 +108,25 @@ class UniversityOrgReportsController extends Controller
             ->where('semester_id', $selectedSem->id)
             ->sum('cash_received');
 
+        $paymentsPerDay = Payment::whereIn('organization_id', $childOrgs->pluck('id'))
+            ->where('school_year_id', $selectedSY->id)
+            ->where('semester_id', $selectedSem->id)
+            ->selectRaw('DATE(created_at) as date, SUM(cash_received) as total')
+            ->groupBy('date')
+            ->orderBy('date')
+            ->get();
+
+        $dailyPaymentLabels = $paymentsPerDay->pluck('date')->map(fn($d) => Carbon::parse($d)->format('M d'))->toArray();
+        $dailyPaymentData = $paymentsPerDay->pluck('total')->toArray();
+
+
+        $totalPaidStudents = Student::whereHas('payments', function ($q) use ($childOrgs, $selectedSY, $selectedSem) {
+            $q->whereIn('organization_id', $childOrgs->pluck('id'))
+                ->where('school_year_id', $selectedSY->id)
+                ->where('semester_id', $selectedSem->id);
+        })->count();
+
+        $totalPendingStudents = $totalStudentsEnrolled - $totalPaidStudents;
         return view('university_org.reports', compact(
             'motherOrg',
             'childOrgs',
@@ -118,7 +138,11 @@ class UniversityOrgReportsController extends Controller
             'totalChildOrgs',
             'totalActiveFees',
             'totalStudentsEnrolled',
-            'totalPaymentsCollected'
+            'totalPaymentsCollected',
+            'totalPaidStudents',
+            'totalPendingStudents',
+            'dailyPaymentLabels',
+            'dailyPaymentData'
         ));
     }
 }

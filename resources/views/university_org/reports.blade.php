@@ -47,7 +47,6 @@
         </div>
     </div>
 
-    {{-- Summary Cards --}}
     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div class="p-4 bg-blue-100 rounded shadow flex flex-col justify-between">
             <div>
@@ -82,32 +81,46 @@
         </div>
     </div>
 
-    @if($recentOrgs->isNotEmpty())
-    <div class="p-4 bg-blue-50 rounded shadow mb-6">
-        <h3 class="text-md font-semibold mb-2">Recently Added Organizations</h3>
-        <ul class="space-y-1">
-            @foreach($recentOrgs as $org)
-            <li class="flex flex-col p-2 bg-white rounded border">
-                <div class="flex items-center space-x-2">
-                    @if($org->logo)
-                    <img src="{{ asset('storage/' . $org->logo) }}" alt="Logo" class="w-8 h-8 object-contain rounded border">
-                    @endif
-                    <div class="text-sm text-gray-700">
-                        <p class="font-medium">{{ $org->name }}</p>
-                        <p class="text-xs text-gray-500">
-                            Code: {{ $org->org_code }} | College: {{ $org->college?->name ?? 'N/A' }}
-                        </p>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        <div class="p-4 bg-white rounded shadow">
+            <h4 class="text-sm font-semibold mb-2">Student Payment Status</h4>
+            <canvas id="studentPaymentStatusChart" class="w-full h-64"></canvas>
+        </div>
+
+        @if($recentOrgs->isNotEmpty())
+        <div class="p-4 bg-blue-50 rounded shadow mb-6">
+            <h3 class="text-md font-semibold mb-2">Recently Added Organizations</h3>
+            <ul class="space-y-1">
+                @foreach($recentOrgs as $org)
+                <li class="flex flex-col p-2 bg-white rounded border">
+                    <div class="flex items-center space-x-2">
+                        @if($org->logo)
+                        <img src="{{ asset('storage/' . $org->logo) }}" alt="Logo" class="w-8 h-8 object-contain rounded border">
+                        @endif
+                        <div class="text-sm text-gray-700">
+                            <p class="font-medium">{{ $org->name }}</p>
+                            <p class="text-xs text-gray-500">
+                                Code: {{ $org->org_code }} | College: {{ $org->college?->name ?? 'N/A' }}
+                            </p>
+                        </div>
                     </div>
-                </div>
-                <div class="text-xs text-gray-600 mt-1 pl-10">
-                    <p>Students: {{ $org->total_students }}</p>
-                    <p>Payments Collected: PHP {{ number_format($org->total_payments_collected, 2) }}</p>
-                </div>
-            </li>
-            @endforeach
-        </ul>
+                    <div class="text-xs text-gray-600 mt-1 pl-10">
+                        <p>Students: {{ $org->total_students }}</p>
+                        <p>Payments Collected: PHP {{ number_format($org->total_payments_collected, 2) }}</p>
+                    </div>
+                </li>
+                @endforeach
+            </ul>
+        </div>
+        @endif
     </div>
-    @endif
+
+    <div class="grid grid-cols-1 md:grid-cols-1 gap-6 mb-6">
+        <div class="p-4 bg-white rounded shadow mb-6">
+            <h4 class="text-sm font-semibold mb-2">Daily Total Payments</h4>
+            <canvas id="dailyPaymentsChart" class="w-full h-64"></canvas>
+        </div>
+    </div>
 
     <div>
         <h3 class="text-md font-semibold mb-2">Child Organizations</h3>
@@ -182,4 +195,50 @@
     <p class="text-red-500">You do not belong to a university-level organization.</p>
     @endif
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+
+    const dailyPaymentsCtx = document.getElementById('dailyPaymentsChart').getContext('2d');
+
+new Chart(dailyPaymentsCtx, {
+    type: 'line',
+    data: {
+        labels: @json($dailyPaymentLabels),
+        datasets: [{
+            label: 'Total Payments (PHP)',
+            data: @json($dailyPaymentData),
+            borderColor: 'rgba(54, 162, 235, 1)',
+            backgroundColor: 'rgba(54, 162, 235, 0.2)',
+            fill: true,
+            tension: 0.3,
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { display: false },
+            tooltip: { mode: 'index', intersect: false }
+        },
+        scales: {
+            x: { title: { display: true, text: 'Date' } },
+            y: { title: { display: true, text: 'PHP' } }
+        }
+    }
+});
+
+  const studentStatusCtx = document.getElementById('studentPaymentStatusChart').getContext('2d');
+
+    new Chart(studentStatusCtx, {
+        type: 'pie',
+        data: {
+            labels: ['Paid', 'Pending'],
+            datasets: [{
+                data: [{{ $totalPaidStudents }}, {{ $totalPendingStudents }}],
+                backgroundColor: ['#4ade80', '#f87171'],
+            }]
+        },
+        options: { responsive: true }
+    });
+</script>
 @endsection
