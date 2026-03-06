@@ -146,7 +146,7 @@ class UniversityOrgReportsController extends Controller
         ));
     }
 
-    public function childOrganizations()
+    public function childOrganizations(Request $request)
     {
         $user = Auth::user();
         $motherOrg = $user?->organization;
@@ -155,14 +155,87 @@ class UniversityOrgReportsController extends Controller
             abort(403);
         }
 
+        $schoolYears = SchoolYear::orderBy('sy_start', 'desc')->get();
+        $semesters = Semester::orderBy('id')->get();
+
+        $selectedSY = $request->input('school_year_id')
+            ? SchoolYear::find($request->school_year_id)
+            : SchoolYear::where('is_active', true)->first();
+
+        $selectedSem = $request->input('semester_id')
+            ? Semester::find($request->semester_id)
+            : Semester::where('is_active', true)->first();
+
         $childOrgs = $motherOrg->childOrganizations()
             ->with(['orgAdmin', 'college'])
             ->orderBy('name')
-            ->get();
+            ->get()
+            ->map(function ($org) use ($selectedSY, $selectedSem) {
+
+                $students = Student::whereHas('enrollments', function ($q) use ($org, $selectedSY, $selectedSem) {
+                    $q->where('college_id', $org->college_id)
+                        ->where('school_year_id', $selectedSY->id)
+                        ->where('semester_id', $selectedSem->id)
+                        ->whereIn('status', ['FOR_PAYMENT_VALIDATION', 'ENROLLED']);
+                })->get();
+
+                $org->total_students = $students->count();
+
+                $org->total_payments = Payment::where('organization_id', $org->id)
+                    ->where('school_year_id', $selectedSY->id)
+                    ->where('semester_id', $selectedSem->id)
+                    ->sum('cash_received');
+
+                $paidStudents = Payment::where('organization_id', $org->id)
+                    ->where('school_year_id', $selectedSY->id)
+                    ->where('semester_id', $selectedSem->id)
+                    ->pluck('student_id')
+                    ->unique()
+                    ->count();
+
+                $org->paid_students = $paidStudents;
+
+                $org->pending_students = $org->total_students - $paidStudents;
+
+                return $org;
+            });
+
+        $totalChildOrgs = $childOrgs->count();
+
+        $totalActiveFees = Fee::whereIn('organization_id', $childOrgs->pluck('id'))
+            ->where('status', 'approved')
+            ->count();
+
+        $totalStudentsCovered = Student::whereHas('enrollments', function ($q) use ($childOrgs, $selectedSY, $selectedSem) {
+            $q->whereIn('college_id', $childOrgs->pluck('college_id'))
+                ->where('school_year_id', $selectedSY->id)
+                ->where('semester_id', $selectedSem->id)
+                ->whereIn('status', ['FOR_PAYMENT_VALIDATION', 'ENROLLED']);
+        })->count();
+
+        $totalPaymentsCollected = Payment::whereIn('organization_id', $childOrgs->pluck('id'))
+            ->where('school_year_id', $selectedSY->id)
+            ->where('semester_id', $selectedSem->id)
+            ->sum('cash_received');
+
+        $totalPaidStudents = Student::whereHas('payments', function ($q) use ($childOrgs, $selectedSY, $selectedSem) {
+            $q->whereIn('organization_id', $childOrgs->pluck('id'))
+                ->where('school_year_id', $selectedSY->id)
+                ->where('semester_id', $selectedSem->id);
+        })->count();
+
+        $paymentCompletionRate = $totalStudentsCovered > 0
+            ? round(($totalPaidStudents / $totalStudentsCovered) * 100)
+            : 0;
 
         return view('university_org.child_organizations', compact(
             'motherOrg',
-            'childOrgs'
+            'childOrgs',
+            'totalChildOrgs',
+            'totalActiveFees',
+            'totalStudentsCovered',
+            'totalPaymentsCollected',
+            'paymentCompletionRate'
         ));
     }
 }
