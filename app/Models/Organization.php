@@ -60,6 +60,13 @@ class Organization extends Model
         return $this->hasMany(Document::class);
     }
 
+    public function createdSchoolYear() {
+    return $this->belongsTo(SchoolYear::class, 'created_school_year_id');
+}
+
+public function createdSemester() {
+    return $this->belongsTo(Semester::class, 'created_semester_id');
+}
     
  
 }

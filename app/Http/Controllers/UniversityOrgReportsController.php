@@ -58,10 +58,20 @@ class UniversityOrgReportsController extends Controller
 
 
             $childOrgs->each(function ($org) use ($selectedSY, $selectedSem) {
-                $fees = Fee::where(function ($q) use ($org) {
+                $fees = Fee::where(function ($q) use ($org, $selectedSY, $selectedSem) {
                     $q->where('organization_id', $org->id)
                         ->orWhere('fee_scope', 'university-wide');
-                })->orderBy('created_at', 'desc')->get();
+                })
+                    ->where(function ($q) use ($selectedSY, $selectedSem) {
+                        // Include fees that were created in the selected semester or earlier
+                        $q->where('created_school_year_id', '<', $selectedSY->id)
+                            ->orWhere(function ($q2) use ($selectedSY, $selectedSem) {
+                                $q2->where('created_school_year_id', $selectedSY->id)
+                                    ->where('created_semester_id', '<=', $selectedSem->id);
+                            });
+                    })
+                    ->orderBy('created_at', 'desc')
+                    ->get();
 
                 $fees->each(function ($fee) use ($org, $selectedSY, $selectedSem) {
                     $students = Student::whereHas('enrollments', function ($q) use ($org, $selectedSY, $selectedSem) {
@@ -265,10 +275,19 @@ class UniversityOrgReportsController extends Controller
             ? Semester::find($request->semester_id)
             : Semester::where('is_active', true)->first();
 
-        $fees = Fee::where(function ($q) use ($org) {
+        $fees = Fee::where(function ($q) use ($org, $selectedSY, $selectedSem) {
             $q->where('organization_id', $org->id)
                 ->orWhere('fee_scope', 'university-wide');
-        })->orderBy('created_at', 'desc')->get();
+        })
+            ->where(function ($q) use ($selectedSY, $selectedSem) {
+                $q->where('created_school_year_id', '<', $selectedSY->id)
+                    ->orWhere(function ($q2) use ($selectedSY, $selectedSem) {
+                        $q2->where('created_school_year_id', $selectedSY->id)
+                            ->where('created_semester_id', '<=', $selectedSem->id);
+                    });
+            })
+            ->orderBy('created_at', 'desc')
+            ->get();
 
         $fees->each(function ($fee) use ($org, $selectedSY, $selectedSem) {
             $students = Student::whereHas('enrollments', function ($q) use ($org, $selectedSY, $selectedSem) {
