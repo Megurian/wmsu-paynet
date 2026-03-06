@@ -53,7 +53,10 @@
                 <p class="text-sm text-gray-600">Total Child Organizations</p>
                 <p class="text-2xl font-bold">{{ $totalChildOrgs }}</p>
             </div>
-            <a href="{{ route('university_org.child_organizations') }}" class="text-blue-700 text-sm mt-2 hover:underline">
+            <a href="{{ route('university_org.child_organizations', [
+        'school_year_id' => $selectedSY->id,
+        'semester_id' => $selectedSem->id
+    ]) }}" class="text-sm text-blue-600 hover:underline">
     View All
 </a>
         </div>
