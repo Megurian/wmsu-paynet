@@ -46,7 +46,16 @@ class CollegeHistoryController extends Controller
 
         $payments = $this->getPayments($selectedSY, $selectedSem);
 
-        $feesQuery = \App\Models\Fee::with('organization')->where('status', 'approved');
+        $feesQuery = \App\Models\Fee::with('organization')
+    ->where('status', 'approved')
+    ->where(function($q) use ($selectedSY, $selectedSem) {
+        $q->whereNull('created_school_year_id')
+          ->orWhere('created_school_year_id', '<=', $selectedSY)
+          ->where(function($q2) use ($selectedSem) {
+              $q2->whereNull('created_semester_id')
+                 ->orWhere('created_semester_id', '<=', Semester::where('name', $selectedSem)->first()?->id);
+          });
+    });
         if ($selectedOrganization) {
             if ($selectedOrganization === 'college_only') {
                 $feesQuery->where('fee_scope', 'college')->whereNull('organization_id');
@@ -222,8 +231,17 @@ class CollegeHistoryController extends Controller
             request('status')
         );
 
-        $feesQuery = \App\Models\Fee::with('organization')->where('status', 'approved');
-
+        $feesQuery = \App\Models\Fee::with('organization')
+    ->where('status', 'approved')
+    // Only include fees created in or before the selected S.Y. and semester
+    ->where(function($q) use ($selectedSY, $selectedSem) {
+        $q->whereNull('created_school_year_id')
+          ->orWhere('created_school_year_id', '<=', $selectedSY)
+          ->where(function($q2) use ($selectedSem) {
+              $q2->whereNull('created_semester_id')
+                 ->orWhere('created_semester_id', '<=', Semester::where('name', request('semester'))->first()?->id);
+          });
+    });
         if ($organizationId) {
             if ($organizationId === 'college_only') {
                 $feesQuery->where('fee_scope', 'college')->whereNull('organization_id');

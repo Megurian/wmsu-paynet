@@ -365,7 +365,18 @@ class OrganizationPaymentController extends Controller
             if ($osaId) $organizationIds[] = $osaId;
         }
 
-        $fees = Fee::where('status', 'approved')->whereIn('organization_id', $organizationIds)->orderBy('created_at', 'desc')->get();
+        $fees = Fee::where('status', 'approved')
+            ->whereIn('organization_id', $organizationIds)
+            ->where(function ($q) use ($schoolYearId, $semesterId) {
+                $q->whereNull('created_school_year_id')
+                    ->orWhere('created_school_year_id', '<=', $schoolYearId);
+            })
+            ->where(function ($q) use ($schoolYearId, $semesterId) {
+                $q->whereNull('created_semester_id')
+                    ->orWhere('created_semester_id', '<=', $semesterId);
+            })
+            ->orderBy('created_at', 'desc')
+            ->get();
         $courses = \App\Models\Course::where('college_id', $collegeId)->get();
         $yearLevels = \App\Models\YearLevel::where('college_id', $collegeId)->get();
         $sections = \App\Models\Section::where('college_id', $collegeId)->get();
