@@ -10,7 +10,10 @@
     <div class="flex items-center justify-between">
         <h2 class="text-lg font-semibold">Child Organizations</h2>
 
-        <a href="{{ route('university_org.reports') }}" class="text-sm text-blue-600 hover:underline">
+        <a href="{{ route('university_org.reports', [
+        'school_year_id' => $selectedSY->id,
+        'semester_id' => $selectedSem->id
+    ]) }}" class="text-sm text-blue-600 hover:underline">
             ← Back to Report
         </a>
     </div>
@@ -97,6 +100,17 @@
                         <p class="text-gray-500">Pending</p>
                         <p class="font-semibold">{{ $org->pending_students }}</p>
                     </div>
+
+                    <div class="flex justify-between mt-3">
+    <a href="{{ route('university_org.child_org_fees', [
+        'org_id' => $org->id,
+        'school_year_id' => $selectedSY->id,
+        'semester_id' => $selectedSem->id
+    ]) }}"
+       class="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700">
+        View Fees
+    </a>
+</div>
 
                 </div>
 

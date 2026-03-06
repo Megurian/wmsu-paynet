@@ -138,6 +138,9 @@ Route::middleware(['auth', 'role:university_org'])->group(function () {
 
     Route::get('/university-org/child-organizations', [UniversityOrgReportsController::class, 'childOrganizations'])
     ->name('university_org.child_organizations');
+
+    Route::get('/university-org/child-org-fees', [UniversityOrgReportsController::class, 'childOrgFees'])
+    ->name('university_org.child_org_fees');
 });
 
 Route::middleware(['auth', 'role:college_org'])->group(function () {
