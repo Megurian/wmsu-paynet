@@ -136,6 +136,8 @@ Route::middleware(['auth', 'role:university_org'])->group(function () {
     Route::get('/university-org/documents/{document}/preview', [DocumentController::class, 'preview'])->name('university_org.documents.preview');
     Route::delete('/university-org/documents/{document}', [DocumentController::class, 'destroy'])->name('university_org.documents.destroy');
 
+    Route::get('/university-org/child-organizations', [UniversityOrgReportsController::class, 'childOrganizations'])
+    ->name('university_org.child_organizations');
 });
 
 Route::middleware(['auth', 'role:college_org'])->group(function () {

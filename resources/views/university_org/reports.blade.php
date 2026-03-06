@@ -53,7 +53,9 @@
                 <p class="text-sm text-gray-600">Total Child Organizations</p>
                 <p class="text-2xl font-bold">{{ $totalChildOrgs }}</p>
             </div>
-            <a href="#childOrgsSection" class="text-blue-700 text-sm mt-2 hover:underline">View All</a>
+            <a href="{{ route('university_org.child_organizations') }}" class="text-blue-700 text-sm mt-2 hover:underline">
+    View All
+</a>
         </div>
 
         <div class="p-4 bg-green-100 rounded shadow flex flex-col justify-between">

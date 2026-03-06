@@ -145,4 +145,24 @@ class UniversityOrgReportsController extends Controller
             'dailyPaymentData'
         ));
     }
+
+    public function childOrganizations()
+    {
+        $user = Auth::user();
+        $motherOrg = $user?->organization;
+
+        if (!$motherOrg || $motherOrg->role !== 'university_org') {
+            abort(403);
+        }
+
+        $childOrgs = $motherOrg->childOrganizations()
+            ->with(['orgAdmin', 'college'])
+            ->orderBy('name')
+            ->get();
+
+        return view('university_org.child_organizations', compact(
+            'motherOrg',
+            'childOrgs'
+        ));
+    }
 }
