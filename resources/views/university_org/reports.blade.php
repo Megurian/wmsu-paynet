@@ -31,7 +31,16 @@
             <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded text-sm">Filter</button>
         </form>
     </div>
-
+<div class="p-4 bg-gray-50 rounded mb-4 flex items-center space-x-4">
+    <p class="text-sm text-gray-700">
+        <span class="font-semibold">School Year:</span> 
+        {{ \Carbon\Carbon::parse($selectedSY->sy_start)->year }} - {{ \Carbon\Carbon::parse($selectedSY->sy_end)->year }}
+    </p>
+    <p class="text-sm text-gray-700">
+        <span class="font-semibold">Semester:</span> 
+        {{ ucfirst($selectedSem->name) }}
+    </p>
+</div>
 
     @if($motherOrg)
     <div class="p-4 bg-gray-100 rounded shadow">

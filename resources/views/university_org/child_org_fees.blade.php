@@ -13,7 +13,16 @@
     </a>
 
     <h2 class="text-lg font-semibold">Fees</h2>
-
+<div class="p-4 bg-gray-50 rounded mb-4 flex items-center space-x-4">
+    <p class="text-sm text-gray-700">
+        <span class="font-semibold">School Year:</span> 
+        {{ \Carbon\Carbon::parse($selectedSY->sy_start)->year }} - {{ \Carbon\Carbon::parse($selectedSY->sy_end)->year }}
+    </p>
+    <p class="text-sm text-gray-700">
+        <span class="font-semibold">Semester:</span> 
+        {{ ucfirst($selectedSem->name) }}
+    </p>
+</div>
     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-4">
 
         <div class="p-4 bg-blue-100 rounded shadow text-center relative group">
