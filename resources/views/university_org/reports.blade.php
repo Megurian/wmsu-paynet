@@ -71,19 +71,17 @@
         </div>
 
         <div class="p-4 bg-green-100 rounded shadow flex flex-col justify-between">
-            <div>
-                <p class="text-sm text-gray-600">Active Fees</p>
-                <p class="text-2xl font-bold">{{ $totalActiveFees }}</p>
-            </div>
-            <a href="#feesSection" class="text-green-700 text-sm mt-2 hover:underline">View All</a>
-        </div>
+    <div>
+        <p class="text-sm text-gray-600">Total Students Paid</p>
+        <p class="text-2xl font-bold">{{ $totalStudentsPaid }}</p>
+    </div>
+</div>
 
         <div class="p-4 bg-yellow-100 rounded shadow flex flex-col justify-between">
             <div>
                 <p class="text-sm text-gray-600">Total Students Enrolled</p>
                 <p class="text-2xl font-bold">{{ $totalStudentsEnrolled }}</p>
             </div>
-            <a href="#studentsSection" class="text-yellow-700 text-sm mt-2 hover:underline">View All</a>
         </div>
 
         <div class="p-4 bg-purple-100 rounded shadow flex flex-col justify-between">
@@ -91,7 +89,12 @@
                 <p class="text-sm text-gray-600">Total Payments Collected</p>
                 <p class="text-2xl font-bold">PHP {{ number_format($totalPaymentsCollected, 2) }}</p>
             </div>
-            <a href="#paymentsSection" class="text-purple-700 text-sm mt-2 hover:underline">View All</a>
+            <a href="{{ route('university_org.child_organizations', [
+        'school_year_id' => $selectedSY->id,
+        'semester_id' => $selectedSem->id
+    ]) }}" class="text-sm text-purple-600 hover:underline">
+    View All
+</a>
         </div>
     </div>
 

@@ -92,9 +92,11 @@ class UniversityOrgReportsController extends Controller
 
         $totalChildOrgs = $childOrgs->count();
 
-        $totalActiveFees = Fee::whereIn('organization_id', $childOrgs->pluck('id'))
-            ->where('status', 'approved')
-            ->count();
+        $totalStudentsPaid = Student::whereHas('payments', function ($q) use ($childOrgs, $selectedSY, $selectedSem) {
+            $q->whereIn('organization_id', $childOrgs->pluck('id'))
+                ->where('school_year_id', $selectedSY->id)
+                ->where('semester_id', $selectedSem->id);
+        })->count();
 
         $totalStudentsEnrolled = Student::whereHas('enrollments', function ($q) use ($childOrgs, $selectedSY, $selectedSem) {
             $q->whereIn('college_id', $childOrgs->pluck('college_id'))
@@ -136,7 +138,7 @@ class UniversityOrgReportsController extends Controller
             'selectedSY',
             'selectedSem',
             'totalChildOrgs',
-            'totalActiveFees',
+            'totalStudentsPaid',
             'totalStudentsEnrolled',
             'totalPaymentsCollected',
             'totalPaidStudents',
