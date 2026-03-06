@@ -37,7 +37,23 @@ class UniversityOrgReportsController extends Controller
             $recentOrgs = $motherOrg->childOrganizations()
                 ->orderBy('created_at', 'desc')
                 ->take(5)
-                ->get();
+                ->get()
+                ->map(function ($org) use ($selectedSY, $selectedSem) {
+
+                    $org->total_students = Student::whereHas('enrollments', function ($q) use ($org, $selectedSY, $selectedSem) {
+                        $q->where('college_id', $org->college_id)
+                            ->where('school_year_id', $selectedSY->id)
+                            ->where('semester_id', $selectedSem->id)
+                            ->whereIn('status', ['FOR_PAYMENT_VALIDATION', 'ENROLLED']);
+                    })->count();
+
+                    $org->total_payments_collected = Payment::where('organization_id', $org->id)
+                        ->where('school_year_id', $selectedSY->id)
+                        ->where('semester_id', $selectedSem->id)
+                        ->sum('cash_received');
+
+                    return $org;
+                });
 
 
             $childOrgs->each(function ($org) use ($selectedSY, $selectedSem) {

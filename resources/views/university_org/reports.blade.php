@@ -87,13 +87,21 @@
         <h3 class="text-md font-semibold mb-2">Recently Added Organizations</h3>
         <ul class="space-y-1">
             @foreach($recentOrgs as $org)
-            <li class="flex items-center space-x-2 p-2 bg-white rounded border">
-                @if($org->logo)
-                <img src="{{ asset('storage/' . $org->logo) }}" alt="Logo" class="w-8 h-8 object-contain rounded border">
-                @endif
-                <div class="text-sm text-gray-700">
-                    <p class="font-medium">{{ $org->name }}</p>
-                    <p class="text-xs text-gray-500">Code: {{ $org->org_code }} | College: {{ $org->college?->name ?? 'N/A' }}</p>
+            <li class="flex flex-col p-2 bg-white rounded border">
+                <div class="flex items-center space-x-2">
+                    @if($org->logo)
+                    <img src="{{ asset('storage/' . $org->logo) }}" alt="Logo" class="w-8 h-8 object-contain rounded border">
+                    @endif
+                    <div class="text-sm text-gray-700">
+                        <p class="font-medium">{{ $org->name }}</p>
+                        <p class="text-xs text-gray-500">
+                            Code: {{ $org->org_code }} | College: {{ $org->college?->name ?? 'N/A' }}
+                        </p>
+                    </div>
+                </div>
+                <div class="text-xs text-gray-600 mt-1 pl-10">
+                    <p>Students: {{ $org->total_students }}</p>
+                    <p>Payments Collected: PHP {{ number_format($org->total_payments_collected, 2) }}</p>
                 </div>
             </li>
             @endforeach
