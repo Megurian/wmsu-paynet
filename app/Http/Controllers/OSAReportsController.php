@@ -104,4 +104,48 @@ class OSAReportsController extends Controller
             'localOrgs'
         ));
     }
+
+    public function collegeDetails(Request $request, $collegeId)
+    {
+        $college = College::findOrFail($collegeId);
+
+        $selectedSYId = $request->school_year_id;
+        $selectedSemId = $request->semester_id;
+
+        $schoolYears = SchoolYear::orderBy('sy_start', 'desc')->get();
+        $semesters = $selectedSYId ? Semester::where('school_year_id', $selectedSYId)->get() : collect();
+
+        $organizations = Organization::where('college_id', $collegeId)
+            ->where(function ($q) use ($selectedSYId, $selectedSemId) {
+                $q->where('created_school_year_id', '<', $selectedSYId)
+                    ->orWhere(function ($q2) use ($selectedSYId, $selectedSemId) {
+                        $q2->where('created_school_year_id', $selectedSYId)
+                            ->where('created_semester_id', '<=', $selectedSemId);
+                    });
+            })
+            ->get();
+
+        $organizations->map(function ($org) use ($selectedSYId, $selectedSemId) {
+
+            $org->totalPayments = Payment::where('organization_id', $org->id)
+                ->where('school_year_id', $selectedSYId)
+                ->where('semester_id', $selectedSemId)
+                ->sum('amount_due');
+
+            return $org;
+        });
+
+        $localOrgs = $organizations->whereNull('mother_organization_id');
+        $childOrgs = $organizations->whereNotNull('mother_organization_id');
+
+        return view('osa.reports.college-details', compact(
+            'college',
+            'localOrgs',
+            'childOrgs',
+            'schoolYears',
+            'semesters',
+            'selectedSYId',
+            'selectedSemId'
+        ));
+    }
 }

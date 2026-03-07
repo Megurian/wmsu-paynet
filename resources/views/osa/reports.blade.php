@@ -50,7 +50,6 @@
                         <th class="border-b p-2 text-left">Logo</th>
                         <th class="border-b p-2 text-left">College Name</th>
                         <th class="border-b p-2 text-left">College Code</th>
-                        <th class="border-b p-2 text-left">Number of Admins</th>
                         <th class="border-b p-2 text-left">Local Orgs</th>
                         <th class="border-b p-2 text-left">Child Orgs</th>
                         <th class="border-b p-2 text-left">Actions</th>
@@ -71,7 +70,14 @@
                         <td class="p-2">{{ $college->local_orgs_count }}</td>
                         <td class="p-2">{{ $college->child_orgs_count }}</td>
                         <td class="p-2">
-                            <a href="" class="text-blue-600 hover:underline text-xs">View Details</a>
+                            <a href="{{ route('osa.reports.college.details', [
+        'college' => $college->id,
+        'school_year_id' => $selectedSYId,
+        'semester_id' => $selectedSemId
+    ]) }}"
+   class="text-blue-600 hover:underline text-xs">
+   View Details
+</a>
                         </td>
                     </tr>
                     @endforeach

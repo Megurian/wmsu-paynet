@@ -97,6 +97,8 @@ Route::middleware(['auth', 'role:osa', CheckActiveSchoolYear::class])->group(fun
     Route::delete('/osa/college/{id}', [OSACollegeController::class, 'destroy'])->name('osa.college.destroy');
   Route::get('/osa/reports', [OSAReportsController::class, 'index'])
         ->name('osa.reports');
+        Route::get('/osa/reports/college/{college}', [OSAReportsController::class, 'collegeDetails'])
+    ->name('osa.reports.college.details');
 });
 
 Route::middleware(['auth', 'role:university_org'])->group(function () {
