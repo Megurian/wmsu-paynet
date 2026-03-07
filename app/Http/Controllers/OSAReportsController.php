@@ -47,7 +47,7 @@ class OSAReportsController extends Controller
 
         $schoolYears = SchoolYear::orderBy('sy_start', 'desc')->get();
         $semesters = $selectedSYId ? Semester::where('school_year_id', $selectedSYId)->get() : collect();
-        
+
         $motherOrgs = Organization::whereNull('college_id')
             ->whereNull('mother_organization_id')
             ->where(function ($q) use ($selectedSYId, $selectedSemId) {
@@ -59,13 +59,36 @@ class OSAReportsController extends Controller
             })
             ->get();
 
-        $motherOrgs->loadCount('childOrganizations'); 
+        $motherOrgs->loadCount('childOrganizations');
 
         $motherOrgs->map(function ($org) use ($selectedSYId, $selectedSemId) {
             $org->totalPayments = Payment::whereIn('organization_id', $org->childOrganizations->pluck('id'))
                 ->where('school_year_id', $selectedSYId)
                 ->where('semester_id', $selectedSemId)
                 ->sum('amount_due');
+            return $org;
+        });
+
+        $localOrgs = Organization::whereNotNull('college_id')
+            ->whereNull('mother_organization_id')
+            ->where('role', 'college_org')
+            ->where(function ($q) use ($selectedSYId, $selectedSemId) {
+                $q->where('created_school_year_id', '<', $selectedSYId)
+                    ->orWhere(function ($q2) use ($selectedSYId, $selectedSemId) {
+                        $q2->where('created_school_year_id', $selectedSYId)
+                            ->where('created_semester_id', '<=', $selectedSemId);
+                    });
+            })
+            ->with('college')
+            ->get();
+
+        $localOrgs->map(function ($org) use ($selectedSYId, $selectedSemId) {
+
+            $org->totalPayments = Payment::where('organization_id', $org->id)
+                ->where('school_year_id', $selectedSYId)
+                ->where('semester_id', $selectedSemId)
+                ->sum('amount_due');
+
             return $org;
         });
 
@@ -77,7 +100,8 @@ class OSAReportsController extends Controller
             'selectedSemId',
             'activeSY',
             'activeSem',
-            'motherOrgs'
+            'motherOrgs',
+            'localOrgs'
         ));
     }
 }
