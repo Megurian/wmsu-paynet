@@ -7,12 +7,12 @@ use App\Models\College;
 use App\Models\Organization;
 use App\Models\SchoolYear;
 use App\Models\Semester;
+use App\Models\Payment;
 
 class OSAReportsController extends Controller
 {
     public function index(Request $request)
     {
-        // Get current active S.Y. and semester as default
         $activeSY = SchoolYear::where('is_active', true)->first();
         $activeSem = $activeSY ? $activeSY->semesters()->where('is_active', true)->first() : null;
 
@@ -23,10 +23,10 @@ class OSAReportsController extends Controller
 
         $orgQuery = Organization::query()
             ->where(function ($q) use ($selectedSYId, $selectedSemId) {
-              
+
                 $q->where('created_school_year_id', '<', $selectedSYId)
                     ->orWhere(function ($q2) use ($selectedSYId, $selectedSemId) {
-                   
+
                         $q2->where('created_school_year_id', $selectedSYId)
                             ->where('created_semester_id', '<=', $selectedSemId);
                     });
@@ -47,6 +47,27 @@ class OSAReportsController extends Controller
 
         $schoolYears = SchoolYear::orderBy('sy_start', 'desc')->get();
         $semesters = $selectedSYId ? Semester::where('school_year_id', $selectedSYId)->get() : collect();
+        
+        $motherOrgs = Organization::whereNull('college_id')
+            ->whereNull('mother_organization_id')
+            ->where(function ($q) use ($selectedSYId, $selectedSemId) {
+                $q->where('created_school_year_id', '<', $selectedSYId)
+                    ->orWhere(function ($q2) use ($selectedSYId, $selectedSemId) {
+                        $q2->where('created_school_year_id', $selectedSYId)
+                            ->where('created_semester_id', '<=', $selectedSemId);
+                    });
+            })
+            ->get();
+
+        $motherOrgs->loadCount('childOrganizations'); 
+
+        $motherOrgs->map(function ($org) use ($selectedSYId, $selectedSemId) {
+            $org->totalPayments = Payment::whereIn('organization_id', $org->childOrganizations->pluck('id'))
+                ->where('school_year_id', $selectedSYId)
+                ->where('semester_id', $selectedSemId)
+                ->sum('amount_due');
+            return $org;
+        });
 
         return view('osa.reports', compact(
             'colleges',
@@ -55,7 +76,8 @@ class OSAReportsController extends Controller
             'selectedSYId',
             'selectedSemId',
             'activeSY',
-            'activeSem'
+            'activeSem',
+            'motherOrgs'
         ));
     }
 }
