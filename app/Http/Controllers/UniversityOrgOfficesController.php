@@ -63,6 +63,8 @@ class UniversityOrgOfficesController extends Controller
         }
 
         // Create the organization, recording the mother_organization_id when applicable
+        $activeSY = \App\Models\SchoolYear::where('is_active', true)->first();
+        $activeSem = \App\Models\Semester::where('is_active', true)->first();
         $organization = Organization::create([
             'role' => $validated['role'],
             'name' => $validated['name'],
@@ -70,7 +72,9 @@ class UniversityOrgOfficesController extends Controller
             'logo' => $validated['logo'] ?? null,
             'college_id' => $college?->id,
             'mother_organization_id' => $motherOrgId,
-            'status' => null, 
+            'status' => null,
+            'created_school_year_id' => $activeSY?->id,
+            'created_semester_id' => $activeSem?->id,
         ]);
 
         // Create the admin user (assign to college_org role)

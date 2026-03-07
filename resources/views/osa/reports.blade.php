@@ -9,6 +9,37 @@
     <div class="p-4 bg-white rounded shadow">
         <h3 class="text-lg font-semibold mb-4">Colleges Overview</h3>
 
+        <div class="mb-4 flex flex-wrap items-center space-x-4">
+    <form method="GET" class="flex space-x-2 items-end">
+        <div>
+            <label class="block text-sm font-medium text-gray-700">School Year</label>
+            <select name="school_year_id" class="border rounded p-1 text-sm" onchange="this.form.submit()">
+                @foreach($schoolYears as $sy)
+                    <option value="{{ $sy->id }}" {{ $sy->id == $selectedSYId ? 'selected' : '' }}>
+                        {{ $sy->sy_start }} - {{ $sy->sy_end }}
+                    </option>
+                @endforeach
+            </select>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700">Semester</label>
+            <select name="semester_id" class="border rounded p-1 text-sm" onchange="this.form.submit()">
+                @foreach($semesters as $sem)
+                    <option value="{{ $sem->id }}" {{ $sem->id == $selectedSemId ? 'selected' : '' }}>
+                        {{ ucfirst($sem->name) }}
+                    </option>
+                @endforeach
+            </select>
+        </div>
+    </form>
+</div>
+
+<p class="text-gray-600 text-sm mb-2">
+    Showing results for:
+    <strong>{{ $schoolYears->firstWhere('id', $selectedSYId)->sy_start ?? 'N/A' }} - {{ $schoolYears->firstWhere('id', $selectedSYId)->sy_end ?? 'N/A' }}</strong>,
+    <strong>{{ $semesters->firstWhere('id', $selectedSemId)->name ?? 'N/A' }}</strong> semester
+</p>
+
         @if($colleges->isEmpty())
             <p class="text-gray-500">No colleges found.</p>
         @else
@@ -41,7 +72,7 @@
                         <td class="p-2">{{ $college->local_orgs_count }}</td>
                         <td class="p-2">{{ $college->child_orgs_count }}</td>
                         <td class="p-2">
-                            <a href="{{ route('osa.college.details', $college->id) }}"
+                            <a href=""
                                class="text-blue-600 hover:underline text-xs">View Details</a>
                         </td>
                     </tr>
