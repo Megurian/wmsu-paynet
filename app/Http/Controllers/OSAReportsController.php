@@ -174,9 +174,32 @@ class OSAReportsController extends Controller
                 return $child;
             });
 
+        $fees = Fee::where(function ($q) use ($org) {
+            $q->where('organization_id', $org->id);
+
+            if ($org->mother_organization_id) {
+                $q->orWhere('organization_id', $org->mother_organization_id);
+            }
+
+            $q->orWhere('fee_scope', 'university-wide');
+        })
+            ->where(function ($q) use ($selectedSYId, $selectedSemId) {
+                $q->where('created_school_year_id', '<', $selectedSYId)
+                    ->orWhere(function ($q2) use ($selectedSYId, $selectedSemId) {
+                        $q2->where('created_school_year_id', $selectedSYId)
+                            ->where('created_semester_id', '<=', $selectedSemId);
+                    });
+            })
+            ->withCount(['payments as payment_count' => function ($q) use ($selectedSYId, $selectedSemId) {
+                $q->where('school_year_id', $selectedSYId)
+                    ->where('semester_id', $selectedSemId);
+            }])
+            ->get();
+
         return view('osa.reports.organization-details', compact(
             'org',
             'childOrgs',
+            'fees',
             'selectedSYId',
             'selectedSemId'
         ));
