@@ -69,4 +69,8 @@ class Student extends Authenticatable
     {
         $this->notify(new StudentResetPasswordNotification($token));
     }
+    public function getFullNameAttribute()
+    {
+        return trim("{$this->first_name} {$this->middle_name} {$this->last_name}" . ($this->suffix ? " {$this->suffix}" : ''));
+    }
 }
