@@ -11,6 +11,7 @@ use App\Models\Semester;
 use App\Models\Student;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class UniversityOrgReportsController extends Controller
 {
@@ -319,4 +320,5 @@ class UniversityOrgReportsController extends Controller
             'semesters'
         ));
     }
+
 }

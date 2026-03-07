@@ -21,7 +21,6 @@ use App\Http\Controllers\LocalOrgsController;
 use App\Http\Controllers\CollegeOrgApprovalController;
 use App\Http\Controllers\OrganizationPaymentController;
 use App\Http\Controllers\DocumentController;
-
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -141,6 +140,9 @@ Route::middleware(['auth', 'role:university_org'])->group(function () {
 
     Route::get('/university-org/child-org-fees', [UniversityOrgReportsController::class, 'childOrgFees'])
     ->name('university_org.child_org_fees');
+
+  Route::post('/university-org/reports/generate', [UniversityOrgReportsController::class, 'generateReport'])
+    ->name('university_org.reports.generate');
     
 });
 
