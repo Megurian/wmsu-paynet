@@ -8,6 +8,8 @@ use App\Models\Organization;
 use App\Models\SchoolYear;
 use App\Models\Semester;
 use App\Models\Payment;
+use App\Models\Fee;
+use App\Models\StudentEnrollment;
 
 class OSAReportsController extends Controller
 {
@@ -144,6 +146,37 @@ class OSAReportsController extends Controller
             'childOrgs',
             'schoolYears',
             'semesters',
+            'selectedSYId',
+            'selectedSemId'
+        ));
+    }
+
+    public function organizationDetails(Request $request, $organizationId)
+    {
+        $org = Organization::findOrFail($organizationId);
+
+        $selectedSYId = $request->school_year_id;
+        $selectedSemId = $request->semester_id;
+
+        $org->totalPayments = Payment::where('organization_id', $organizationId)
+            ->where('school_year_id', $selectedSYId)
+            ->where('semester_id', $selectedSemId)
+            ->sum('amount_due');
+
+        $childOrgs = $org->childOrganizations()
+            ->with('college')
+            ->get()
+            ->map(function ($child) use ($selectedSYId, $selectedSemId) {
+                $child->totalPayments = Payment::where('organization_id', $child->id)
+                    ->where('school_year_id', $selectedSYId)
+                    ->where('semester_id', $selectedSemId)
+                    ->sum('amount_due');
+                return $child;
+            });
+
+        return view('osa.reports.organization-details', compact(
+            'org',
+            'childOrgs',
             'selectedSYId',
             'selectedSemId'
         ));
