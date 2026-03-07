@@ -12,17 +12,62 @@
         ← Back to Child Organizations
     </a>
 
+    <div class="bg-white border rounded-lg shadow-sm p-4 mb-4 flex flex-col md:flex-row gap-4 items-start">
+
+        {{-- Organization Logo --}}
+        <div class="flex-shrink-0">
+            @if($org->logo)
+            <img src="{{ asset('storage/' . $org->logo) }}" class="w-16 h-16 rounded object-cover border">
+            @else
+            <div class="w-16 h-16 bg-gray-200 flex items-center justify-center rounded text-gray-500 text-xs">
+                No Logo
+            </div>
+            @endif
+        </div>
+
+        {{-- Organization Details --}}
+        <div class="flex-1 space-y-1 text-sm">
+
+            <h2 class="text-lg font-semibold text-gray-800">
+                {{ $org->name }}
+            </h2>
+
+            <p class="text-gray-600">
+                <span class="font-medium">Organization Code:</span>
+                {{ $org->org_code ?? '-' }}
+            </p>
+
+            <p class="text-gray-600">
+                <span class="font-medium">College:</span>
+                {{ $org->college?->name ?? '-' }}
+            </p>
+
+            <p class="text-gray-600">
+                <span class="font-medium">Office Admin:</span>
+                {{ $org->orgAdmin?->first_name ?? '-' }}
+                {{ $org->orgAdmin?->last_name ?? '' }}
+            </p>
+
+            <p class="text-gray-600">
+                <span class="font-medium">Mother Organization:</span>
+                {{ $org->motherOrganization?->name ?? 'None' }}
+            </p>
+
+        </div>
+
+    </div>
+
     <h2 class="text-lg font-semibold">Fees</h2>
-<div class="p-4 bg-gray-50 rounded mb-4 flex items-center space-x-4">
-    <p class="text-sm text-gray-700">
-        <span class="font-semibold">School Year:</span> 
-        {{ \Carbon\Carbon::parse($selectedSY->sy_start)->year }} - {{ \Carbon\Carbon::parse($selectedSY->sy_end)->year }}
-    </p>
-    <p class="text-sm text-gray-700">
-        <span class="font-semibold">Semester:</span> 
-        {{ ucfirst($selectedSem->name) }}
-    </p>
-</div>
+    <div class="p-4 bg-gray-50 rounded mb-4 flex items-center space-x-4">
+        <p class="text-sm text-gray-700">
+            <span class="font-semibold">School Year:</span>
+            {{ \Carbon\Carbon::parse($selectedSY->sy_start)->year }} - {{ \Carbon\Carbon::parse($selectedSY->sy_end)->year }}
+        </p>
+        <p class="text-sm text-gray-700">
+            <span class="font-semibold">Semester:</span>
+            {{ ucfirst($selectedSem->name) }}
+        </p>
+    </div>
     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-4">
 
         <div class="p-4 bg-blue-100 rounded shadow text-center relative group">
@@ -155,15 +200,15 @@
                     @else
                     @foreach($fee->paid_students as $student)
                     @php
-                        $payment = $student->payments()
-                        ->where('organization_id', $org->id)
-                        ->whereHas('fees', fn($q) => $q->where('fee_id', $fee->id))
-                        ->first();
-                        $enrollment = $student->enrollments()
-                        ->where('college_id', $org->college_id)
-                        ->where('school_year_id', $selectedSY->id)
-                        ->where('semester_id', $selectedSem->id)
-                        ->first();
+                    $payment = $student->payments()
+                    ->where('organization_id', $org->id)
+                    ->whereHas('fees', fn($q) => $q->where('fee_id', $fee->id))
+                    ->first();
+                    $enrollment = $student->enrollments()
+                    ->where('college_id', $org->college_id)
+                    ->where('school_year_id', $selectedSY->id)
+                    ->where('semester_id', $selectedSem->id)
+                    ->first();
                     @endphp
                     <div class="border rounded p-2 bg-white shadow-sm text-sm flex flex-col md:flex-row md:justify-between md:items-center">
                         <div class="space-y-1">

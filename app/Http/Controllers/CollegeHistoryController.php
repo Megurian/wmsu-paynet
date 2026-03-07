@@ -48,27 +48,34 @@ class CollegeHistoryController extends Controller
 
         $selectedSemId = Semester::where('name', $selectedSem)->value('id'); // returns null if not found
 
-$feesQuery = \App\Models\Fee::with('organization')
-    ->where('status', 'approved')
-    ->where(function($q) use ($selectedSY, $selectedSemId) {
-        $q->whereNull('created_school_year_id')
-          ->orWhere('created_school_year_id', '<=', $selectedSY);
+        $feesQuery = \App\Models\Fee::with('organization')
+            ->where('status', 'approved')
+            ->where(function ($q) use ($selectedSY, $selectedSemId) {
+                $q->whereNull('created_school_year_id')
+                    ->orWhere('created_school_year_id', '<=', $selectedSY);
 
-        if ($selectedSemId) {
-            $q->where(function($q2) use ($selectedSemId) {
-                $q2->whereNull('created_semester_id')
-                   ->orWhere('created_semester_id', '<=', $selectedSemId);
+                if ($selectedSemId) {
+                    $q->where(function ($q2) use ($selectedSemId) {
+                        $q2->whereNull('created_semester_id')
+                            ->orWhere('created_semester_id', '<=', $selectedSemId);
+                    });
+                } else {
+                    // If no semester selected, just ignore the semester condition
+                    $q->whereNull('created_semester_id');
+                }
             });
-        } else {
-            // If no semester selected, just ignore the semester condition
-            $q->whereNull('created_semester_id');
-        }
-    });
         if ($selectedOrganization) {
             if ($selectedOrganization === 'college_only') {
-                $feesQuery->where('fee_scope', 'college')->whereNull('organization_id');
+                $feesQuery->where('fee_scope', 'college')
+                    ->whereNull('organization_id');
             } else {
-                $feesQuery->where('organization_id', $selectedOrganization);
+                // Include child organizations of the selected org
+                $childOrgIds = \App\Models\Organization::where('mother_organization_id', $selectedOrganization)
+                    ->pluck('id')
+                    ->toArray();
+                $orgIds = array_merge([$selectedOrganization], $childOrgIds);
+
+                $feesQuery->whereIn('organization_id', $orgIds);
             }
         }
         $fees = $feesQuery->orderBy('created_at', 'desc')->get();
@@ -241,27 +248,31 @@ $feesQuery = \App\Models\Fee::with('organization')
 
         $selectedSemId = Semester::where('name', $selectedSem)->value('id'); // returns null if not found
 
-$feesQuery = \App\Models\Fee::with('organization')
-    ->where('status', 'approved')
-    ->where(function($q) use ($selectedSY, $selectedSemId) {
-        $q->whereNull('created_school_year_id')
-          ->orWhere('created_school_year_id', '<=', $selectedSY);
+        $feesQuery = \App\Models\Fee::with('organization')
+            ->where('status', 'approved')
+            ->where(function ($q) use ($selectedSY, $selectedSemId) {
+                $q->whereNull('created_school_year_id')
+                    ->orWhere('created_school_year_id', '<=', $selectedSY);
 
-        if ($selectedSemId) {
-            $q->where(function($q2) use ($selectedSemId) {
-                $q2->whereNull('created_semester_id')
-                   ->orWhere('created_semester_id', '<=', $selectedSemId);
+                if ($selectedSemId) {
+                    $q->where(function ($q2) use ($selectedSemId) {
+                        $q2->whereNull('created_semester_id')
+                            ->orWhere('created_semester_id', '<=', $selectedSemId);
+                    });
+                } else {
+                    $q->whereNull('created_semester_id');
+                }
             });
-        } else {
-            // If no semester selected, just ignore the semester condition
-            $q->whereNull('created_semester_id');
-        }
-    });
         if ($organizationId) {
             if ($organizationId === 'college_only') {
                 $feesQuery->where('fee_scope', 'college')->whereNull('organization_id');
             } else {
-                $feesQuery->where('organization_id', $organizationId);
+                $feesQuery->where(function ($q) use ($organizationId) {
+                    $q->where('organization_id', $organizationId)
+                        ->orWhereHas('organization', function ($oq) use ($organizationId) {
+                            $oq->where('mother_organization_id', $organizationId);
+                        });
+                });
             }
         }
 
@@ -338,7 +349,15 @@ $feesQuery = \App\Models\Fee::with('organization')
         if ($orgId === 'college_only') {
             $feesQuery->where('fee_scope', 'college')->whereNull('organization_id');
         } elseif ($orgId) {
-            $feesQuery->where('organization_id', $orgId);
+            $feesQuery->where(function ($q) use ($orgId, $collegeId) {
+                // Include fees directly from the org
+                $q->where('organization_id', $orgId)
+                    // Also include fees from mother orgs
+                    ->orWhereHas('organization', function ($oq) use ($orgId) {
+                        $oq->where('id', $orgId)
+                            ->orWhere('mother_organization_id', $orgId);
+                    });
+            });
         }
 
         $fees = $feesQuery->orderBy('created_at', 'desc')->get(['id', 'fee_name']);
