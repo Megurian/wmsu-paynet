@@ -21,14 +21,20 @@ class OSAReportsController extends Controller
 
         $colleges = College::withCount('users')->get();
 
-        // Get org counts filtered by selected S.Y. and semester
         $orgQuery = Organization::query()
-            ->when($selectedSYId, fn($q) => $q->where('created_school_year_id', $selectedSYId))
-            ->when($selectedSemId, fn($q) => $q->where('created_semester_id', $selectedSemId))
+            ->where(function ($q) use ($selectedSYId, $selectedSemId) {
+              
+                $q->where('created_school_year_id', '<', $selectedSYId)
+                    ->orWhere(function ($q2) use ($selectedSYId, $selectedSemId) {
+                   
+                        $q2->where('created_school_year_id', $selectedSYId)
+                            ->where('created_semester_id', '<=', $selectedSemId);
+                    });
+            })
             ->selectRaw(
                 'college_id, 
-                 SUM(CASE WHEN mother_organization_id IS NULL THEN 1 ELSE 0 END) as local_orgs_count,
-                 SUM(CASE WHEN mother_organization_id IS NOT NULL THEN 1 ELSE 0 END) as child_orgs_count'
+         SUM(CASE WHEN mother_organization_id IS NULL THEN 1 ELSE 0 END) as local_orgs_count,
+         SUM(CASE WHEN mother_organization_id IS NOT NULL THEN 1 ELSE 0 END) as child_orgs_count'
             )
             ->groupBy('college_id')
             ->get()
@@ -43,7 +49,13 @@ class OSAReportsController extends Controller
         $semesters = $selectedSYId ? Semester::where('school_year_id', $selectedSYId)->get() : collect();
 
         return view('osa.reports', compact(
-            'colleges', 'schoolYears', 'semesters', 'selectedSYId', 'selectedSemId', 'activeSY', 'activeSem'
+            'colleges',
+            'schoolYears',
+            'semesters',
+            'selectedSYId',
+            'selectedSemId',
+            'activeSY',
+            'activeSem'
         ));
     }
 }
