@@ -139,6 +139,10 @@
                     {{ request()->routeIs('osa.fees') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
                     <span>Fees</span>
                 </a>
+                 <a href="{{ route('osa.reports') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('osa.reports') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span>Reports</span>
+                </a>
                 <a href="{{ route('osa.organizations') }}" class="block px-4 py-2 rounded-md transition
                     {{ request()->routeIs('osa.organizations') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
                     <span>Organizations</span>

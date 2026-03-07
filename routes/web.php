@@ -24,6 +24,7 @@ use App\Http\Controllers\DocumentController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use App\Http\Controllers\OSAReportsController;
 
 Route::get('/test-route', function () {
     return 'Laravel route works!';
@@ -94,6 +95,8 @@ Route::middleware(['auth', 'role:osa', CheckActiveSchoolYear::class])->group(fun
 
     Route::get('/osa/college/{id}', [OSACollegeController::class, 'show'])->name('osa.college.details');
     Route::delete('/osa/college/{id}', [OSACollegeController::class, 'destroy'])->name('osa.college.destroy');
+  Route::get('/osa/reports', [OSAReportsController::class, 'index'])
+        ->name('osa.reports');
 });
 
 Route::middleware(['auth', 'role:university_org'])->group(function () {
