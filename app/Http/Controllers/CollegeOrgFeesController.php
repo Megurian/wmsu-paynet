@@ -8,6 +8,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 
+use App\Models\SchoolYear;
+use App\Models\Semester;
+
 class CollegeOrgFeesController extends Controller
 {
     public function index(Request $request)
@@ -98,6 +101,9 @@ class CollegeOrgFeesController extends Controller
             return redirect()->route('college_org.fees')->with('error', 'Organization not found.');
         }
 
+        $activeSY = SchoolYear::where('is_active', true)->first();
+        $activeSem = Semester::where('is_active', true)->first();
+
         // All college-local fees start with dean approval.
         // Fees created by `college_org` (and child offices) require Dean -> OSA approval flow.
         $data = [
@@ -115,6 +121,9 @@ class CollegeOrgFeesController extends Controller
             'college_id' => $organization->college_id,
             'approval_level' => 'dean',
         ];
+
+         $data['created_school_year_id'] = $activeSY->id;
+        $data['created_semester_id'] = $activeSem->id;
 
         if ($request->requirement_level === 'mandatory' && !$request->hasFile('resolution_file') && !$request->resolution_document_id) {
             return back()->withErrors(['resolution_file' => 'Resolution of Collection is required for mandatory fees.'])->withInput();
