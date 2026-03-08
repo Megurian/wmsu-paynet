@@ -16,7 +16,7 @@
                     <select name="school_year_id" class="border rounded p-1 text-sm" onchange="this.form.submit()">
                         @foreach($schoolYears as $sy)
                         <option value="{{ $sy->id }}" {{ $sy->id == $selectedSYId ? 'selected' : '' }}>
-                             {{ \Carbon\Carbon::parse($sy->sy_start)->year }} - {{ \Carbon\Carbon::parse($sy->sy_end)->year }}
+                            {{ \Carbon\Carbon::parse($sy->sy_start)->year }} - {{ \Carbon\Carbon::parse($sy->sy_end)->year }}
                         </option>
                         @endforeach
                     </select>
@@ -40,7 +40,34 @@
             <strong>{{ $semesters->firstWhere('id', $selectedSemId)->name ?? 'N/A' }}</strong> semester
         </p>
 
-        
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      
+            <div class="p-4 rounded shadow bg-blue-100 hover:bg-blue-200 transition cursor-pointer" title="Total number of colleges in the university">
+                <div class="text-sm font-medium text-blue-700">Total Colleges</div>
+                <div class="text-2xl font-bold text-blue-900">{{ $colleges->count() }}</div>
+            </div>
+
+            <div class="p-4 rounded shadow bg-green-100 hover:bg-green-200 transition cursor-pointer" title="Total number of university-wide mother organizations">
+                <div class="text-sm font-medium text-green-700">Mother Organizations</div>
+                <div class="text-2xl font-bold text-green-900">{{ $motherOrgs->count() }}</div>
+            </div>
+
+            <div class="p-4 rounded shadow bg-yellow-100 hover:bg-yellow-200 transition cursor-pointer" title="Total number of local college organizations">
+                <div class="text-sm font-medium text-yellow-700">Local Orgs</div>
+                <div class="text-2xl font-bold text-yellow-900">{{ $localOrgs->count() }}</div>
+            </div>
+
+            <div class="p-4 rounded shadow bg-purple-100 hover:bg-purple-200 transition cursor-pointer" title="Total OSA payments collected across all organizations for selected semester and school year">
+                <div class="text-sm font-medium text-purple-700">Total Payments</div>
+                <div class="text-2xl font-bold text-purple-900">
+                    ₱ {{ number_format(
+                $motherOrgs->sum('totalPayments') + $localOrgs->sum('totalPayments'),
+                2
+            ) }}
+                </div>
+            </div>
+        </div>
+
 
         @if($colleges->isEmpty())
         <p class="text-gray-500">No colleges found.</p>
@@ -169,7 +196,7 @@
                         <td class="p-2">{{ $org->org_code }}</td>
                         <td class="p-2">{{ $org->college->name ?? 'N/A' }}</td>
                         <td class="p-2">₱ {{ number_format($org->totalPayments ?? 0, 2) }}</td>
-                   
+
                         <td class="p-2">
                             <a href="{{ route('osa.reports.organization.details', [
     'organization' => $org->id,
@@ -190,11 +217,11 @@
 
 
     <div class="p-4 bg-white rounded shadow mt-8">
-    <h3 class="text-lg font-semibold mb-4">Inherited OSA Fees</h3>
+        <h3 class="text-lg font-semibold mb-4">Inherited OSA Fees</h3>
 
-    @if($inheritedOsaFees->isEmpty())
+        @if($inheritedOsaFees->isEmpty())
         <p class="text-gray-500">No inherited OSA fees found.</p>
-    @else
+        @else
         <div class="overflow-x-auto">
             <table class="min-w-full border border-gray-200 text-sm">
                 <thead class="bg-gray-50">
@@ -215,7 +242,7 @@
                 </tbody>
             </table>
         </div>
-    @endif
-</div>
+        @endif
+    </div>
 </div>
 @endsection

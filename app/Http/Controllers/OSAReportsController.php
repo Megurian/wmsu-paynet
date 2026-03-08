@@ -94,7 +94,6 @@ class OSAReportsController extends Controller
             return $org;
         });
 
-        // Get all university-wide OSA fees that can be inherited
         $inheritedOsaFees = Fee::where('fee_scope', 'university-wide')
             ->where(function ($q) use ($selectedSYId, $selectedSemId) {
                 $q->where('created_school_year_id', '<', $selectedSYId)
@@ -105,18 +104,15 @@ class OSAReportsController extends Controller
             })
             ->get()
             ->map(function ($fee) use ($selectedSYId, $selectedSemId) {
-                // Find organizations that inherit this fee
                 $inheritingOrgs = Organization::where('inherits_osa_fees', true)
                     ->orWhere('mother_organization_id', $fee->organization_id)
                     ->get();
 
-                // Sum payments collected for each organization
                 $fee->totalPayments = Payment::whereIn('organization_id', $inheritingOrgs->pluck('id'))
                     ->where('school_year_id', $selectedSYId)
                     ->where('semester_id', $selectedSemId)
                     ->sum('amount_due');
 
-                // Collect names of inheriting orgs
                 $fee->inheritedBy = $inheritingOrgs->pluck('name')->join(', ');
 
                 return $fee;
