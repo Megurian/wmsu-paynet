@@ -94,6 +94,35 @@ class OSAReportsController extends Controller
             return $org;
         });
 
+        // Get all university-wide OSA fees that can be inherited
+        $inheritedOsaFees = Fee::where('fee_scope', 'university-wide')
+            ->where(function ($q) use ($selectedSYId, $selectedSemId) {
+                $q->where('created_school_year_id', '<', $selectedSYId)
+                    ->orWhere(function ($q2) use ($selectedSYId, $selectedSemId) {
+                        $q2->where('created_school_year_id', $selectedSYId)
+                            ->where('created_semester_id', '<=', $selectedSemId);
+                    });
+            })
+            ->get()
+            ->map(function ($fee) use ($selectedSYId, $selectedSemId) {
+                // Find organizations that inherit this fee
+                $inheritingOrgs = Organization::where('inherits_osa_fees', true)
+                    ->orWhere('mother_organization_id', $fee->organization_id)
+                    ->get();
+
+                // Sum payments collected for each organization
+                $fee->totalPayments = Payment::whereIn('organization_id', $inheritingOrgs->pluck('id'))
+                    ->where('school_year_id', $selectedSYId)
+                    ->where('semester_id', $selectedSemId)
+                    ->sum('amount_due');
+
+                // Collect names of inheriting orgs
+                $fee->inheritedBy = $inheritingOrgs->pluck('name')->join(', ');
+
+                return $fee;
+            });
+
+
         return view('osa.reports', compact(
             'colleges',
             'schoolYears',
@@ -103,7 +132,8 @@ class OSAReportsController extends Controller
             'activeSY',
             'activeSem',
             'motherOrgs',
-            'localOrgs'
+            'localOrgs',
+            'inheritedOsaFees'
         ));
     }
 
@@ -153,6 +183,7 @@ class OSAReportsController extends Controller
 
     public function organizationDetails(Request $request, $organizationId)
     {
+
         $org = Organization::findOrFail($organizationId);
 
         $selectedSYId = $request->school_year_id;
@@ -237,6 +268,8 @@ class OSAReportsController extends Controller
             });
             return $fee;
         });
+
+
 
         return view('osa.reports.organization-details', compact(
             'org',

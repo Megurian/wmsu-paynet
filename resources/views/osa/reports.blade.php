@@ -40,6 +40,8 @@
             <strong>{{ $semesters->firstWhere('id', $selectedSemId)->name ?? 'N/A' }}</strong> semester
         </p>
 
+        
+
         @if($colleges->isEmpty())
         <p class="text-gray-500">No colleges found.</p>
         @else
@@ -185,5 +187,35 @@
         </div>
         @endif
     </div>
+
+
+    <div class="p-4 bg-white rounded shadow mt-8">
+    <h3 class="text-lg font-semibold mb-4">Inherited OSA Fees</h3>
+
+    @if($inheritedOsaFees->isEmpty())
+        <p class="text-gray-500">No inherited OSA fees found.</p>
+    @else
+        <div class="overflow-x-auto">
+            <table class="min-w-full border border-gray-200 text-sm">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="border-b p-2 text-left">Fee Name</th>
+                        <th class="border-b p-2 text-left">Total Payment Collected</th>
+                        <th class="border-b p-2 text-left">Inherited By Organization(s)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($inheritedOsaFees as $fee)
+                    <tr class="hover:bg-gray-50">
+                        <td class="p-2 font-medium">{{ $fee->fee_name }}</td>
+                        <td class="p-2">₱ {{ number_format($fee->totalPayments ?? 0, 2) }}</td>
+                        <td class="p-2">{{ $fee->inheritedBy ?: 'N/A' }}</td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    @endif
+</div>
 </div>
 @endsection
