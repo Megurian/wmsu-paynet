@@ -157,6 +157,7 @@ class OSAReportsController extends Controller
 
         $selectedSYId = $request->school_year_id;
         $selectedSemId = $request->semester_id;
+
         $org->totalPayments = Payment::where('organization_id', $organizationId)
             ->where('school_year_id', $selectedSYId)
             ->where('semester_id', $selectedSemId)
@@ -173,8 +174,22 @@ class OSAReportsController extends Controller
                 return $child;
             });
 
+        if (is_null($org->college_id) && is_null($org->mother_organization_id)) {
+
+            $students = StudentEnrollment::with('student')
+                ->whereIn('college_id', $childOrgs->pluck('college_id'))
+                ->where('school_year_id', $selectedSYId)
+                ->where('semester_id', $selectedSemId)
+                ->get();
+        } else {
+            $students = StudentEnrollment::with('student')
+                ->where('college_id', $org->college_id)
+                ->where('school_year_id', $selectedSYId)
+                ->where('semester_id', $selectedSemId)
+                ->get();
+        }
+
         $fees = Fee::where(function ($q) use ($org, $selectedSYId, $selectedSemId) {
-          
             $q->where('organization_id', $org->id)
                 ->where(function ($q2) use ($selectedSYId, $selectedSemId) {
                     $q2->where('created_school_year_id', '<', $selectedSYId)
@@ -195,19 +210,6 @@ class OSAReportsController extends Controller
                                 });
                         });
                 });
-
-                if ($org->mother_organization_id) {
-                    $q->orWhere(function ($q7) use ($org, $selectedSYId, $selectedSemId) {
-                        $q7->where('organization_id', $org->mother_organization_id)
-                            ->where(function ($q8) use ($selectedSYId, $selectedSemId) {
-                                $q8->where('created_school_year_id', '<', $selectedSYId)
-                                    ->orWhere(function ($q9) use ($selectedSYId, $selectedSemId) {
-                                        $q9->where('created_school_year_id', $selectedSYId)
-                                            ->where('created_semester_id', '<=', $selectedSemId);
-                                    });
-                            });
-                    });
-                }
             }
         })
             ->withCount(['payments as payment_count' => function ($q) use ($selectedSYId, $selectedSemId) {
@@ -216,15 +218,8 @@ class OSAReportsController extends Controller
             }])
             ->get();
 
-        $students = StudentEnrollment::with('student')
-            ->where('college_id', $org->college_id)
-            ->where('school_year_id', $selectedSYId)
-            ->where('semester_id', $selectedSemId)
-            ->get();
-
         $fees->map(function ($fee) use ($students, $selectedSYId, $selectedSemId) {
             $fee->studentPayments = $students->map(function ($enrollment) use ($fee, $selectedSYId, $selectedSemId) {
-                
                 $payment = $enrollment->student->payments()
                     ->where('school_year_id', $selectedSYId)
                     ->where('semester_id', $selectedSemId)
@@ -234,16 +229,14 @@ class OSAReportsController extends Controller
                     ->first();
 
                 return [
-                    'student_name' => $enrollment->student->full_name, 
+                    'student_name' => $enrollment->student->full_name,
                     'student_id' => $enrollment->student->id,
                     'status' => $payment ? 'Paid' : 'Pending',
                     'amount_paid' => $payment ? $payment->fees()->where('fee_id', $fee->id)->first()->pivot->amount_paid : 0
                 ];
             });
-
             return $fee;
         });
-
 
         return view('osa.reports.organization-details', compact(
             'org',

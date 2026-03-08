@@ -16,7 +16,7 @@
                     <select name="school_year_id" class="border rounded p-1 text-sm" onchange="this.form.submit()">
                         @foreach($schoolYears as $sy)
                         <option value="{{ $sy->id }}" {{ $sy->id == $selectedSYId ? 'selected' : '' }}>
-                            {{ $sy->sy_start }} - {{ $sy->sy_end }}
+                             {{ \Carbon\Carbon::parse($sy->sy_start)->year }} - {{ \Carbon\Carbon::parse($sy->sy_end)->year }}
                         </option>
                         @endforeach
                     </select>
@@ -167,6 +167,17 @@
                         <td class="p-2">{{ $org->org_code }}</td>
                         <td class="p-2">{{ $org->college->name ?? 'N/A' }}</td>
                         <td class="p-2">₱ {{ number_format($org->totalPayments ?? 0, 2) }}</td>
+                   
+                        <td class="p-2">
+                            <a href="{{ route('osa.reports.organization.details', [
+    'organization' => $org->id,
+    'school_year_id' => $selectedSYId,
+    'semester_id' => $selectedSemId
+]) }}" class="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700">
+                                View Details
+                            </a>
+                        </td>
+
                     </tr>
                     @endforeach
                 </tbody>

@@ -78,6 +78,8 @@
     </div>
     @endif
 
+
+
     @if($fees->isNotEmpty())
     <div class="space-y-4">
         <h3 class="text-lg font-semibold mb-2">Fees</h3>
