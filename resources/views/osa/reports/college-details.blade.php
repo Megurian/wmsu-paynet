@@ -48,7 +48,7 @@
                         <td class="p-2">{{ $org->org_code }}</td>
                         <td class="p-2">₱ {{ number_format($org->totalPayments ?? 0, 2) }}</td>
                         <td class="p-2">
-                            <a href="{{ route('osa.organization.details', [
+                            <a href="{{ route('osa.reports.organization.details', [
         'organization' => $org->id,
         'school_year_id' => $selectedSYId,
         'semester_id' => $selectedSemId
@@ -96,11 +96,11 @@
                         <td class="p-2">{{ $org->org_code }}</td>
                         <td class="p-2">₱ {{ number_format($org->totalPayments ?? 0, 2) }}</td>
                         <td class="p-2">
-                            <a href="{{ route('osa.organization.details', [
-        'organization' => $org->id,
-        'school_year_id' => $selectedSYId,
-        'semester_id' => $selectedSemId
-    ]) }}" class="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700">
+                            <a href="{{ route('osa.reports.organization.details', [
+    'organization' => $org->id,
+    'school_year_id' => $selectedSYId,
+    'semester_id' => $selectedSemId
+]) }}" class="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700">
                                 View Details
                             </a>
                         </td>

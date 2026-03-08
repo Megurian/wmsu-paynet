@@ -25,6 +25,59 @@
         </div>
     </div>
 
+    @if($childOrgs->isNotEmpty())
+    <div class="p-4 bg-white rounded shadow">
+        <h3 class="text-lg font-semibold mb-4">Child Organizations</h3>
+
+        <div class="overflow-x-auto">
+            <table class="min-w-full text-sm border border-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="p-2 border-b text-left">Logo</th>
+                        <th class="p-2 border-b text-left">Organization</th>
+                        <th class="p-2 border-b text-left">Org Code</th>
+                        <th class="p-2 border-b text-left">College</th>
+                        <th class="p-2 border-b text-left">Total Payment Collected</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    @foreach($childOrgs as $child)
+                    <tr class="hover:bg-gray-50">
+
+                        <td class="p-2 border-b">
+                            @if($child->logo)
+                            <img src="{{ asset('storage/'.$child->logo) }}" class="w-10 h-10 object-contain border rounded">
+                            @else
+                            <span class="text-gray-400">N/A</span>
+                            @endif
+                        </td>
+
+                        <td class="p-2 border-b font-medium">
+                            {{ $child->name }}
+                        </td>
+
+                        <td class="p-2 border-b">
+                            {{ $child->org_code }}
+                        </td>
+
+                        <td class="p-2 border-b">
+                            {{ $child->college->name ?? 'N/A' }}
+                        </td>
+
+                        <td class="p-2 border-b font-medium">
+                            ₱ {{ number_format($child->totalPayments ?? 0, 2) }}
+                        </td>
+
+                    </tr>
+                    @endforeach
+                </tbody>
+
+            </table>
+        </div>
+    </div>
+    @endif
+
     @if($fees->isNotEmpty())
     <div class="space-y-4">
         <h3 class="text-lg font-semibold mb-2">Fees</h3>

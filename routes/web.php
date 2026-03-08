@@ -99,8 +99,12 @@ Route::middleware(['auth', 'role:osa', CheckActiveSchoolYear::class])->group(fun
         ->name('osa.reports');
         Route::get('/osa/reports/college/{college}', [OSAReportsController::class, 'collegeDetails'])
     ->name('osa.reports.college.details');
-Route::get('/osa/reports/organization/{organization}', [OSAReportsController::class, 'organizationDetails'])
-    ->name('osa.organization.details');
+// Route::get('/osa/reports/organization/{organization}', [OSAReportsController::class, 'organizationDetails'])
+//     ->name('osa.organization.details');
+
+    Route::get('/osa/reports/organization/{organization}', 
+    [OSAReportsController::class, 'organizationDetails']
+)->name('osa.reports.organization.details');
 });
 
 Route::middleware(['auth', 'role:university_org'])->group(function () {

@@ -74,10 +74,9 @@
         'college' => $college->id,
         'school_year_id' => $selectedSYId,
         'semester_id' => $selectedSemId
-    ]) }}"
-   class="text-blue-600 hover:underline text-xs">
-   View Details
-</a>
+    ]) }}" class="text-blue-600 hover:underline text-xs">
+                                View Details
+                            </a>
                         </td>
                     </tr>
                     @endforeach
@@ -119,9 +118,15 @@
                         <td class="p-2">{{ $org->org_code }}</td>
                         <td class="p-2">{{ $org->child_organizations_count ?? 0 }}</td>
                         <td class="p-2">₱ {{ number_format($org->totalPayments ?? 0, 2) }}</td>
-                        {{-- <td class="p-2">
-                            <a href="{{ route('osa.organization.details', $org->id) }}" class="text-blue-600 hover:underline text-xs">View Details</a>
-                        </td> --}}
+                        <td class="p-2">
+                            <a href="{{ route('osa.reports.organization.details', [
+                                'organization' => $org->id,
+                                'school_year_id' => $selectedSYId,
+                                'semester_id' => $selectedSemId
+                            ]) }}" class="text-blue-600 hover:underline text-xs">
+                                View
+                            </a>
+                        </td>
                     </tr>
                     @endforeach
                 </tbody>
