@@ -16,8 +16,28 @@
         </a>
     </div>
 
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
+        <div class="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
+            <p class="text-xs text-gray-500 uppercase tracking-wide">Local Organizations</p>
+            <p class="text-2xl font-semibold text-gray-800 mt-2">{{ $localOrgs->count() }}</p>
+        </div>
+
+        <div class="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
+            <p class="text-xs text-gray-500 uppercase tracking-wide">Child Organizations</p>
+            <p class="text-2xl font-semibold text-gray-800 mt-2">{{ $childOrgs->count() }}</p>
+        </div>
+
+        <div class="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
+            <p class="text-xs text-gray-500 uppercase tracking-wide">Total Payments Collected</p>
+            <p class="text-2xl font-semibold text-green-600 mt-2">
+                ₱ {{ number_format($localOrgs->sum('totalPayments') + $childOrgs->sum('totalPayments'), 2) }}
+            </p>
+        </div>
+    </div>
+
     <!-- Local College Organizations -->
-    <div class="p-4 bg-white rounded shadow">
+    <div class="p-4 bg-white rounded shadow mt-6">
         <h3 class="text-lg font-semibold mb-4">Local College Organizations</h3>
 
         @if($localOrgs->isEmpty())
@@ -49,10 +69,10 @@
                         <td class="p-2">₱ {{ number_format($org->totalPayments ?? 0, 2) }}</td>
                         <td class="p-2">
                             <a href="{{ route('osa.reports.organization.details', [
-        'organization' => $org->id,
-        'school_year_id' => $selectedSYId,
-        'semester_id' => $selectedSemId
-    ]) }}" class="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700">
+                                'organization' => $org->id,
+                                'school_year_id' => $selectedSYId,
+                                'semester_id' => $selectedSemId
+                            ]) }}" class="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700">
                                 View Details
                             </a>
                         </td>
@@ -65,7 +85,7 @@
     </div>
 
     <!-- Child Organizations -->
-    <div class="p-4 bg-white rounded shadow">
+    <div class="p-4 bg-white rounded shadow mt-6">
         <h3 class="text-lg font-semibold mb-4">Child Organizations</h3>
 
         @if($childOrgs->isEmpty())
@@ -97,10 +117,10 @@
                         <td class="p-2">₱ {{ number_format($org->totalPayments ?? 0, 2) }}</td>
                         <td class="p-2">
                             <a href="{{ route('osa.reports.organization.details', [
-    'organization' => $org->id,
-    'school_year_id' => $selectedSYId,
-    'semester_id' => $selectedSemId
-]) }}" class="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700">
+                                'organization' => $org->id,
+                                'school_year_id' => $selectedSYId,
+                                'semester_id' => $selectedSemId
+                            ]) }}" class="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700">
                                 View Details
                             </a>
                         </td>

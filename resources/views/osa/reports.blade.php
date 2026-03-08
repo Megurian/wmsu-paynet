@@ -4,245 +4,253 @@
 @section('page-title', 'OSA Reports')
 
 @section('content')
-<div class="space-y-6">
+<div class="max-w-7xl mx-auto space-y-8">
 
-    <div class="p-4 bg-white rounded shadow">
-        <h3 class="text-lg font-semibold mb-4">Colleges Overview</h3>
+    <!-- Page Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+        <div>
+            <h1 class="text-2xl font-semibold text-gray-800">OSA Reports</h1>
+            <p class="text-sm text-gray-500 mt-1">
+                Overview of colleges, mother organizations, local organizations, and inherited OSA fees.
+            </p>
+        </div>
+    </div>
 
-        <div class="mb-4 flex flex-wrap items-center space-x-4">
-            <form method="GET" class="flex space-x-2 items-end">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">School Year</label>
-                    <select name="school_year_id" class="border rounded p-1 text-sm" onchange="this.form.submit()">
-                        @foreach($schoolYears as $sy)
-                        <option value="{{ $sy->id }}" {{ $sy->id == $selectedSYId ? 'selected' : '' }}>
-                            {{ \Carbon\Carbon::parse($sy->sy_start)->year }} - {{ \Carbon\Carbon::parse($sy->sy_end)->year }}
-                        </option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Semester</label>
-                    <select name="semester_id" class="border rounded p-1 text-sm" onchange="this.form.submit()">
-                        @foreach($semesters as $sem)
-                        <option value="{{ $sem->id }}" {{ $sem->id == $selectedSemId ? 'selected' : '' }}>
-                            {{ ucfirst($sem->name) }}
-                        </option>
-                        @endforeach
-                    </select>
-                </div>
-            </form>
+    <!-- Filters Section -->
+    <div class="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+        <form method="GET" class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+
+            <div>
+                <label class="block text-xs font-medium text-gray-500 mb-1">School Year</label>
+                <select name="school_year_id" class="w-full h-10 border border-gray-300 rounded-lg px-3 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500" onchange="this.form.submit()">
+                    @foreach($schoolYears as $sy)
+                    <option value="{{ $sy->id }}" {{ $sy->id == $selectedSYId ? 'selected' : '' }}>
+                        {{ \Carbon\Carbon::parse($sy->sy_start)->year }} - {{ \Carbon\Carbon::parse($sy->sy_end)->year }}
+                    </option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-xs font-medium text-gray-500 mb-1">Semester</label>
+                <select name="semester_id" class="w-full h-10 border border-gray-300 rounded-lg px-3 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500" onchange="this.form.submit()">
+                    @foreach($semesters as $sem)
+                    <option value="{{ $sem->id }}" {{ $sem->id == $selectedSemId ? 'selected' : '' }}>
+                        {{ ucfirst($sem->name) }}
+                    </option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div class="flex gap-2">
+                <a href="{{ route('osa.reports') }}" class="flex-1 h-10 border border-gray-300 text-sm rounded-lg flex items-center justify-center text-gray-600 hover:bg-gray-100 transition">
+                    Reset
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+
+        <div class="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition cursor-pointer" title="Total number of colleges in the university">
+            <p class="text-xs text-gray-500 uppercase tracking-wide">Total Colleges</p>
+            <p class="text-2xl font-semibold text-gray-800 mt-2">{{ $colleges->count() }}</p>
         </div>
 
-        <p class="text-gray-600 text-sm mb-2">
-            Showing results for:
-            <strong>{{ $schoolYears->firstWhere('id', $selectedSYId)->sy_start ?? 'N/A' }} - {{ $schoolYears->firstWhere('id', $selectedSYId)->sy_end ?? 'N/A' }}</strong>,
-            <strong>{{ $semesters->firstWhere('id', $selectedSemId)->name ?? 'N/A' }}</strong> semester
-        </p>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-      
-            <div class="p-4 rounded shadow bg-blue-100 hover:bg-blue-200 transition cursor-pointer" title="Total number of colleges in the university">
-                <div class="text-sm font-medium text-blue-700">Total Colleges</div>
-                <div class="text-2xl font-bold text-blue-900">{{ $colleges->count() }}</div>
-            </div>
-
-            <div class="p-4 rounded shadow bg-green-100 hover:bg-green-200 transition cursor-pointer" title="Total number of university-wide mother organizations">
-                <div class="text-sm font-medium text-green-700">Mother Organizations</div>
-                <div class="text-2xl font-bold text-green-900">{{ $motherOrgs->count() }}</div>
-            </div>
-
-            <div class="p-4 rounded shadow bg-yellow-100 hover:bg-yellow-200 transition cursor-pointer" title="Total number of local college organizations">
-                <div class="text-sm font-medium text-yellow-700">Local Orgs</div>
-                <div class="text-2xl font-bold text-yellow-900">{{ $localOrgs->count() }}</div>
-            </div>
-
-            <div class="p-4 rounded shadow bg-purple-100 hover:bg-purple-200 transition cursor-pointer" title="Total OSA payments collected across all organizations for selected semester and school year">
-                <div class="text-sm font-medium text-purple-700">Total Payments</div>
-                <div class="text-2xl font-bold text-purple-900">
-                    ₱ {{ number_format(
-                $motherOrgs->sum('totalPayments') + $localOrgs->sum('totalPayments'),
-                2
-            ) }}
-                </div>
-            </div>
+        <div class="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition cursor-pointer" title="Total number of university-wide mother organizations">
+            <p class="text-xs text-gray-500 uppercase tracking-wide">Mother Organizations</p>
+            <p class="text-2xl font-semibold text-green-600 mt-2">{{ $motherOrgs->count() }}</p>
         </div>
 
+        <div class="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition cursor-pointer" title="Total number of local college organizations">
+            <p class="text-xs text-gray-500 uppercase tracking-wide">Local Orgs</p>
+            <p class="text-2xl font-semibold text-yellow-600 mt-2">{{ $localOrgs->count() }}</p>
+        </div>
 
-        @if($colleges->isEmpty())
-        <p class="text-gray-500">No colleges found.</p>
-        @else
+        <div class="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition cursor-pointer" title="Total OSA payments collected across all organizations">
+            <p class="text-xs text-gray-500 uppercase tracking-wide">Total Payments</p>
+            <p class="text-2xl font-semibold text-purple-600 mt-2">
+                ₱ {{ number_format($motherOrgs->sum('totalPayments') + $localOrgs->sum('totalPayments'), 2) }}
+            </p>
+        </div>
+    </div>
+
+    <!-- Colleges Table -->
+    <div class="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+        <div class="px-5 py-3 border-b border-gray-100">
+            <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide">Colleges Overview</h2>
+        </div>
+
         <div class="overflow-x-auto">
-            <table class="min-w-full border border-gray-200 text-sm">
-                <thead class="bg-gray-50">
+            <table class="min-w-full text-sm text-gray-700">
+                <thead class="bg-gray-50 text-xs uppercase text-gray-500">
                     <tr>
-                        <th class="border-b p-2 text-left">Logo</th>
-                        <th class="border-b p-2 text-left">College Name</th>
-                        <th class="border-b p-2 text-left">College Code</th>
-                        <th class="border-b p-2 text-left">Local Orgs</th>
-                        <th class="border-b p-2 text-left">Child Orgs</th>
-                        <th class="border-b p-2 text-left">Actions</th>
+                        <th class="px-6 py-3 text-left">Logo</th>
+                        <th class="px-6 py-3 text-left">College Name</th>
+                        <th class="px-6 py-3 text-left">College Code</th>
+                        <th class="px-6 py-3 text-left">Local Orgs</th>
+                        <th class="px-6 py-3 text-left">Child Orgs</th>
+                        <th class="px-6 py-3 text-left">Actions</th>
                     </tr>
                 </thead>
-                <tbody>
-                    @foreach($colleges as $college)
-                    <tr class="hover:bg-gray-50">
-                        <td class="p-2">
+                <tbody class="divide-y divide-gray-100">
+                    @forelse($colleges as $college)
+                    <tr class="hover:bg-gray-50 transition">
+                        <td class="px-6 py-4">
                             @if($college->logo)
                             <img src="{{ asset('storage/' . $college->logo) }}" class="w-10 h-10 object-contain rounded border">
                             @else
                             <span class="text-gray-400">N/A</span>
                             @endif
                         </td>
-                        <td class="p-2 font-medium">{{ $college->name }}</td>
-                        <td class="p-2">{{ $college->college_code }}</td>
-                        <td class="p-2">{{ $college->local_orgs_count }}</td>
-                        <td class="p-2">{{ $college->child_orgs_count }}</td>
-                        <td class="p-2">
-                            <a href="{{ route('osa.reports.college.details', [
-        'college' => $college->id,
-        'school_year_id' => $selectedSYId,
-        'semester_id' => $selectedSemId
-    ]) }}" class="text-blue-600 hover:underline text-xs">
+                        <td class="px-6 py-4 font-medium">{{ $college->name }}</td>
+                        <td class="px-6 py-4">{{ $college->college_code }}</td>
+                        <td class="px-6 py-4">{{ $college->local_orgs_count }}</td>
+                        <td class="px-6 py-4">{{ $college->child_orgs_count }}</td>
+                        <td class="px-6 py-4">
+                            <a href="{{ route('osa.reports.college.details', ['college' => $college->id, 'school_year_id' => $selectedSYId, 'semester_id' => $selectedSemId]) }}" class="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition">
                                 View Details
                             </a>
                         </td>
                     </tr>
-                    @endforeach
+                    @empty
+                    <tr>
+                        <td colspan="6" class="px-6 py-10 text-center text-gray-500">No colleges found.</td>
+                    </tr>
+                    @endforelse
                 </tbody>
             </table>
         </div>
-        @endif
     </div>
 
-    <div class="p-4 bg-white rounded shadow mt-8">
-        <h3 class="text-lg font-semibold mb-4">University-wide Mother Organizations</h3>
+    <!-- Mother Organizations Table -->
+    <div class="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+        <div class="px-5 py-3 border-b border-gray-100">
+            <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide">University-wide Mother Organizations</h2>
+        </div>
 
-        @if($motherOrgs->isEmpty())
-        <p class="text-gray-500">No mother organizations found.</p>
-        @else
         <div class="overflow-x-auto">
-            <table class="min-w-full border border-gray-200 text-sm">
-                <thead class="bg-gray-50">
+            <table class="min-w-full text-sm text-gray-700">
+                <thead class="bg-gray-50 text-xs uppercase text-gray-500">
                     <tr>
-                        <th class="border-b p-2 text-left">Logo</th>
-                        <th class="border-b p-2 text-left">Mother Org Name</th>
-                        <th class="border-b p-2 text-left">Org Code</th>
-                        <th class="border-b p-2 text-left">Child Organizations</th>
-                        <th class="border-b p-2 text-left">Total Payment Collected</th>
-                        <th class="border-b p-2 text-left">Actions</th>
+                        <th class="px-6 py-3 text-left">Logo</th>
+                        <th class="px-6 py-3 text-left">Mother Org Name</th>
+                        <th class="px-6 py-3 text-left">Org Code</th>
+                        <th class="px-6 py-3 text-left">Child Organizations</th>
+                        <th class="px-6 py-3 text-left">Total Payment Collected</th>
+                        <th class="px-6 py-3 text-left">Actions</th>
                     </tr>
                 </thead>
-                <tbody>
-                    @foreach($motherOrgs as $org)
-                    <tr class="hover:bg-gray-50">
-                        <td class="p-2">
+                <tbody class="divide-y divide-gray-100">
+                    @forelse($motherOrgs as $org)
+                    <tr class="hover:bg-gray-50 transition">
+                        <td class="px-6 py-4">
                             @if($org->logo)
                             <img src="{{ asset('storage/' . $org->logo) }}" class="w-10 h-10 object-contain rounded border">
                             @else
                             <span class="text-gray-400">N/A</span>
                             @endif
                         </td>
-                        <td class="p-2 font-medium">{{ $org->name }}</td>
-                        <td class="p-2">{{ $org->org_code }}</td>
-                        <td class="p-2">{{ $org->child_organizations_count ?? 0 }}</td>
-                        <td class="p-2">₱ {{ number_format($org->totalPayments ?? 0, 2) }}</td>
-                        <td class="p-2">
-                            <a href="{{ route('osa.reports.organization.details', [
-                                'organization' => $org->id,
-                                'school_year_id' => $selectedSYId,
-                                'semester_id' => $selectedSemId
-                            ]) }}" class="text-blue-600 hover:underline text-xs">
+                        <td class="px-6 py-4 font-medium">{{ $org->name }}</td>
+                        <td class="px-6 py-4">{{ $org->org_code }}</td>
+                        <td class="px-6 py-4">{{ $org->child_organizations_count ?? 0 }}</td>
+                        <td class="px-6 py-4">₱ {{ number_format($org->totalPayments ?? 0, 2) }}</td>
+                        <td class="px-6 py-4">
+                            <a href="{{ route('osa.reports.organization.details', ['organization' => $org->id, 'school_year_id' => $selectedSYId, 'semester_id' => $selectedSemId]) }}" class="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition">
                                 View
                             </a>
                         </td>
                     </tr>
-                    @endforeach
+                    @empty
+                    <tr>
+                        <td colspan="6" class="px-6 py-10 text-center text-gray-500">No mother organizations found.</td>
+                    </tr>
+                    @endforelse
                 </tbody>
             </table>
         </div>
-        @endif
     </div>
 
-    <div class="p-4 bg-white rounded shadow mt-8">
-        <h3 class="text-lg font-semibold mb-4">Local College Organizations</h3>
+    <!-- Local Organizations Table -->
+    <div class="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+        <div class="px-5 py-3 border-b border-gray-100">
+            <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide">Local College Organizations</h2>
+        </div>
 
-        @if($localOrgs->isEmpty())
-        <p class="text-gray-500">No local organizations found.</p>
-        @else
         <div class="overflow-x-auto">
-            <table class="min-w-full border border-gray-200 text-sm">
-                <thead class="bg-gray-50">
+            <table class="min-w-full text-sm text-gray-700">
+                <thead class="bg-gray-50 text-xs uppercase text-gray-500">
                     <tr>
-                        <th class="border-b p-2 text-left">Logo</th>
-                        <th class="border-b p-2 text-left">Organization</th>
-                        <th class="border-b p-2 text-left">Org Code</th>
-                        <th class="border-b p-2 text-left">College</th>
-                        <th class="border-b p-2 text-left">Total Payment Collected</th>
+                        <th class="px-6 py-3 text-left">Logo</th>
+                        <th class="px-6 py-3 text-left">Organization</th>
+                        <th class="px-6 py-3 text-left">Org Code</th>
+                        <th class="px-6 py-3 text-left">College</th>
+                        <th class="px-6 py-3 text-left">Total Payment Collected</th>
+                        <th class="px-6 py-3 text-left">Actions</th>
                     </tr>
                 </thead>
-                <tbody>
-                    @foreach($localOrgs as $org)
-                    <tr class="hover:bg-gray-50">
-                        <td class="p-2">
+                <tbody class="divide-y divide-gray-100">
+                    @forelse($localOrgs as $org)
+                    <tr class="hover:bg-gray-50 transition">
+                        <td class="px-6 py-4">
                             @if($org->logo)
                             <img src="{{ asset('storage/' . $org->logo) }}" class="w-10 h-10 object-contain rounded border">
                             @else
                             <span class="text-gray-400">N/A</span>
                             @endif
                         </td>
-
-                        <td class="p-2 font-medium">{{ $org->name }}</td>
-                        <td class="p-2">{{ $org->org_code }}</td>
-                        <td class="p-2">{{ $org->college->name ?? 'N/A' }}</td>
-                        <td class="p-2">₱ {{ number_format($org->totalPayments ?? 0, 2) }}</td>
-
-                        <td class="p-2">
-                            <a href="{{ route('osa.reports.organization.details', [
-    'organization' => $org->id,
-    'school_year_id' => $selectedSYId,
-    'semester_id' => $selectedSemId
-]) }}" class="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700">
+                        <td class="px-6 py-4 font-medium">{{ $org->name }}</td>
+                        <td class="px-6 py-4">{{ $org->org_code }}</td>
+                        <td class="px-6 py-4">{{ $org->college->name ?? 'N/A' }}</td>
+                        <td class="px-6 py-4">₱ {{ number_format($org->totalPayments ?? 0, 2) }}</td>
+                        <td class="px-6 py-4">
+                            <a href="{{ route('osa.reports.organization.details', ['organization' => $org->id, 'school_year_id' => $selectedSYId, 'semester_id' => $selectedSemId]) }}" class="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition">
                                 View Details
                             </a>
                         </td>
-
                     </tr>
-                    @endforeach
+                    @empty
+                    <tr>
+                        <td colspan="6" class="px-6 py-10 text-center text-gray-500">No local organizations found.</td>
+                    </tr>
+                    @endforelse
                 </tbody>
             </table>
         </div>
-        @endif
     </div>
 
+    <!-- Inherited OSA Fees -->
+    <div class="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+        <div class="px-5 py-3 border-b border-gray-100">
+            <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide">Inherited OSA Fees</h2>
+        </div>
 
-    <div class="p-4 bg-white rounded shadow mt-8">
-        <h3 class="text-lg font-semibold mb-4">Inherited OSA Fees</h3>
-
-        @if($inheritedOsaFees->isEmpty())
-        <p class="text-gray-500">No inherited OSA fees found.</p>
-        @else
         <div class="overflow-x-auto">
-            <table class="min-w-full border border-gray-200 text-sm">
-                <thead class="bg-gray-50">
+            <table class="min-w-full text-sm text-gray-700">
+                <thead class="bg-gray-50 text-xs uppercase text-gray-500">
                     <tr>
-                        <th class="border-b p-2 text-left">Fee Name</th>
-                        <th class="border-b p-2 text-left">Total Payment Collected</th>
-                        <th class="border-b p-2 text-left">Inherited By Organization(s)</th>
+                        <th class="px-6 py-3 text-left">Fee Name</th>
+                        <th class="px-6 py-3 text-left">Total Payment Collected</th>
+                        <th class="px-6 py-3 text-left">Inherited By Organization(s)</th>
                     </tr>
                 </thead>
-                <tbody>
-                    @foreach($inheritedOsaFees as $fee)
-                    <tr class="hover:bg-gray-50">
-                        <td class="p-2 font-medium">{{ $fee->fee_name }}</td>
-                        <td class="p-2">₱ {{ number_format($fee->totalPayments ?? 0, 2) }}</td>
-                        <td class="p-2">{{ $fee->inheritedBy ?: 'N/A' }}</td>
+                <tbody class="divide-y divide-gray-100">
+                    @forelse($inheritedOsaFees as $fee)
+                    <tr class="hover:bg-gray-50 transition">
+                        <td class="px-6 py-4 font-medium">{{ $fee->fee_name }}</td>
+                        <td class="px-6 py-4">₱ {{ number_format($fee->totalPayments ?? 0, 2) }}</td>
+                        <td class="px-6 py-4">{{ $fee->inheritedBy ?: 'N/A' }}</td>
                     </tr>
-                    @endforeach
+                    @empty
+                    <tr>
+                        <td colspan="3" class="px-6 py-10 text-center text-gray-500">No inherited OSA fees found.</td>
+                    </tr>
+                    @endforelse
                 </tbody>
             </table>
         </div>
-        @endif
     </div>
+
 </div>
 @endsection

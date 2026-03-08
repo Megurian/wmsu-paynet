@@ -237,7 +237,7 @@
 
                 <tbody class="divide-y divide-gray-100">
                     @forelse($studentsWithPayments as $item)
-                    <tr class="hover:bg-gray-50 transition">
+                    <tr class="hover:bg-gray-50 transition {{ $item['status'] === 'Pending' ? 'bg-yellow-50' : '' }}">
                         <td class="px-6 py-4">
                             <div class="font-medium text-gray-800">
                                 {{ $item['student']->last_name }}, {{ $item['student']->first_name }}
@@ -246,33 +246,32 @@
                                 {{ $item['student']->student_id }}
                             </div>
                         </td>
+
                         <td class="px-6 py-4">
-                            @if($item['has_paid'])
-                            @foreach($item['payments']->first()->fees as $fee)
-                            <div>{{ $fee->fee_name }}</div>
-                            @endforeach
-                            @else
-                            <span class="text-gray-400 italic">Pending Payment</span>
-                            @endif
+                            {{ $item['fee']->fee_name }}
                         </td>
-                        <td class="px-6 py-4 font-semibold text-green-600">
-                            ₱{{ number_format($item['total_paid'], 2) }}
+
+                        <td class="px-6 py-4 font-semibold {{ $item['status'] === 'Paid' ? 'text-green-600' : 'text-gray-400' }}">
+                            ₱{{ number_format($item['amount'], 2) }}
                         </td>
-                        <td class="px-6 py-4">{{ $item['student']->enrollments->first()->course->name ?? '-' }}</td>
-                        <td class="px-6 py-4">{{ $item['student']->enrollments->first()->yearLevel->name ?? '-' }}</td>
-                        <td class="px-6 py-4">{{ $item['student']->enrollments->first()->section->name ?? '-' }}</td>
+
+                        <td class="px-6 py-4">{{ $item['enrollment']->course->name ?? '-' }}</td>
+                        <td class="px-6 py-4">{{ $item['enrollment']->yearLevel->name ?? '-' }}</td>
+                        <td class="px-6 py-4">{{ $item['enrollment']->section->name ?? '-' }}</td>
                         <td class="px-6 py-4 text-gray-500">
-                            @if($item['has_paid'])
-                            {{ $item['payments']->first()->created_at->format('M d, Y') }}
-                            @else
-                            -
-                            @endif
+                            {{ $item['payment_date']?->format('M d, Y') ?? '-' }}
+                        </td>
+
+                        <td class="px-6 py-4">
+                            <span class="px-2 py-1 rounded text-xs font-medium {{ $item['status'] === 'Paid' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700' }}">
+                                {{ $item['status'] }}
+                            </span>
                         </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="7" class="px-6 py-10 text-center text-gray-500">
-                            No students found.
+                        <td colspan="8" class="px-6 py-10 text-center text-gray-500">
+                            No students or fees found.
                         </td>
                     </tr>
                     @endforelse
