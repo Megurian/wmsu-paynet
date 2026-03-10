@@ -48,7 +48,7 @@ class UniversityOrgDashboardController extends Controller
         $totalPaymentsCollected = Payment::whereIn('organization_id', $childOrgs->pluck('id'))
             ->where('school_year_id', $activeSY->id)
             ->where('semester_id', $activeSem->id)
-            ->sum('cash_received');
+            ->sum('amount_due');
 
         $pendingStudents = $totalStudents - $totalStudentsPaid;
 
@@ -59,7 +59,7 @@ class UniversityOrgDashboardController extends Controller
         $paymentsPerDay = Payment::whereIn('organization_id', $childOrgs->pluck('id'))
             ->where('school_year_id', $activeSY->id)
             ->where('semester_id', $activeSem->id)
-            ->selectRaw('DATE(created_at) as date, SUM(cash_received) as total')
+            ->selectRaw('DATE(created_at) as date, SUM(amount_due) as total')
             ->groupBy('date')
             ->orderBy('date')
             ->get();
@@ -91,7 +91,7 @@ class UniversityOrgDashboardController extends Controller
             $payments = Payment::where('organization_id', $org->id)
                 ->where('school_year_id', $activeSY->id)
                 ->where('semester_id', $activeSem->id)
-                ->sum('cash_received');
+                ->sum('amount_due');
 
             return [
                 'name' => $org->name,

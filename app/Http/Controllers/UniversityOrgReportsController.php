@@ -52,7 +52,7 @@ class UniversityOrgReportsController extends Controller
                     $org->total_payments_collected = Payment::where('organization_id', $org->id)
                         ->where('school_year_id', $selectedSY->id)
                         ->where('semester_id', $selectedSem->id)
-                        ->sum('cash_received');
+                        ->sum('amount_due');
 
                     return $org;
                 });
@@ -64,7 +64,6 @@ class UniversityOrgReportsController extends Controller
                         ->orWhere('fee_scope', 'university-wide');
                 })
                     ->where(function ($q) use ($selectedSY, $selectedSem) {
-                        // Include fees that were created in the selected semester or earlier
                         $q->where('created_school_year_id', '<', $selectedSY->id)
                             ->orWhere(function ($q2) use ($selectedSY, $selectedSem) {
                                 $q2->where('created_school_year_id', $selectedSY->id)
@@ -119,12 +118,12 @@ class UniversityOrgReportsController extends Controller
         $totalPaymentsCollected = Payment::whereIn('organization_id', $childOrgs->pluck('id'))
             ->where('school_year_id', $selectedSY->id)
             ->where('semester_id', $selectedSem->id)
-            ->sum('cash_received');
+            ->sum('amount_due');
 
         $paymentsPerDay = Payment::whereIn('organization_id', $childOrgs->pluck('id'))
             ->where('school_year_id', $selectedSY->id)
             ->where('semester_id', $selectedSem->id)
-            ->selectRaw('DATE(created_at) as date, SUM(cash_received) as total')
+            ->selectRaw('DATE(created_at) as date, SUM(amount_due) as total')
             ->groupBy('date')
             ->orderBy('date')
             ->get();
@@ -197,7 +196,7 @@ class UniversityOrgReportsController extends Controller
                 $org->total_payments = Payment::where('organization_id', $org->id)
                     ->where('school_year_id', $selectedSY->id)
                     ->where('semester_id', $selectedSem->id)
-                    ->sum('cash_received');
+                    ->sum('amount_due');
 
                 $paidStudents = Payment::where('organization_id', $org->id)
                     ->where('school_year_id', $selectedSY->id)
@@ -229,7 +228,7 @@ class UniversityOrgReportsController extends Controller
         $totalPaymentsCollected = Payment::whereIn('organization_id', $childOrgs->pluck('id'))
             ->where('school_year_id', $selectedSY->id)
             ->where('semester_id', $selectedSem->id)
-            ->sum('cash_received');
+            ->sum('amount_due');
 
         $totalPaidStudents = Student::whereHas('payments', function ($q) use ($childOrgs, $selectedSY, $selectedSem) {
             $q->whereIn('organization_id', $childOrgs->pluck('id'))

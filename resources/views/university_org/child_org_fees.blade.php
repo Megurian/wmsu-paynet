@@ -184,7 +184,7 @@
                                 <p class="text-gray-500 text-xs"> {{ $enrollment?->course?->name ?? '-' }} {{ $enrollment?->yearLevel?->name ?? '-' }}{{ $enrollment?->section?->name ?? '-' }}</p>
                             </div>
                             <div class="text-right space-y-1">
-                                <p class="text-gray-700 font-medium">PHP {{ number_format($payment?->cash_received ?? 0, 2) }}</p>
+                                <p class="text-gray-700 font-medium">PHP {{ number_format($payment?->amount_due ?? 0, 2) }}</p>
                                 <p class="text-xs text-green-700">Status: Paid</p>
                                 <p class="text-xs text-gray-500">Transaction ID: {{ $payment?->transaction_id ?? '-' }}</p>
                                 <p class="text-xs text-gray-500">Date: {{ $payment?->created_at?->format('M d, Y') ?? '-' }}</p>

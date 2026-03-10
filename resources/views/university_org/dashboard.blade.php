@@ -125,7 +125,7 @@
                         <p class="text-xs text-gray-500">{{ $payment->created_at->format('M d, Y') }}</p>
                     </div>
                     <div class="text-green-600 font-semibold text-sm">
-                        ₱ {{ number_format($payment->cash_received,2) }}
+                        ₱ {{ number_format($payment->amount_due,2) }}
                     </div>
                 </div>
                 @endforeach
