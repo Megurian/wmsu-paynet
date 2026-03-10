@@ -25,6 +25,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use App\Http\Controllers\OSAReportsController;
+use App\Http\Controllers\UniversityOrgDashboardController;
 
 Route::get('/test-route', function () {
     return 'Laravel route works!';
@@ -108,10 +109,13 @@ Route::middleware(['auth', 'role:osa', CheckActiveSchoolYear::class])->group(fun
 });
 
 Route::middleware(['auth', 'role:university_org'])->group(function () {
-    Route::get('/university_org/dashboard', function () {
-        return view('university_org.dashboard');
-    })->name('university_org.dashboard');
+    // Route::get('/university_org/dashboard', function () {
+    //     return view('university_org.dashboard');
+    // })->name('university_org.dashboard');
 
+    Route::get('/university_org/dashboard', [UniversityOrgDashboardController::class, 'index'])
+    ->name('university_org.dashboard');
+    
     Route::get('/university_org/offices', function () {
         return redirect()->route('university_org.offices.index');
     })->name('university_org.offices');
