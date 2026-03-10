@@ -1,18 +1,123 @@
 <?php
 
 namespace App\Http\Controllers;
-use App\Models\SchoolYear;
+
 use Illuminate\Http\Request;
+use App\Models\SchoolYear;
+use App\Models\Semester;
+use App\Models\College;
+use App\Models\Organization;
+use App\Models\StudentEnrollment;
+use App\Models\Payment;
+use App\Models\Fee;
 
 class OSADashController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $latestSchoolYear = SchoolYear::with('semesters')
-            ->where('is_active', 1) // only the active school year
-            ->latest('sy_start')
-            ->first();
+        $activeSY = SchoolYear::where('is_active', 1)->first();
+        $activeSem = $activeSY ? $activeSY->semesters()->where('is_active', 1)->first() : null;
 
-        return view('osa.dashboard', compact('latestSchoolYear'));
+        $totalMotherOrgs = Organization::whereNull('college_id')->whereNull('mother_organization_id')->count();
+        $totalChildOrgs = Organization::whereNotNull('mother_organization_id')->count();
+        $totalLocalOrgs = Organization::whereNotNull('college_id')->whereNull('mother_organization_id')->count();
+        $totalFees = Fee::count();
+        $totalStudents = StudentEnrollment::where('school_year_id', $activeSY->id ?? null)
+            ->where('semester_id', $activeSem->id ?? null)
+            ->count();
+
+        $totalPaymentsCollected = Payment::where('school_year_id', $activeSY->id ?? null)
+            ->where('semester_id', $activeSem->id ?? null)
+            ->sum('amount_due');
+
+        $studentsPaid = Payment::where('school_year_id', $activeSY->id ?? null)
+            ->where('semester_id', $activeSem->id ?? null)
+            ->distinct('student_id')
+            ->count();
+
+        $studentsPending = $totalStudents - $studentsPaid;
+
+        $paymentTrend = Payment::where('school_year_id', $activeSY->id ?? null)
+            ->where('semester_id', $activeSem->id ?? null)
+            ->selectRaw('DATE(created_at) as date, SUM(amount_due) as total')
+            ->groupBy('date')
+            ->orderBy('date', 'asc')
+            ->get();
+
+        $organizations = Organization::with('college', 'childOrganizations')
+            ->get()
+            ->map(function ($org) use ($activeSY, $activeSem) {
+                $org->totalPayments = Payment::where('organization_id', $org->id)
+                    ->where('school_year_id', $activeSY->id ?? null)
+                    ->where('semester_id', $activeSem->id ?? null)
+                    ->sum('amount_due');
+
+                $org->totalStudents = StudentEnrollment::where('college_id', $org->college_id)
+                    ->where('school_year_id', $activeSY->id ?? null)
+                    ->where('semester_id', $activeSem->id ?? null)
+                    ->count();
+
+                $org->studentsPaid = Payment::where('organization_id', $org->id)
+                    ->where('school_year_id', $activeSY->id ?? null)
+                    ->where('semester_id', $activeSem->id ?? null)
+                    ->distinct('student_id')
+                    ->count();
+
+                $org->completionRate = $org->totalStudents > 0
+                    ? round(($org->studentsPaid / $org->totalStudents) * 100, 2)
+                    : 0;
+
+                return $org;
+            });
+
+        $fees = Fee::with('organization')->get()
+            ->map(function ($fee) use ($activeSY, $activeSem) {
+                $fee->totalPaid = Payment::where('school_year_id', $activeSY->id ?? null)
+                    ->where('semester_id', $activeSem->id ?? null)
+                    ->whereHas('fees', function ($q) use ($fee) {
+                        $q->where('fee_id', $fee->id);
+                    })
+                    ->sum('amount_due');
+
+                $fee->totalPaidCount = Payment::where('school_year_id', $activeSY->id ?? null)
+                    ->where('semester_id', $activeSem->id ?? null)
+                    ->whereHas('fees', function ($q) use ($fee) {
+                        $q->where('fee_id', $fee->id);
+                    })
+                    ->distinct('student_id')
+                    ->count();
+
+                $fee->totalStudents = StudentEnrollment::where('school_year_id', $activeSY->id ?? null)
+                    ->where('semester_id', $activeSem->id ?? null)
+                    ->count();
+
+                $fee->progress = $fee->totalStudents > 0
+                    ? round(($fee->totalPaidCount / $fee->totalStudents) * 100, 2)
+                    : 0;
+
+                return $fee;
+            });
+
+        $recentPayments = Payment::with('student', 'organization')
+            ->latest()
+            ->take(10)
+            ->get();
+
+        return view('osa.dashboard', compact(
+            'activeSY',
+            'activeSem',
+            'totalMotherOrgs',
+            'totalChildOrgs',
+            'totalLocalOrgs',
+            'totalFees',
+            'totalStudents',
+            'studentsPaid',
+            'studentsPending',
+            'totalPaymentsCollected',
+            'paymentTrend',
+            'organizations',
+            'fees',
+            'recentPayments'
+        ));
     }
 }

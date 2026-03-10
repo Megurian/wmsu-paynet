@@ -3,6 +3,7 @@
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\OSASetupController;
 use App\Http\Controllers\OSACollegeController;
+use App\Http\Controllers\OSADashController;
 use App\Http\Controllers\OSAOrganizationsController;
 use App\Http\Controllers\CollegeAcademicController;
 use App\Http\Controllers\CollegeStudentController;
@@ -58,9 +59,9 @@ Route::middleware(['auth', 'role:osa'])->group(function () {
 });
 
 Route::middleware(['auth', 'role:osa', CheckActiveSchoolYear::class])->group(function () {
-    Route::get('/osa/dashboard', function () {
-        return view('osa.dashboard');
-    })->name('osa.dashboard');
+    Route::get('/osa/dashboard', [OSADashController::class, 'index'])
+    ->name('osa.dashboard');    
+
     Route::get('/osa/fees', [App\Http\Controllers\OSAFeesController::class, 'index'])->name('osa.fees');
     Route::get('/osa/fees/create', [App\Http\Controllers\OSAFeesController::class, 'create'])->name('osa.fees.create');
     Route::post('/osa/fees', [App\Http\Controllers\OSAFeesController::class, 'store'])->name('osa.fees.store');
