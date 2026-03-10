@@ -98,10 +98,7 @@ class OSADashController extends Controller
                 return $fee;
             });
 
-        $recentPayments = Payment::with('student', 'organization')
-            ->latest()
-            ->take(10)
-            ->get();
+        $recentPayments = Payment::with([ 'student', 'fees.organization.college' ]) ->latest() ->take(10) ->get();
 
         return view('osa.dashboard', compact(
             'activeSY',

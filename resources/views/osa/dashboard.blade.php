@@ -24,41 +24,40 @@
             </div>
         </div>
 
-<div class="md:col-span-1 bg-white rounded-xl shadow-md p-6 flex flex-col">
-    <h3 class="text-lg font-semibold text-gray-700 mb-2">Fee Collection Progress</h3>
-    <p class="text-sm text-gray-500 mb-3">Monitor approved fees and student payments</p>
+        <div class="md:col-span-1 bg-white rounded-xl shadow-md p-6 flex flex-col">
+            <h3 class="text-lg font-semibold text-gray-700 mb-2">Fee Collection Progress</h3>
+            <p class="text-sm text-gray-500 mb-3">Monitor approved fees and student payments</p>
 
-    <div class="flex-1 overflow-y-auto space-y-3" style="max-height: 200px;">
-        @foreach($fees as $fee)
-        <div>
-            <div class="flex justify-between text-sm font-medium mb-1">
+            <div class="flex-1 overflow-y-auto space-y-3" style="max-height: 200px;">
+                @foreach($fees as $fee)
                 <div>
-                    <span class="font-semibold">{{ $fee->fee_name }}</span>
-                    <span class="text-xs text-gray-400 ml-2">
-                        @if($fee->organization)
-                            @if($fee->organization->college_id)
+                    <div class="flex justify-between text-sm font-medium mb-1">
+                        <div>
+                            <span class="font-semibold">{{ $fee->fee_name }}</span>
+                            <span class="text-xs text-gray-400 ml-2">
+                                @if($fee->organization)
+                                @if($fee->organization->college_id)
                                 ( {{ $fee->organization->college->name ?? 'N/A' }})
-                            @else
+                                @else
                                 ( {{ $fee->organization->name }})
-                            @endif
-                        @else
-                            (University-wide)
-                        @endif
-                    </span>
-                </div>
-                <span class="text-gray-500">{{ $fee->totalPaidCount ?? 0 }}/{{ $fee->totalStudents ?? 0 }} paid</span>
-            </div>
+                                @endif
+                                @else
+                                (University-wide)
+                                @endif
+                            </span>
+                        </div>
+                        <span class="text-gray-500">{{ $fee->totalPaidCount ?? 0 }}/{{ $fee->totalStudents ?? 0 }} paid</span>
+                    </div>
 
-            <div class="w-full bg-gray-200 rounded-full h-3 mb-1">
-                <div class="bg-gradient-to-r from-blue-500 to-indigo-600 h-3 rounded-full transition-all duration-500" 
-                    style="width: {{ min(100, $fee->progress ?? 0) }}%">
+                    <div class="w-full bg-gray-200 rounded-full h-3 mb-1">
+                        <div class="bg-gradient-to-r from-blue-500 to-indigo-600 h-3 rounded-full transition-all duration-500" style="width: {{ min(100, $fee->progress ?? 0) }}%">
+                        </div>
+                    </div>
+                    <span class="text-xs text-gray-400">{{ ($fee->totalStudents ?? 0) - ($fee->totalPaidCount ?? 0) }} students pending</span>
                 </div>
+                @endforeach
             </div>
-            <span class="text-xs text-gray-400">{{ ($fee->totalStudents ?? 0) - ($fee->totalPaidCount ?? 0) }} students pending</span>
         </div>
-        @endforeach
-    </div>
-</div>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-6">
@@ -130,8 +129,33 @@
                 @foreach($recentPayments as $payment)
                 <div class="flex justify-between items-center bg-gray-50 px-3 py-2 rounded-lg shadow-sm hover:shadow-md transition">
                     <div>
-                        <p class="font-medium text-gray-700 text-sm">{{ $payment->student->first_name }} {{ $payment->student->last_name }}</p>
-                        <p class="text-xs text-gray-500">{{ $payment->created_at->format('M d, Y') }}</p>
+                        <p class="font-medium text-gray-700 text-sm">
+                            {{ $payment->student->first_name }} {{ $payment->student->last_name }}
+                        </p>
+                        <p class="text-xs text-gray-500">
+                            {{ $payment->created_at->format('M d, Y') }}
+                        </p>
+                        @if($payment->fees->count() > 0)
+                        @foreach($payment->fees as $fee)
+                        <p class="text-xs text-gray-500 mt-1">
+                            <span class="font-medium">{{ $fee->fee_name }}</span>
+
+                            <span class="text-gray-400 ml-1">
+                                @if($fee->organization)
+                                @if($fee->organization->college_id)
+                                ({{ $fee->organization->college->name ?? 'N/A' }})
+                                @else
+                                ({{ $fee->organization->name }})
+                                @endif
+                                @else
+                                (University-wide)
+                                @endif
+                            </span>
+                        </p>
+                        @endforeach
+                        @else
+                        <p class="text-xs text-gray-400">Fee: N/A</p>
+                        @endif
                     </div>
                     <div class="text-green-600 font-semibold text-sm">
                         ₱ {{ number_format($payment->amount_due,2) }}
@@ -151,6 +175,7 @@
     </div>
 
 </div>
+
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
