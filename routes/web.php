@@ -4,6 +4,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\OSASetupController;
 use App\Http\Controllers\OSACollegeController;
 use App\Http\Controllers\OSADashController;
+use App\Http\Controllers\OSARemittanceController;
 use App\Http\Controllers\OSAOrganizationsController;
 use App\Http\Controllers\CollegeAcademicController;
 use App\Http\Controllers\CollegeStudentController;
@@ -105,9 +106,10 @@ Route::middleware(['auth', 'role:osa', CheckActiveSchoolYear::class])->group(fun
 // Route::get('/osa/reports/organization/{organization}', [OSAReportsController::class, 'organizationDetails'])
 //     ->name('osa.organization.details');
 
-    Route::get('/osa/reports/organization/{organization}', 
-    [OSAReportsController::class, 'organizationDetails']
-)->name('osa.reports.organization.details');
+    Route::get('/osa/reports/organization/{organization}',  [OSAReportsController::class, 'organizationDetails'] )->name('osa.reports.organization.details');
+
+    Route::get('/osa/remittance', [OSARemittanceController::class, 'index'])->name('osa.remittance');
+    Route::post('/osa/remittance/confirm', [OSARemittanceController::class, 'confirm'])->name('osa.remittance.confirm');
 });
 
 Route::middleware(['auth', 'role:university_org'])->group(function () {
