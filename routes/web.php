@@ -12,6 +12,7 @@ use App\Http\Controllers\ValidateStudentsController;
 use App\Http\Controllers\UniversityOrgFeesController;
 use App\Http\Controllers\UniversityOrgReportsController;
 use App\Http\Controllers\UniversityOrgOfficesController;
+use App\Http\Controllers\UniversityOrgRemittanceController;
 use App\Http\Controllers\CollegeUserController;
 use App\Http\Middleware\CheckActiveSchoolYear;
 use App\Http\Controllers\AdviserStudentUploadController;
@@ -121,12 +122,15 @@ Route::middleware(['auth', 'role:university_org'])->group(function () {
         return redirect()->route('university_org.offices.index');
     })->name('university_org.offices');
 
-    Route::get('/university_org/remittance', function () {
-        return view('university_org.remittance');
-    })->name('university_org.remittance');
-
     Route::get('/university_org/reports', [UniversityOrgReportsController::class, 'paymentCollectionReport'])
     ->name('university_org.reports');
+
+    
+    Route::get('/university_org/remittance',[UniversityOrgRemittanceController::class,'index']
+    )->name('university_org.remittance');
+
+    Route::post('/university_org/remittance/confirm',[UniversityOrgRemittanceController::class,'confirm']
+    )->name('university_org.remittance.confirm');
 
     Route::get('/university-org/fees', [UniversityOrgFeesController::class, 'index'])->name('university_org.fees');
     Route::get('/university-org/fees/create', [UniversityOrgFeesController::class, 'create'])->name('university_org.fees.create');
