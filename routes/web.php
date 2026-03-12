@@ -8,6 +8,7 @@ use App\Http\Controllers\OSARemittanceController;
 use App\Http\Controllers\OSAOrganizationsController;
 use App\Http\Controllers\CollegeAcademicController;
 use App\Http\Controllers\CollegeStudentController;
+use App\Http\Controllers\CollegeDashboardController;
 use App\Http\Controllers\CollegeHistoryController;
 use App\Http\Controllers\ValidateStudentsController;
 use App\Http\Controllers\UniversityOrgFeesController;
@@ -108,8 +109,12 @@ Route::middleware(['auth', 'role:osa', CheckActiveSchoolYear::class])->group(fun
 
     Route::get('/osa/reports/organization/{organization}',  [OSAReportsController::class, 'organizationDetails'] )->name('osa.reports.organization.details');
 
-    Route::get('/osa/remittance', [OSARemittanceController::class, 'index'])->name('osa.remittance');
-    Route::post('/osa/remittance/confirm', [OSARemittanceController::class, 'confirm'])->name('osa.remittance.confirm');
+   Route::get('/osa/remittance', [OSARemittanceController::class,'index'])
+    ->name('osa.remittance');
+
+Route::post('/osa/remittance/{remittance}/confirm',
+    [OSARemittanceController::class,'confirm'])
+    ->name('osa.remittance.confirm');
 });
 
 Route::middleware(['auth', 'role:university_org'])->group(function () {
@@ -172,6 +177,8 @@ Route::middleware(['auth', 'role:college_org'])->group(function () {
     Route::get('/college_org/dashboard', function () {
         return view('college_org.dashboard');
     })->name('college_org.dashboard');
+
+    
 
     // Use controller so we can display inherited fees from the mother organization
     Route::get('/college_org/fees', [App\Http\Controllers\CollegeOrgFeesController::class, 'index'])->name('college_org.fees');
@@ -243,10 +250,12 @@ Route::middleware(['auth','role:college'])->group(function () {
 });
 
 Route::middleware(['auth', 'role:treasurer,college,student_coordinator,adviser,assessor'])->group(function () {
-    Route::get('/college/dashboard', function () {
-        return view('college.dashboard');
-    })->name('college.dashboard');
+    // Route::get('/college/dashboard', function () {
+    //     return view('college.dashboard');
+    // })->name('college.dashboard');
 
+    Route::get('/college/dashboard', [CollegeDashboardController::class, 'index'])
+        ->name('college.dashboard');
     Route::get('/college/students', function () {
         return view('college.students');
     })->name('college.students');

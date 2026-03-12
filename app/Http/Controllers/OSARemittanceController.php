@@ -5,10 +5,12 @@ namespace App\Http\Controllers;
 use App\Models\Organization;
 use App\Models\Payment;
 use App\Models\Remittance;
+use App\Models\Fee;
 use App\Models\SchoolYear;
 use App\Models\Semester;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class OSARemittanceController extends Controller
 {
@@ -16,57 +18,122 @@ class OSARemittanceController extends Controller
     public function index()
     {
 
-        $activeSY = SchoolYear::where('is_active', 1)->first();
-        $activeSem = Semester::where('is_active', 1)->first();
+        $currentSY = SchoolYear::latest()->first();
+        $currentSem = Semester::latest()->first();
 
-        $motherOrgs = Organization::where('role', 'mother_org')
-            ->with('childOrganizations')
+        /*
+        |--------------------------------------------------------------------------
+        | Mother Organizations that inherit OSA fees
+        |--------------------------------------------------------------------------
+        */
+
+        $motherOrgs = Organization::whereNull('mother_organization_id')
+            ->where('inherits_osa_fees', true)
             ->get();
 
-        $expectedRemittance = 0;
+
+        /*
+        |--------------------------------------------------------------------------
+        | Expected Remittance Calculation
+        |--------------------------------------------------------------------------
+        */
+
+        $expectedRemittances = [];
 
         foreach ($motherOrgs as $org) {
 
-            $childOrgIds = $org->childOrganizations->pluck('id');
+            $fees = Fee::where('organization_id', $org->id)
+                ->where('approval_level', 'osa')
+                ->get();
 
-            $collected = Payment::whereIn('organization_id', $childOrgIds)
-                ->where('school_year_id', $activeSY?->id)
-                ->where('semester_id', $activeSem?->id)
-                ->sum('amount');
+            foreach ($fees as $fee) {
 
-            $org->totalCollected = $collected;
+                $totalCollected = DB::table('fee_payment')
+                    ->where('fee_id', $fee->id)
+                    ->sum('amount_paid');
 
-            $remitted = Remittance::where('to_organization_id', $org->id)
-                ->sum('amount');
+                $totalRemitted = Remittance::where('from_organization_id', $org->id)
+                    ->where('fee_id', $fee->id)
+                    ->sum('amount');
 
-            $org->totalRemitted = $remitted;
+                $remaining = $totalCollected - $totalRemitted;
 
-            $org->remaining = $collected - $remitted;
+                $lastRemittance = Remittance::where('from_organization_id', $org->id)
+                    ->where('fee_id', $fee->id)
+                    ->latest()
+                    ->first();
 
-            $expectedRemittance += $collected;
+                $expectedRemittances[] = [
+                    'organization' => $org,
+                    'fee' => $fee,
+                    'total_collected' => $totalCollected,
+                    'total_remitted' => $totalRemitted,
+                    'remaining' => $remaining,
+                    'last_remittance' => $lastRemittance?->created_at,
+                    'status' => $remaining <= 0 ? 'completed' : ($totalRemitted > 0 ? 'partial' : 'pending')
+                ];
+            }
         }
 
-        $totalRemitted = Remittance::sum('amount');
 
-        $pendingOrgs = $motherOrgs->where('remaining', '>', 0)->count();
+        /*
+        |--------------------------------------------------------------------------
+        | Dashboard Totals
+        |--------------------------------------------------------------------------
+        */
 
-        $records = Remittance::with([
+        $totalExpected = collect($expectedRemittances)->sum('total_collected');
+
+        $totalRemitted = collect($expectedRemittances)->sum('total_remitted');
+
+        $remainingTotal = $totalExpected - $totalRemitted;
+
+        $pendingOrgs = collect($expectedRemittances)
+            ->where('status', '!=', 'completed')
+            ->count();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Remittance Records
+        |--------------------------------------------------------------------------
+        */
+
+        $remittances = Remittance::with([
             'fromOrganization',
-            'toOrganization',
+            'fee',
             'confirmer',
-            'schoolYear',
-            'semester'
-        ])
-        ->latest()
-        ->paginate(10);
+            'fee.createdSchoolYear',
+            'fee.createdSemester'
+        ])->latest()->get();
 
-        return view('osa.remittance.index', compact(
-            'motherOrgs',
-            'records',
-            'expectedRemittance',
+
+        return view('osa.remittance', compact(
+            'expectedRemittances',
+            'totalExpected',
             'totalRemitted',
-            'pendingOrgs'
+            'remainingTotal',
+            'pendingOrgs',
+            'remittances'
         ));
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Confirm Remittance
+    |--------------------------------------------------------------------------
+    */
+
+    public function confirm(Remittance $remittance)
+    {
+
+        $remittance->update([
+            'status' => 'confirmed',
+            'confirmed_by' => Auth::id()
+        ]);
+
+        return back()->with('success','Remittance confirmed successfully');
     }
 
 }
