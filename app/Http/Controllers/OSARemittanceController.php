@@ -21,36 +21,33 @@ class OSARemittanceController extends Controller
         $currentSY = SchoolYear::latest()->first();
         $currentSem = Semester::latest()->first();
 
-        /*
-        |--------------------------------------------------------------------------
-        | Mother Organizations that inherit OSA fees
-        |--------------------------------------------------------------------------
-        */
 
-        $motherOrgs = Organization::whereNull('mother_organization_id')
-            ->where('inherits_osa_fees', true)
+        $childOrgs = Organization::where('role', 'college_org')
+            ->whereNotNull('college_id')
+            ->whereNotNull('mother_organization_id')
+            ->whereHas('motherOrganization', function ($q) {
+                $q->where('inherits_osa_fees', 1);
+            })
             ->get();
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | Expected Remittance Calculation
-        |--------------------------------------------------------------------------
-        */
-
+        $osaOrg = Organization::where('org_code', 'OSA')->first();
         $expectedRemittances = [];
 
-        foreach ($motherOrgs as $org) {
+        foreach ($childOrgs as $org) {
 
-            $fees = Fee::where('organization_id', $org->id)
-                ->where('approval_level', 'osa')
+            $motherOrg = $org->motherOrganization;
+
+            $fees = Fee::where('organization_id', $osaOrg->id)
+                ->where('status', 'approved')
                 ->get();
 
             foreach ($fees as $fee) {
 
                 $totalCollected = DB::table('fee_payment')
-                    ->where('fee_id', $fee->id)
-                    ->sum('amount_paid');
+                    ->join('payments', 'payments.id', '=', 'fee_payment.payment_id')
+                    ->where('fee_payment.fee_id', $fee->id)
+                    ->where('payments.organization_id', $org->id)
+                    ->sum('fee_payment.amount_paid');
 
                 $totalRemitted = Remittance::where('from_organization_id', $org->id)
                     ->where('fee_id', $fee->id)
@@ -74,8 +71,6 @@ class OSARemittanceController extends Controller
                 ];
             }
         }
-
-
         /*
         |--------------------------------------------------------------------------
         | Dashboard Totals
@@ -99,13 +94,16 @@ class OSARemittanceController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $remittances = Remittance::with([
-            'fromOrganization',
-            'fee',
-            'confirmer',
-            'fee.createdSchoolYear',
-            'fee.createdSemester'
-        ])->latest()->get();
+        $remittances = Remittance::whereHas('fromOrganization', function ($q) {
+            $q->where('role', 'college_org');
+        })
+            ->with([
+                'fromOrganization',
+                'fee',
+                'confirmer'
+            ])
+            ->latest()
+            ->get();
 
 
         return view('osa.remittance', compact(
@@ -133,7 +131,6 @@ class OSARemittanceController extends Controller
             'confirmed_by' => Auth::id()
         ]);
 
-        return back()->with('success','Remittance confirmed successfully');
+        return back()->with('success', 'Remittance confirmed successfully');
     }
-
 }
