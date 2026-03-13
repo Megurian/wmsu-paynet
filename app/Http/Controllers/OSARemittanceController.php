@@ -16,105 +16,118 @@ class OSARemittanceController extends Controller
 {
 
     public function index()
-    {
+{
+    $currentSY = SchoolYear::latest()->first();
+    $currentSem = Semester::latest()->first();
 
-        $currentSY = SchoolYear::latest()->first();
-        $currentSem = Semester::latest()->first();
+    $osaOrg = Organization::where('org_code', 'OSA')->first();
 
+    $childOrgs = Organization::where('role', 'college_org')
+        ->whereNotNull('college_id')
+        ->whereNotNull('mother_organization_id')
+        ->whereHas('motherOrganization', function ($q) {
+            $q->where('inherits_osa_fees', 1);
+        })
+        ->get();
 
-        $childOrgs = Organization::where('role', 'college_org')
-            ->whereNotNull('college_id')
-            ->whereNotNull('mother_organization_id')
-            ->whereHas('motherOrganization', function ($q) {
-                $q->where('inherits_osa_fees', 1);
-            })
-            ->get();
+    $remittanceData = [];
+    $totalCollected = 0;    // Total OSA portion collected
+    $totalExpected = 0;     // Total expected remittance
+    $totalRemitted = 0;     // Already remitted amount
 
-        $osaOrg = Organization::where('org_code', 'OSA')->first();
-        $expectedRemittances = [];
+    // Get all approved OSA fees
+    $fees = Fee::where('organization_id', $osaOrg->id)
+        ->where('status', 'approved')
+        ->get();
 
-        foreach ($childOrgs as $org) {
+    foreach ($childOrgs as $org) {
 
-            $motherOrg = $org->motherOrganization;
+        $feeDetails = [];
+        $orgCollected = 0; // Sum of remittance amounts for this org
 
-            $fees = Fee::where('organization_id', $osaOrg->id)
-                ->where('status', 'approved')
-                ->get();
+        foreach ($fees as $fee) {
 
-            foreach ($fees as $fee) {
+            // Students who paid this fee
+            $studentsPaid = DB::table('fee_payment')
+                ->join('payments', 'payments.id', '=', 'fee_payment.payment_id')
+                ->where('fee_payment.fee_id', $fee->id)
+                ->where('payments.organization_id', $org->id)
+                ->count();
 
-                $totalCollected = DB::table('fee_payment')
-                    ->join('payments', 'payments.id', '=', 'fee_payment.payment_id')
-                    ->where('fee_payment.fee_id', $fee->id)
-                    ->where('payments.organization_id', $org->id)
-                    ->sum('fee_payment.amount_paid');
+            // Total collected for this fee
+            $totalFeeCollected = DB::table('fee_payment')
+                ->join('payments', 'payments.id', '=', 'fee_payment.payment_id')
+                ->where('fee_payment.fee_id', $fee->id)
+                ->where('payments.organization_id', $org->id)
+                ->sum('fee_payment.amount_paid');
 
-                $totalRemitted = Remittance::where('from_organization_id', $org->id)
-                    ->where('fee_id', $fee->id)
-                    ->sum('amount');
+            // Calculate remittance portion based on remittance_percent (default 100%)
+            $percent = $fee->remittance_percent ?? 100;
+            $feeRemittanceAmount = ($totalFeeCollected * $percent) / 100;
 
-                $remaining = $totalCollected - $totalRemitted;
+            // Add to feeDetails for table
+            $feeDetails[] = [
+                'fee' => $fee,
+                'studentsPaid' => $studentsPaid,
+                'totalCollected' => $totalFeeCollected,    // total paid by students
+                'remittanceAmount' => $feeRemittanceAmount // portion owed to OSA
+            ];
 
-                $lastRemittance = Remittance::where('from_organization_id', $org->id)
-                    ->where('fee_id', $fee->id)
-                    ->latest()
-                    ->first();
-
-                $expectedRemittances[] = [
-                    'organization' => $org,
-                    'fee' => $fee,
-                    'total_collected' => $totalCollected,
-                    'total_remitted' => $totalRemitted,
-                    'remaining' => $remaining,
-                    'last_remittance' => $lastRemittance?->created_at,
-                    'status' => $remaining <= 0 ? 'completed' : ($totalRemitted > 0 ? 'partial' : 'pending')
-                ];
-            }
+            // Sum only the OSA portion
+            $orgCollected += $feeRemittanceAmount;
         }
-        /*
-        |--------------------------------------------------------------------------
-        | Dashboard Totals
-        |--------------------------------------------------------------------------
-        */
 
-        $totalExpected = collect($expectedRemittances)->sum('total_collected');
+        // Already remitted amount for this org
+        $remitted = Remittance::where('from_organization_id', $org->id)
+            ->whereIn('fee_id', $fees->pluck('id'))
+            ->sum('amount');
 
-        $totalRemitted = collect($expectedRemittances)->sum('total_remitted');
+        $remaining = max($orgCollected - $remitted, 0);
 
-        $remainingTotal = $totalExpected - $totalRemitted;
+        // Determine status
+        $status = 'Pending';
+        if ($remaining <= 0 && $orgCollected > 0) $status = 'Completed';
+        elseif ($remitted > 0) $status = 'Partial';
 
-        $pendingOrgs = collect($expectedRemittances)
-            ->where('status', '!=', 'completed')
-            ->count();
+        // Add to remittanceData
+        $remittanceData[] = [
+            'organization' => $org,
+            'feeDetails' => $feeDetails,
+            'collected' => $orgCollected, // total expected remittance for this org
+            'expected' => $orgCollected,
+            'remitted' => $remitted,
+            'remaining' => $remaining,
+            'status' => $status
+        ];
 
+        // Sum totals for dashboard
+        $totalCollected += $orgCollected;
+        $totalExpected += $orgCollected;
+        $totalRemitted += $remitted;
+    }
 
-        /*
-        |--------------------------------------------------------------------------
-        | Remittance Records
-        |--------------------------------------------------------------------------
-        */
+    $remaining = max($totalExpected - $totalRemitted, 0);
 
-        $remittances = Remittance::whereHas('fromOrganization', function ($q) {
+    // Get remittance history
+    $osaFees = Fee::where('organization_id', $osaOrg->id)->pluck('id');
+
+    $history = Remittance::whereIn('fee_id', $osaFees)
+        ->whereHas('fromOrganization', function ($q) {
             $q->where('role', 'college_org');
         })
-            ->with([
-                'fromOrganization',
-                'fee',
-                'confirmer'
-            ])
-            ->latest()
-            ->get();
+        ->with(['fromOrganization', 'confirmer'])
+        ->latest()
+        ->get();
 
-
-        return view('osa.remittance', compact(
-            'expectedRemittances',
-            'totalExpected',
-            'totalRemitted',
-            'remainingTotal',
-            'pendingOrgs',
-            'remittances'
-        ));
-    }
+    return view('osa.remittance', compact(
+        'remittanceData',
+        'totalCollected',
+        'totalExpected',
+        'totalRemitted',
+        'remaining',
+        'history'
+    ));
+}
 
 
     /*

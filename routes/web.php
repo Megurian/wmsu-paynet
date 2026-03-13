@@ -112,7 +112,7 @@ Route::middleware(['auth', 'role:osa', CheckActiveSchoolYear::class])->group(fun
    Route::get('/osa/remittance', [OSARemittanceController::class,'index'])
     ->name('osa.remittance');
 
-Route::post('/osa/remittance/{remittance}/confirm',
+Route::post('/osa/remittance/confirm',
     [OSARemittanceController::class,'confirm'])
     ->name('osa.remittance.confirm');
 });
