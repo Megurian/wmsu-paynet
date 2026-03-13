@@ -94,7 +94,10 @@ class OSAReportsController extends Controller
             return $org;
         });
 
-        $inheritedOsaFees = Fee::where('fee_scope', 'university-wide')
+        $osaOrg = Organization::where('org_code', 'OSA')->first();
+
+        $inheritedOsaFees = Fee::where('organization_id', $osaOrg->id) 
+            ->where('fee_scope', 'university-wide') 
             ->where(function ($q) use ($selectedSYId, $selectedSemId) {
                 $q->where('created_school_year_id', '<', $selectedSYId)
                     ->orWhere(function ($q2) use ($selectedSYId, $selectedSemId) {
@@ -103,9 +106,8 @@ class OSAReportsController extends Controller
                     });
             })
             ->get()
-            ->map(function ($fee) use ($selectedSYId, $selectedSemId) {
+            ->map(function ($fee) use ($selectedSYId, $selectedSemId) {       
                 $inheritingOrgs = Organization::where('inherits_osa_fees', true)
-                    ->orWhere('mother_organization_id', $fee->organization_id)
                     ->get();
 
                 $fee->totalPayments = Payment::whereIn('organization_id', $inheritingOrgs->pluck('id'))
