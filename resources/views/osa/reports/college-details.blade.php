@@ -38,20 +38,20 @@
 
     <!-- Local College Organizations -->
     <div class="p-4 bg-white rounded shadow mt-6">
-        <h3 class="text-lg font-semibold mb-4">Local College Organizations</h3>
+        <h3 class="text-lg font-semibold mb-4">Local Organizations</h3>
 
         @if($localOrgs->isEmpty())
-        <p class="text-gray-500">No local organizations found.</p>
+        <p class="text-gray-500">No organizations found.</p>
         @else
         <div class="overflow-x-auto">
-            <table class="min-w-full border text-sm">
+            <table class="min-w-full border text-sm table-fixed">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th class="p-2 border-b text-left">Logo</th>
-                        <th class="p-2 border-b text-left">Organization</th>
-                        <th class="p-2 border-b text-left">Org Code</th>
-                        <th class="p-2 border-b text-left">Total Payment Collected</th>
-                        <th class="p-2 border-b text-left">Actions</th>
+                        <th class="p-2 border-b text-left w-1/5">Logo</th>
+                        <th class="p-2 border-b text-left w-1/5">Organization</th>
+                        <th class="p-2 border-b text-left w-1/5">Org Code</th>
+                        <th class="p-2 border-b text-left w-1/5">Total Payment Collected</th>
+                        <th class="p-2 border-b text-left w-1/5">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -89,17 +89,17 @@
         <h3 class="text-lg font-semibold mb-4">Child Organizations</h3>
 
         @if($childOrgs->isEmpty())
-        <p class="text-gray-500">No child organizations found.</p>
+        <p class="text-gray-500">No organizations found.</p>
         @else
         <div class="overflow-x-auto">
-            <table class="min-w-full border text-sm">
+            <table class="min-w-full border text-sm table-fixed">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th class="p-2 border-b text-left">Logo</th>
-                        <th class="p-2 border-b text-left">Organization</th>
-                        <th class="p-2 border-b text-left">Org Code</th>
-                        <th class="p-2 border-b text-left">Total Payment Collected</th>
-                        <th class="p-2 border-b text-left">Actions</th>
+                        <th class="p-2 border-b text-left w-1/5">Logo</th>
+                        <th class="p-2 border-b text-left w-1/5">Organization</th>
+                        <th class="p-2 border-b text-left w-1/5">Org Code</th>
+                        <th class="p-2 border-b text-left w-1/5">Total Payment Collected</th>
+                        <th class="p-2 border-b text-left w-1/5">Actions</th>
                     </tr>
                 </thead>
                 <tbody>

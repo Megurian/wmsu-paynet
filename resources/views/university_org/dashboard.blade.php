@@ -30,8 +30,12 @@
                     <span class="text-gray-500">{{ $fee['paid'] }} students paid</span>
                 </div>
                 <div class="w-full bg-gray-200 rounded-full h-3">
-                    <div class="bg-gradient-to-r from-blue-500 to-indigo-600 h-3 rounded-full transition-all duration-500" style="width: {{ min(100,$fee['paid']) }}%">
+                    <div class="bg-gradient-to-r from-blue-500 to-indigo-600 h-3 rounded-full transition-all duration-500" style="width: {{ $fee['percent'] }}%">
                     </div>
+                </div>
+                <div class="flex justify-between text-xs text-gray-500 mt-1">
+                    <span>{{ $fee['paid'] }} paid</span>
+                    <span>{{ $fee['expected'] }} total</span>
                 </div>
             </div>
             @endforeach
@@ -125,7 +129,7 @@
                         <p class="text-xs text-gray-500">{{ $payment->created_at->format('M d, Y') }}</p>
                     </div>
                     <div class="text-green-600 font-semibold text-sm">
-                        ₱ {{ number_format($payment->amount_due,2) }}
+                        ₱ {{ number_format($payment->amount_paid ?? 0, 2) }}
                     </div>
                 </div>
                 @endforeach

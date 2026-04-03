@@ -21,7 +21,11 @@
         <div class="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
             <p class="text-xs text-gray-500 uppercase tracking-wide">Total Payments Collected</p>
             <p class="text-2xl font-semibold text-green-600 mt-2">
-                ₱ {{ number_format($org->totalPayments + $childOrgs->sum('totalPayments'), 2) }}
+                @php
+                    $isMotherOrgWithOsa = is_null($org->mother_organization_id) && is_null($org->college_id) && $org->inherits_osa_fees;
+                    $displayPayments = $isMotherOrgWithOsa ? $org->totalPayments : ($org->totalPayments + $childOrgs->sum('totalPayments'));
+                @endphp
+                ₱ {{ number_format($displayPayments, 2) }}
             </p>
         </div>
 
@@ -39,11 +43,6 @@
             <p><strong>Name:</strong> {{ $org->name }}</p>
             <p><strong>Org Code:</strong> {{ $org->org_code }}</p>
             <p><strong>College:</strong> {{ $org->college->name ?? 'N/A' }}</p>
-            <p><strong>Total Payments:</strong> ₱ {{ number_format($org->totalPayments ?? 0, 2) }}</p>
-            @if($org->logo)
-            <p><strong>Logo:</strong></p>
-            <img src="{{ asset('storage/'.$org->logo) }}" class="w-20 h-20 border rounded">
-            @endif
         </div>
     </div>
 
@@ -96,6 +95,7 @@
                 <p><strong>Amount:</strong> ₱ {{ number_format($fee->amount, 2) }}</p>
                 <p><strong>Scope:</strong> {{ ucfirst($fee->fee_scope) }}</p>
                 <p><strong>Payments Count:</strong> {{ $fee->payment_count ?? 0 }}</p>
+                <p><strong>Total Collection:</strong> ₱ {{ number_format($fee->amount ?? 0, 2) * ($fee->payment_count ?? 0) }}</p>
 
                 <div class="mt-4 overflow-x-auto max-h-64">
                     <table class="min-w-full text-sm border border-gray-200">

@@ -59,10 +59,10 @@
     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
         <div class="p-4 bg-blue-50 rounded shadow flex flex-col justify-between">
             <div>
-                <p class="text-sm text-gray-600">Total Child Organizations</p>
+                <p class="text-sm text-gray-600">Total Offices</p>
                 <p class="text-2xl font-bold">{{ $totalChildOrgs }}</p>
             </div>
-            <a href="{{ route('university_org.child_organizations', ['school_year_id' => $selectedSY->id, 'semester_id' => $selectedSem->id]) }}" class="text-sm text-blue-600 hover:underline mt-2">
+            <a href="{{ route('university_org.offices', ['school_year_id' => $selectedSY->id, 'semester_id' => $selectedSem->id]) }}" class="text-sm text-blue-600 hover:underline mt-2">
                 View All
             </a>
         </div>
@@ -76,8 +76,8 @@
 
         <div class="p-4 bg-yellow-50 rounded shadow flex flex-col justify-between">
             <div>
-                <p class="text-sm text-gray-600">Total Students Enrolled</p>
-                <p class="text-2xl font-bold">{{ $totalStudentsEnrolled }}</p>
+                <p class="text-sm text-gray-600">Total Students Pending Payment</p>
+                <p class="text-2xl font-bold">{{ $totalPendingStudents }}</p>
             </div>
         </div>
 
@@ -86,8 +86,6 @@
                 <p class="text-sm text-gray-600">Total Payments Collected</p>
                 <p class="text-2xl font-bold">PHP {{ number_format($totalPaymentsCollected, 2) }}</p>
             </div>
-            <a href="{{ route('university_org.child_organizations', ['school_year_id' => $selectedSY->id, 'semester_id' => $selectedSem->id]) }}" class="text-sm text-purple-600 hover:underline mt-2">
-                View All
             </a>
         </div>
     </div>
@@ -96,44 +94,24 @@
     {{-- Student Payment Status --}}
     <div class="p-3 bg-white rounded shadow text-sm">
         <h4 class="font-semibold mb-2 text-sm">Student Payment Status</h4>
-        <canvas id="studentPaymentStatusChart" class="w-full h-15"></canvas> {{-- smaller height --}}
+        <div class="h-64">
+            <canvas id="studentPaymentStatusChart" class="w-full h-full"></canvas>
+        </div>
     </div>
 
-    {{-- Recently Added Organizations --}}
-    @if($recentOrgs->isNotEmpty())
+    {{-- Daily Total Payments --}}
     <div class="p-3 bg-white rounded shadow text-sm">
-        <h4 class="font-semibold mb-2 text-sm">Recently Added Organizations</h4>
-        <ul class="space-y-1 text-xs max-h-15 overflow-y-auto"> {{-- smaller height + scroll --}}
-            @foreach($recentOrgs as $org)
-            <li class="flex flex-col sm:flex-row sm:justify-between items-start sm:items-center p-2 border rounded">
-                <div class="flex items-center space-x-2 sm:space-x-3 mb-1 sm:mb-0">
-                    @if($org->logo)
-                    <img src="{{ asset('storage/' . $org->logo) }}" alt="Logo" class="w-7 h-7 object-contain rounded border"> {{-- smaller --}}
-                    @endif
-                    <div>
-                        <p class="font-medium text-xs">{{ $org->name }}</p>
-                        <p class="text-gray-500 text-[10px]">Code: {{ $org->org_code }} | College: {{ $org->college?->name ?? 'N/A' }}</p>
-                    </div>
-                </div>
-                <div class="text-gray-500 text-[10px]">
-                    Students: {{ $org->total_students }} | Payments: PHP {{ number_format($org->total_payments_collected, 2) }}
-                </div>
-            </li>
-            @endforeach
-        </ul>
+        <h4 class="font-semibold mb-2 text-sm">Daily Total Payments</h4>
+        <div class="h-64">
+            <canvas id="dailyPaymentsChart" class="w-full h-full"></canvas>
+        </div>
     </div>
-    @endif
-</div>
-
-<div class="p-3 bg-white rounded shadow text-sm mt-4">
-    <h4 class="font-semibold mb-2 text-sm">Daily Total Payments</h4>
-    <canvas id="dailyPaymentsChart" class="w-full h-15"></canvas> 
 </div>
 
     <div class="space-y-6">
-        <h3 class="text-md font-semibold mb-2">Child Organizations</h3>
+        <h3 class="text-md font-semibold mb-2">Offices</h3>
         @if($childOrgs->isEmpty())
-        <p class="text-gray-500">No child organizations found.</p>
+        <p class="text-gray-500">No offices found.</p>
         @else
             @foreach($childOrgs as $org)
             <div class="p-4 bg-white rounded shadow space-y-3">
@@ -170,25 +148,30 @@
                                     <div class="text-sm text-gray-500">Status: {{ ucfirst($fee->status ?? 'pending') }}</div>
                                 </div>
 
-                                <div class="mt-2 pl-4 text-xs text-gray-600">
-                                    <p class="font-semibold">Paid Students ({{ $fee->paid_students->count() }}):</p>
-                                    <ul class="list-disc list-inside">
-                                        @foreach($fee->paid_students as $student)
-                                        <li>{{ $student->last_name }}, {{ $student->first_name }} ({{ $student->student_id }})</li>
-                                        @endforeach
-                                    </ul>
-
-                                    <p class="font-semibold mt-1">Pending Students ({{ $fee->pending_students->count() }}):</p>
-                                    <ul class="list-disc list-inside">
-                                        @foreach($fee->pending_students as $student)
-                                        <li>{{ $student->last_name }}, {{ $student->first_name }} ({{ $student->student_id }})</li>
-                                        @endforeach
-                                    </ul>
+                                <div class="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs text-gray-600">
+                                    <div class="rounded bg-gray-50 border border-gray-200 p-2">
+                                        <p class="font-semibold text-gray-700">Paid</p>
+                                        <p class="text-xl font-bold text-gray-800">{{ $fee->paid_students->count() }}</p>
+                                    </div>
+                                    <div class="rounded bg-gray-50 border border-gray-200 p-2">
+                                        <p class="font-semibold text-gray-700">Pending</p>
+                                        <p class="text-xl font-bold text-gray-800">{{ $fee->pending_students->count() }}</p>
+                                    </div>
+                                    <div class="rounded bg-gray-50 border border-gray-200 p-2">
+                                        <p class="font-semibold text-gray-700">Collected</p>
+                                        <p class="text-xl font-bold text-gray-800">PHP {{ number_format($fee->paid_students->count() * $fee->amount, 2) }}</p>
+                                    </div>
                                 </div>
                             </li>
                             @endforeach
                         </ul>
                     @endif
+                </div>
+
+                <div class="mt-3 flex justify-end">
+                    <a href="{{ route('university_org.child_org_fees', ['org_id' => $org->id, 'school_year_id' => $selectedSY->id, 'semester_id' => $selectedSem->id]) }}" class="px-3 py-2 bg-blue-600 text-white text-xs font-semibold rounded hover:bg-blue-700">
+                        View Details
+                    </a>
                 </div>
             </div>
             @endforeach
@@ -206,39 +189,94 @@
 <script>
 const dailyPaymentsCtx = document.getElementById('dailyPaymentsChart').getContext('2d');
 new Chart(dailyPaymentsCtx, {
-    type: 'line',
+    type: 'bar',
     data: {
         labels: @json($dailyPaymentLabels),
         datasets: [{
             label: 'Total Payments (PHP)',
             data: @json($dailyPaymentData),
-            borderColor: 'rgba(54, 162, 235, 1)',
-            backgroundColor: 'rgba(54, 162, 235, 0.2)',
-            fill: true,
-            tension: 0.3
+            borderColor: 'rgba(37, 99, 235, 1)',
+            backgroundColor: 'rgba(37, 99, 235, 0.18)',
+            borderWidth: 1.5,
+            borderRadius: 8,
+            maxBarThickness: 34
         }]
     },
     options: {
         responsive: true,
-        plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false } },
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                mode: 'index',
+                intersect: false,
+                callbacks: {
+                    label: function(context) {
+                        return `PHP ${Number(context.raw || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                    }
+                }
+            }
+        },
         scales: {
-            x: { title: { display: true, text: 'Date' } },
-            y: { title: { display: true, text: 'PHP' } }
+            x: {
+                grid: { display: false },
+                title: { display: true, text: 'Date' }
+            },
+            y: {
+                beginAtZero: true,
+                grid: { color: 'rgba(148, 163, 184, 0.2)' },
+                title: { display: true, text: 'PHP' },
+                ticks: {
+                    callback: function(value) {
+                        return `₱${Number(value).toLocaleString()}`;
+                    }
+                }
+            }
         }
     }
 });
 
 const studentStatusCtx = document.getElementById('studentPaymentStatusChart').getContext('2d');
 new Chart(studentStatusCtx, {
-    type: 'pie',
+    type: 'doughnut',
     data: {
-        labels: ['Paid', 'Pending'],
+        labels: @json($officeCollectionLabels),
         datasets: [{
-            data: [{{ $totalPaidStudents }}, {{ $totalPendingStudents }}],
-            backgroundColor: ['#4ade80', '#f87171'],
+            data: @json($officeCollectionData),
+            backgroundColor: [
+                '#22c55e', '#ef4444', '#3b82f6', '#f59e0b', '#a855f7', '#14b8a6',
+                '#f97316', '#0ea5e9', '#10b981', '#f43f5e'
+            ],
+            borderColor: '#ffffff',
+            borderWidth: 3,
+            hoverOffset: 6
         }]
     },
-    options: { responsive: true }
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '62%',
+        plugins: {
+            legend: {
+                position: 'bottom',
+                labels: {
+                    usePointStyle: true,
+                    pointStyle: 'circle',
+                    padding: 16
+                }
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        const total = context.dataset.data.reduce((sum, value) => sum + value, 0);
+                        const value = Number(context.raw || 0);
+                        const pct = total ? ((value / total) * 100).toFixed(1) : '0.0';
+                        return `${context.label}: PHP ${value.toLocaleString()} (${pct}%)`;
+                    }
+                }
+            }
+        }
+    }
 });
 </script>
 @endsection

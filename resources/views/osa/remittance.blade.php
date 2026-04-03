@@ -46,10 +46,10 @@
                 Select Organization
             </label>
 
-        <select name="organization_id" required  class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+        <select id="from_organization_id" name="organization_id" required  class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
             <option value="">-- Choose Organization --</option>
             @foreach($remittanceData as $row)
-                <option value="{{ $row['organization']->id }}">
+                <option value="{{ $row['organization']->id }}" data-remaining="{{ $row['remaining'] }}">
                     {{ $row['organization']->name }} (Remaining: ₱{{ number_format($row['remaining'],2) }})
                 </option>
             @endforeach
@@ -63,7 +63,7 @@
                 Amount
             </label>
 
-            <input  type="number" step="0.01" name="amount" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+            <input id="amount" type="number" step="0.01" name="amount" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
 
         </div>
 
@@ -89,7 +89,7 @@
         const amountInput = document.getElementById('amount');
 
         const selectedOption = select.options[select.selectedIndex];
-        const remaining = parseFloat(selectedOption.dataset.remaining ? ? 0);
+        const remaining = parseFloat(selectedOption.dataset.remaining ?? 0);
 
         amountInput.max = remaining;
 

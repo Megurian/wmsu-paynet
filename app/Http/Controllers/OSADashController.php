@@ -24,7 +24,10 @@ class OSADashController extends Controller
         $totalFees = Fee::count();
         $totalStudents = StudentEnrollment::where('school_year_id', $activeSY->id ?? null)
             ->where('semester_id', $activeSem->id ?? null)
-            ->count();
+            ->where('status', StudentEnrollment::ENROLLED)
+            ->selectRaw('COUNT(DISTINCT student_id) as total')
+            ->first()
+            ->total ?? 0;
 
         $totalPaymentsCollected = Payment::where('school_year_id', $activeSY->id ?? null)
             ->where('semester_id', $activeSem->id ?? null)
@@ -35,7 +38,12 @@ class OSADashController extends Controller
             ->distinct('student_id')
             ->count();
 
-        $studentsPending = $totalStudents - $studentsPaid;
+        $studentsPending = StudentEnrollment::where('school_year_id', $activeSY->id ?? null)
+            ->where('semester_id', $activeSem->id ?? null)
+            ->where('status', StudentEnrollment::FOR_PAYMENT_VALIDATION)
+            ->selectRaw('COUNT(DISTINCT student_id) as total')
+            ->first()
+            ->total ?? 0;
 
         $paymentTrend = Payment::where('school_year_id', $activeSY->id ?? null)
             ->where('semester_id', $activeSem->id ?? null)
@@ -55,7 +63,10 @@ class OSADashController extends Controller
                 $org->totalStudents = StudentEnrollment::where('college_id', $org->college_id)
                     ->where('school_year_id', $activeSY->id ?? null)
                     ->where('semester_id', $activeSem->id ?? null)
-                    ->count();
+                    ->where('status', StudentEnrollment::ENROLLED)
+                    ->selectRaw('COUNT(DISTINCT student_id) as total')
+                    ->first()
+                    ->total ?? 0;
 
                 $org->studentsPaid = Payment::where('organization_id', $org->id)
                     ->where('school_year_id', $activeSY->id ?? null)
@@ -89,7 +100,10 @@ class OSADashController extends Controller
 
                 $fee->totalStudents = StudentEnrollment::where('school_year_id', $activeSY->id ?? null)
                     ->where('semester_id', $activeSem->id ?? null)
-                    ->count();
+                    ->where('status', StudentEnrollment::ENROLLED)
+                    ->selectRaw('COUNT(DISTINCT student_id) as total')
+                    ->first()
+                    ->total ?? 0;
 
                 $fee->progress = $fee->totalStudents > 0
                     ? round(($fee->totalPaidCount / $fee->totalStudents) * 100, 2)

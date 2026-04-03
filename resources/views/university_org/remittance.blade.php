@@ -8,7 +8,7 @@
 
 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-8">
     <div class="bg-white p-5 rounded-xl shadow hover:shadow-md transition">
-        <div class="text-sm text-gray-500">Total Collected</div>
+        <div class="text-sm text-gray-500">Total Collected by Offices</div>
         <div class="text-2xl font-bold text-indigo-600">₱ {{ number_format($totalCollected,2) }}</div>
     </div>
 
@@ -23,7 +23,7 @@
     </div>
 
     <div class="bg-white p-5 rounded-xl shadow hover:shadow-md transition">
-        <div class="text-sm text-gray-500">Remaining</div>
+        <div class="text-sm text-gray-500">Total Remaining Unremitted</div>
         <div class="text-2xl font-bold text-red-600">₱ {{ number_format($remaining,2) }}</div>
     </div>
 </div>
@@ -41,7 +41,7 @@
                 onchange="updateRemaining()">
                 <option value="">-- Choose Office --</option>
                 @foreach($remittanceData as $row)
-                <option value="{{ $row['organization']->id }}" data-remaining="{{ $row['remaining'] }}">
+                <option value="{{ $row['organization']->id }}" data-remaining="{{ $row['remaining'] }}" data-fee-id="{{ $row['defaultFeeId'] }}">
                     {{ $row['organization']->name }} (Remaining: ₱ {{ number_format($row['remaining'],2) }})
                 </option>
                 @endforeach
@@ -53,6 +53,7 @@
             <label class="block text-sm font-medium text-gray-700 mb-1">Amount</label>
             <input type="number" step="0.01" name="amount" id="amount" required placeholder="Enter amount"
                 class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+            <input type="hidden" name="fee_id" id="fee_id" value="">
         </div>
 
         <div>
@@ -71,10 +72,18 @@ function updateRemaining() {
     const info = document.getElementById('remaining-info');
 
     const selectedOption = select.options[select.selectedIndex];
-    const remaining = parseFloat(selectedOption.dataset.remaining ?? 0);
+    const remaining = parseFloat(selectedOption?.dataset?.remaining ?? 0);
+    const feeId = selectedOption?.dataset?.feeId;
 
     amountInput.max = remaining;
-    info.textContent = `Maximum allowable amount: ₱ ${remaining.toFixed(2)}`;
+    if (info) {
+        info.textContent = `Maximum allowable amount: ₱ ${remaining.toFixed(2)}`;
+    }
+
+    const feeIdInput = document.getElementById('fee_id');
+    if (feeIdInput) {
+        feeIdInput.value = feeId ?? '';
+    }
 }
 </script>
 

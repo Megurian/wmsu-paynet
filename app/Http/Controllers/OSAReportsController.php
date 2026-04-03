@@ -10,6 +10,7 @@ use App\Models\Semester;
 use App\Models\Payment;
 use App\Models\Fee;
 use App\Models\StudentEnrollment;
+use Illuminate\Support\Facades\DB;
 
 class OSAReportsController extends Controller
 {
@@ -50,51 +51,70 @@ class OSAReportsController extends Controller
         $schoolYears = SchoolYear::orderBy('sy_start', 'desc')->get();
         $semesters = $selectedSYId ? Semester::where('school_year_id', $selectedSYId)->get() : collect();
 
-        $motherOrgs = Organization::whereNull('college_id')
+        $motherOrgsQuery = Organization::whereNull('college_id')
             ->whereNull('mother_organization_id')
+            ->where('org_code', '!=', 'OSA')
             ->where(function ($q) use ($selectedSYId, $selectedSemId) {
-                $q->where('created_school_year_id', '<', $selectedSYId)
+                $q->whereNull('created_school_year_id')
                     ->orWhere(function ($q2) use ($selectedSYId, $selectedSemId) {
-                        $q2->where('created_school_year_id', $selectedSYId)
-                            ->where('created_semester_id', '<=', $selectedSemId);
+                        $q2->where('created_school_year_id', '<', $selectedSYId)
+                            ->orWhere(function ($q3) use ($selectedSYId, $selectedSemId) {
+                                $q3->where('created_school_year_id', $selectedSYId)
+                                    ->where('created_semester_id', '<=', $selectedSemId);
+                            });
                     });
-            })
-            ->get();
+            });
+
+        $motherOrgs = $motherOrgsQuery->get();
+        $motherOrgsCount = $motherOrgs->count();
 
         $motherOrgs->loadCount('childOrganizations');
 
         $motherOrgs->map(function ($org) use ($selectedSYId, $selectedSemId) {
-            $org->totalPayments = Payment::whereIn('organization_id', $org->childOrganizations->pluck('id'))
-                ->where('school_year_id', $selectedSYId)
-                ->where('semester_id', $selectedSemId)
-                ->sum('amount_due');
+            $org->totalPayments = DB::table('fee_payment')
+                ->join('payments', 'payments.id', '=', 'fee_payment.payment_id')
+                ->join('fees', 'fees.id', '=', 'fee_payment.fee_id')
+                ->where('fees.organization_id', $org->id)
+                ->where('payments.school_year_id', $selectedSYId)
+                ->where('payments.semester_id', $selectedSemId)
+                ->sum('fee_payment.amount_paid');
             return $org;
         });
 
-        $localOrgs = Organization::whereNotNull('college_id')
+        $localOrgsQuery = Organization::whereNotNull('college_id')
             ->whereNull('mother_organization_id')
             ->where('role', 'college_org')
             ->where(function ($q) use ($selectedSYId, $selectedSemId) {
-                $q->where('created_school_year_id', '<', $selectedSYId)
+                $q->whereNull('created_school_year_id')
                     ->orWhere(function ($q2) use ($selectedSYId, $selectedSemId) {
-                        $q2->where('created_school_year_id', $selectedSYId)
-                            ->where('created_semester_id', '<=', $selectedSemId);
+                        $q2->where('created_school_year_id', '<', $selectedSYId)
+                            ->orWhere(function ($q3) use ($selectedSYId, $selectedSemId) {
+                                $q3->where('created_school_year_id', $selectedSYId)
+                                    ->where('created_semester_id', '<=', $selectedSemId);
+                            });
                     });
-            })
-            ->with('college')
-            ->get();
+            });
+
+        $localOrgs = $localOrgsQuery->with('college')->get();
+        $localOrgsCount = $localOrgs->count();
 
         $localOrgs->map(function ($org) use ($selectedSYId, $selectedSemId) {
 
-            $org->totalPayments = Payment::where('organization_id', $org->id)
-                ->where('school_year_id', $selectedSYId)
-                ->where('semester_id', $selectedSemId)
-                ->sum('amount_due');
+            $org->totalPayments = DB::table('fee_payment')
+                ->join('payments', 'payments.id', '=', 'fee_payment.payment_id')
+                ->join('fees', 'fees.id', '=', 'fee_payment.fee_id')
+                ->where('fees.organization_id', $org->id)
+                ->where('payments.school_year_id', $selectedSYId)
+                ->where('payments.semester_id', $selectedSemId)
+                ->sum('fee_payment.amount_paid');
 
             return $org;
         });
 
-        $osaOrg = Organization::where('org_code', 'OSA')->first();
+        $osaOrg = Organization::firstOrCreate(
+            ['org_code' => 'OSA'],
+            ['name' => 'Office of Student Affairs', 'role' => 'university_org']
+        );
 
         $inheritedOsaFees = Fee::where('organization_id', $osaOrg->id) 
             ->where('fee_scope', 'university-wide') 
@@ -120,6 +140,15 @@ class OSAReportsController extends Controller
                 return $fee;
             });
 
+        $totalActiveFees = Fee::where('status', 'approved')
+            ->where(function ($q) use ($selectedSYId, $selectedSemId) {
+                $q->where('created_school_year_id', '<', $selectedSYId)
+                    ->orWhere(function ($q2) use ($selectedSYId, $selectedSemId) {
+                        $q2->where('created_school_year_id', $selectedSYId)
+                            ->where('created_semester_id', '<=', $selectedSemId);
+                    });
+            })
+            ->count();
 
         return view('osa.reports', compact(
             'colleges',
@@ -131,6 +160,9 @@ class OSAReportsController extends Controller
             'activeSem',
             'motherOrgs',
             'localOrgs',
+            'motherOrgsCount',
+            'localOrgsCount',
+            'totalActiveFees',
             'inheritedOsaFees'
         ));
     }
@@ -187,21 +219,40 @@ class OSAReportsController extends Controller
         $selectedSYId = $request->school_year_id;
         $selectedSemId = $request->semester_id;
 
-        $org->totalPayments = Payment::where('organization_id', $organizationId)
-            ->where('school_year_id', $selectedSYId)
-            ->where('semester_id', $selectedSemId)
-            ->sum('amount_due');
-
         $childOrgs = $org->childOrganizations()
             ->with('college')
             ->get()
-            ->map(function ($child) use ($selectedSYId, $selectedSemId) {
-                $child->totalPayments = Payment::where('organization_id', $child->id)
-                    ->where('school_year_id', $selectedSYId)
-                    ->where('semester_id', $selectedSemId)
-                    ->sum('amount_due');
+            ->map(function ($child) use ($selectedSYId, $selectedSemId, $org) {
+                $child->totalPayments = DB::table('fee_payment')
+                    ->join('payments', 'payments.id', '=', 'fee_payment.payment_id')
+                    ->join('fees', 'fees.id', '=', 'fee_payment.fee_id')
+                    ->where('payments.organization_id', $child->id)
+                    ->where('fees.organization_id', $org->id)
+                    ->where('payments.school_year_id', $selectedSYId)
+                    ->where('payments.semester_id', $selectedSemId)
+                    ->sum('fee_payment.amount_paid');
                 return $child;
             });
+
+        // For mother orgs with OSA inheritance, total should only include its own fees collected through child org payments.
+        if (is_null($org->mother_organization_id) && is_null($org->college_id) && $org->inherits_osa_fees) {
+            $childOrgIds = $childOrgs->pluck('id')->toArray();
+
+            $org->totalPayments = DB::table('fee_payment')
+                ->join('payments', 'payments.id', '=', 'fee_payment.payment_id')
+                ->join('fees', 'fees.id', '=', 'fee_payment.fee_id')
+                ->where('fees.organization_id', $org->id)
+                ->whereIn('payments.organization_id', $childOrgIds)
+                ->where('payments.school_year_id', $selectedSYId)
+                ->where('payments.semester_id', $selectedSemId)
+                ->sum('fee_payment.amount_paid');
+        } else {
+            $org->totalPayments = Payment::where('organization_id', $organizationId)
+                ->where('school_year_id', $selectedSYId)
+                ->where('semester_id', $selectedSemId)
+                ->sum('amount_due');
+        }
+
 
         if (is_null($org->college_id) && is_null($org->mother_organization_id)) {
 
@@ -218,7 +269,11 @@ class OSAReportsController extends Controller
                 ->get();
         }
 
-        $fees = Fee::where(function ($q) use ($org, $selectedSYId, $selectedSemId) {
+        $studentIds = $students->pluck('student_id')->unique()->toArray();
+
+        $isMotherOrg = is_null($org->mother_organization_id) && is_null($org->college_id);
+
+        $fees = Fee::where(function ($q) use ($org, $selectedSYId, $selectedSemId, $isMotherOrg) {
             $q->where('organization_id', $org->id)
                 ->where(function ($q2) use ($selectedSYId, $selectedSemId) {
                     $q2->where('created_school_year_id', '<', $selectedSYId)
@@ -228,7 +283,13 @@ class OSAReportsController extends Controller
                         });
                 });
 
-            if ($org->mother_organization_id || $org->inherits_osa_fees) {
+            $shouldIncludeOsa = !(
+                is_null($org->college_id)
+                && is_null($org->mother_organization_id)
+                && $org->inherits_osa_fees
+            );
+
+            if ($shouldIncludeOsa && ($org->mother_organization_id || $org->inherits_osa_fees)) {
                 $q->orWhere(function ($q4) use ($selectedSYId, $selectedSemId) {
                     $q4->where('fee_scope', 'university-wide')
                         ->where(function ($q5) use ($selectedSYId, $selectedSemId) {
@@ -241,9 +302,16 @@ class OSAReportsController extends Controller
                 });
             }
         })
-            ->withCount(['payments as payment_count' => function ($q) use ($selectedSYId, $selectedSemId) {
+            ->withCount(['payments as payment_count' => function ($q) use ($selectedSYId, $selectedSemId, $studentIds) {
                 $q->where('school_year_id', $selectedSYId)
                     ->where('semester_id', $selectedSemId);
+
+                if (!empty($studentIds)) {
+                    $q->whereIn('student_id', $studentIds);
+                } else {
+                    // avoid extra DB records in a scenario with no students in scope
+                    $q->whereRaw('0 = 1');
+                }
             }])
             ->get();
 

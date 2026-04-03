@@ -23,8 +23,9 @@ return new class extends Migration
                 ->cascadeOnDelete();
 
             $table->foreignId('fee_id')
+                ->nullable()
                 ->constrained()
-               ->nullOnDelete();
+                ->nullOnDelete();
 
             $table->decimal('amount', 10, 2);
 

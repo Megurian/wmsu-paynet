@@ -20,7 +20,10 @@ class OSARemittanceController extends Controller
         $currentSY = SchoolYear::latest()->first();
         $currentSem = Semester::latest()->first();
 
-        $osaOrg = Organization::where('org_code', 'OSA')->first();
+        $osaOrg = Organization::firstOrCreate(
+            ['org_code' => 'OSA'],
+            ['name' => 'Office of Student Affairs', 'role' => 'university_org']
+        );
 
         $childOrgs = Organization::where('role', 'college_org')
             ->whereNotNull('college_id')
@@ -125,7 +128,11 @@ class OSARemittanceController extends Controller
             'amount' => 'required|numeric|min:0.01',
         ]);
 
-        $osaOrg = Organization::where('org_code', 'OSA')->first();
+        $osaOrg = Organization::firstOrCreate(
+            ['org_code' => 'OSA'],
+            ['name' => 'Office of Student Affairs', 'role' => 'super_admin']
+        );
+
         $fee = Fee::where('organization_id', $osaOrg->id)
             ->where('status', 'approved')
             ->first();

@@ -28,6 +28,7 @@ class UniversityOrgRemittanceController extends Controller
             $fees = Fee::where('organization_id', $motherOrg->id)->get();
 
             $totalCollectedPerChild = 0;
+            $expectedPerChild = 0;
             $feeDetails = [];
 
             foreach ($fees as $fee) {
@@ -52,23 +53,31 @@ class UniversityOrgRemittanceController extends Controller
                 ];
 
                 $totalCollectedPerChild += $totalCollected;
+                $expectedPerChild += $totalCollected * ($fee->remittance_percent / 100);
             }
 
             $remitted = Remittance::where('from_organization_id', $child->id)->sum('amount');
 
-            $remaining = $totalCollectedPerChild - $remitted;
+            $remaining = max(0, $expectedPerChild - $remitted);
 
             $status = 'Pending';
-            if ($remaining <= 0) {
+            if ($remaining <= 0 && $remitted > 0) {
                 $status = 'Completed';
             } elseif ($remitted > 0) {
                 $status = 'Partial';
             }
 
+            // Pick the fee with the highest current expected remittance (based on collected amount)
+            $defaultFeeId = collect($feeDetails)
+                ->sortByDesc(fn($f) => $f['totalCollected'] * ($f['fee']->remittance_percent / 100))
+                ->first()['fee']->id ?? null;
+
             $remittanceData[] = [
                 'organization' => $child,
                 'feeDetails' => $feeDetails,
+                'defaultFeeId' => $defaultFeeId,
                 'totalCollected' => $totalCollectedPerChild,
+                'expected' => $expectedPerChild,
                 'remitted' => $remitted,
                 'remaining' => $remaining,
                 'status' => $status
@@ -77,15 +86,8 @@ class UniversityOrgRemittanceController extends Controller
 
         $totalCollected = collect($remittanceData)->sum('totalCollected');
         $totalRemitted = collect($remittanceData)->sum('remitted');
-        $remaining = $totalCollected - $totalRemitted;
-
-        $totalExpected = collect($remittanceData)->sum(function ($row) {
-            $sum = 0;
-            foreach ($row['feeDetails'] as $fee) {
-                $sum += $fee['totalCollected'] * ($fee['fee']->remittance_percent / 100);
-            }
-            return $sum;
-        });
+        $totalExpected = collect($remittanceData)->sum('expected');
+        $remaining = max(0, $totalExpected - $totalRemitted);
 
         $history = Remittance::with(['fromOrganization', 'confirmer'])
             ->where('to_organization_id', $motherOrg->id)
@@ -113,18 +115,19 @@ class UniversityOrgRemittanceController extends Controller
         $childOrg = Organization::findOrFail($request->from_organization_id);
 
         $fees = Fee::where('organization_id', $motherOrg->id)->get();
-        $totalCollectedPerChild = 0;
+        $expected = 0;
 
         foreach ($fees as $fee) {
-            $totalCollected = Payment::join('fee_payment', 'payments.id', '=', 'fee_payment.payment_id')
+            $totalCollectedForFee = Payment::join('fee_payment', 'payments.id', '=', 'fee_payment.payment_id')
                 ->where('payments.organization_id', $childOrg->id)
+                ->where('fee_payment.fee_id', $fee->id)
                 ->sum('fee_payment.amount_paid');
 
-            $totalCollectedPerChild += $totalCollected;
+            $expected += $totalCollectedForFee * ($fee->remittance_percent / 100);
         }
 
         $totalRemitted = Remittance::where('from_organization_id', $childOrg->id)->sum('amount');
-        $remaining = $totalCollectedPerChild - $totalRemitted;
+        $remaining = max(0, $expected - $totalRemitted);
 
         if ($request->amount > $remaining) {
             return back()->with('error', 'Amount cannot exceed remaining balance of ₱' . number_format($remaining, 2));
@@ -136,6 +139,7 @@ class UniversityOrgRemittanceController extends Controller
         Remittance::create([
             'from_organization_id' => $childOrg->id,
             'to_organization_id' => $motherOrg->id,
+            'fee_id' => $request->fee_id,
             'school_year_id' => $activeSY?->id,
             'semester_id' => $activeSem?->id,
             'amount' => $request->amount,

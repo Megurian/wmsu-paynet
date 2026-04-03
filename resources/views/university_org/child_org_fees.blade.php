@@ -9,11 +9,11 @@
 
     {{-- Back Button --}}
     <div>
-        <a href="{{ route('university_org.child_organizations', [
+        <a href="{{ route('university_org.reports', [
             'school_year_id' => $selectedSY->id,
             'semester_id' => $selectedSem->id
         ]) }}" class="text-blue-600 hover:underline text-sm font-medium">
-            ← Back to Child Organizations
+            ← Back to Reports
         </a>
     </div>
 
@@ -177,14 +177,30 @@
                 </div> {{-- Tab Navigation --}}
                 <div x-data="{ tab: 'paid' }" class="space-y-2">
                     <div class="flex border-b border-gray-300"> <button @click="tab = 'paid'" :class="tab === 'paid' ? 'border-b-2 border-blue-500 text-blue-500' : 'text-gray-600'" class="px-4 py-2 text-sm font-medium focus:outline-none"> Paid Students ({{ $fee->paid_students->count() }}) </button> <button @click="tab = 'pending'" :class="tab === 'pending' ? 'border-b-2 border-red-500 text-red-500' : 'text-gray-600'" class="px-4 py-2 text-sm font-medium focus:outline-none"> Pending Students ({{ $fee->pending_students->count() }}) </button> </div> {{-- Paid Students --}}
-                    <div x-show="tab === 'paid'" class="space-y-2 p-2 bg-green-50 rounded" x-cloak> @if($fee->paid_students->isEmpty()) <p class="text-xs text-gray-500">No students have paid yet.</p> @else @foreach($fee->paid_students as $student) @php $payment = $student->payments() ->where('organization_id', $org->id) ->whereHas('fees', fn($q) => $q->where('fee_id', $fee->id)) ->first(); $enrollment = $student->enrollments() ->where('college_id', $org->college_id) ->where('school_year_id', $selectedSY->id) ->where('semester_id', $selectedSem->id) ->first(); @endphp <div class="border rounded p-2 bg-white shadow-sm text-sm flex flex-col md:flex-row md:justify-between md:items-center">
+                    <div x-show="tab === 'paid'" class="space-y-2 p-2 bg-green-50 rounded" x-cloak> @if($fee->paid_students->isEmpty()) <p class="text-xs text-gray-500">No students have paid yet.</p> @else @foreach($fee->paid_students as $student) @php
+    $payment = $student->payments()
+        ->with('fees')
+        ->where('organization_id', $org->id)
+        ->whereHas('fees', fn($q) => $q->where('fee_id', $fee->id))
+        ->first();
+
+    $enrollment = $student->enrollments()
+        ->where('college_id', $org->college_id)
+        ->where('school_year_id', $selectedSY->id)
+        ->where('semester_id', $selectedSem->id)
+        ->first();
+@endphp <div class="border rounded p-2 bg-white shadow-sm text-sm flex flex-col md:flex-row md:justify-between md:items-center">
                             <div class="space-y-1">
                                 <p class="font-medium">{{ $student->first_name }} {{ $student->last_name }}</p>
                                 <p class="text-gray-500 text-xs">ID: {{ $student->student_id }}</p>
                                 <p class="text-gray-500 text-xs"> {{ $enrollment?->course?->name ?? '-' }} {{ $enrollment?->yearLevel?->name ?? '-' }}{{ $enrollment?->section?->name ?? '-' }}</p>
                             </div>
+                            @php
+                                $feePayment = $payment?->fees->firstWhere('id', $fee->id);
+                                $feeAmountPaid = $feePayment?->pivot->amount_paid ?? 0;
+                            @endphp
                             <div class="text-right space-y-1">
-                                <p class="text-gray-700 font-medium">PHP {{ number_format($payment?->amount_due ?? 0, 2) }}</p>
+                                <p class="text-gray-700 font-medium">PHP {{ number_format($feeAmountPaid, 2) }}</p>
                                 <p class="text-xs text-green-700">Status: Paid</p>
                                 <p class="text-xs text-gray-500">Transaction ID: {{ $payment?->transaction_id ?? '-' }}</p>
                                 <p class="text-xs text-gray-500">Date: {{ $payment?->created_at?->format('M d, Y') ?? '-' }}</p>
