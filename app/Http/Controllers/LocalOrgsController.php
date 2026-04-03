@@ -49,6 +49,9 @@ class LocalOrgsController extends Controller
                 ? $request->file('logo')->store('org_logos', 'public')
                 : null;
 
+                $activeSY = \App\Models\SchoolYear::where('is_active', true)->first();
+                $activeSem = \App\Models\Semester::where('is_active', true)->first();
+
             $org = Organization::create([
                 'name' => $request->name,
                 'org_code' => $request->org_code,
@@ -57,6 +60,8 @@ class LocalOrgsController extends Controller
                 'mother_organization_id' => null,
                 'status' => 'pending',
                 'logo' => $logoPath,
+                'created_school_year_id' => $activeSY?->id,
+                    'created_semester_id' => $activeSem?->id,
             ]);
 
             User::create([

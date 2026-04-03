@@ -199,16 +199,20 @@ public function reAddOldStudent(Request $request, $studentId)
 
     // Only advance the student if they are still NOT_ENROLLED — never downgrade
     if (!$enrollment->exists || $enrollment->status === 'NOT_ENROLLED') {
-        $enrollment->fill([
-            'college_id'    => $collegeId,
-            'adviser_id'    => $adviserId,
-            'status'        => 'FOR_PAYMENT_VALIDATION',
-            'advised_at'    => now(),
-            'course_id'     => Auth::user()->course_id,
-            'year_level_id' => $request->year_level_id ?? $prev?->year_level_id,
-            'section_id'    => $request->section_id ?? $prev?->section_id,
-        ]);
-        $enrollment->save();
+            $yearLevelId = $request->year_level_id ?? $enrollment->year_level_id ?? $prev?->year_level_id;
+            $sectionId = $request->section_id ?? $enrollment->section_id ?? $prev?->section_id;
+
+            $enrollment->fill([
+                'college_id'    => $collegeId,
+                'adviser_id'    => $adviserId,
+                'status'        => 'FOR_PAYMENT_VALIDATION',
+                'advised_at'    => now(),
+                'course_id'     => Auth::user()->course_id,
+                'year_level_id' => $yearLevelId,
+                'section_id'    => $sectionId,
+            ]);
+
+            $enrollment->save();
     }
 
     return back()->with('status', 'Student added successfully. Student may now proceed to payment');
@@ -222,12 +226,11 @@ public function reAddBulk(Request $request)
     ]);
 
     foreach ($request->students as $studentId) {
-        $this->reAddOldStudent($request, $studentId); 
+        $this->reAddOldStudent($request, $studentId);
     }
 
     return back()->with('status', count($request->students) . ' student(s) added successfully. They may now proceed to payment.');
 }
 
-
-
 }
+

@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 use App\Models\Fee;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+
+use App\Models\SchoolYear;
+use App\Models\Semester;
 class CollegeFeeController extends Controller
 {
     public function index()
@@ -68,6 +71,9 @@ class CollegeFeeController extends Controller
             'recurrence' => 'required|in:one_time,semestrial,annual',
         ]);
 
+        $activeSY = SchoolYear::where('is_active', true)->first();
+        $activeSem = Semester::where('is_active', true)->first();
+
         Fee::create([
             ...$data,
             'recurrence' => $data['recurrence'] ?? 'one_time',
@@ -76,7 +82,10 @@ class CollegeFeeController extends Controller
             'user_id' => auth()->id(),
             'approval_level' => 'dean',
             'status' => 'pending',
+            'created_school_year_id' => $activeSY?->id,
+        'created_semester_id' => $activeSem?->id,
         ]);
+
 
         return redirect()->route('college.fees')
             ->with('success', 'Fee submitted for dean approval.');

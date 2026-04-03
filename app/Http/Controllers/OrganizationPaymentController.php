@@ -307,32 +307,58 @@ class OrganizationPaymentController extends Controller
 
         $payments = $paymentsQuery->latest()->get();
 
-        $studentsWithPayments = $students->map(function ($student) use ($payments) {
+        $studentsWithPayments = [];
+
+        foreach ($students as $student) {
+            $enrollment = $student->enrollments->first();
+            if (!$enrollment) continue;
+
             $studentPayments = $payments->where('student_id', $student->id);
-            return [
-                'student' => $student,
-                'payments' => $studentPayments,
-                'has_paid' => $studentPayments->isNotEmpty(),
-                'total_paid' => $studentPayments->sum('amount_due'),
-            ];
-        });
+
+            foreach ($studentPayments as $payment) {
+                foreach ($payment->fees as $fee) {
+                    $studentsWithPayments[] = [
+                        'student' => $student,
+                        'enrollment' => $enrollment,
+                        'fee' => $fee,
+                        'status' => 'Paid',
+                        'amount' => $payment->pivot->amount_paid ?? $fee->amount,
+                        'payment_date' => $payment->created_at,
+                    ];
+                }
+            }
+
+            $organizationIds = [$organization->id];
+            if ($organization->mother_organization_id) $organizationIds[] = $organization->mother_organization_id;
+            if ($organization->motherOrganization?->inherits_osa_fees) {
+                $osaId = \App\Models\Organization::where('org_code', 'OSA')->value('id');
+                if ($osaId) $organizationIds[] = $osaId;
+            }
+
+            $allFees = Fee::where('status', 'approved')->whereIn('organization_id', $organizationIds)->get();
+            $paidFeeIds = $studentPayments->pluck('fees.*.id')->flatten()->unique()->toArray();
+            $pendingFees = $allFees->whereNotIn('id', $paidFeeIds)->values();
+
+            foreach ($pendingFees as $fee) {
+                $studentsWithPayments[] = [
+                    'student' => $student,
+                    'enrollment' => $enrollment,
+                    'fee' => $fee,
+                    'status' => 'Pending',
+                    'amount' => 0,
+                    'payment_date' => null,
+                ];
+            }
+        }
 
         if ($request->filled('payment_status')) {
             $status = $request->input('payment_status');
-
             if ($status === 'paid') {
-                $studentsWithPayments = $studentsWithPayments->filter(function ($item) {
-                    return $item['has_paid'] === true;
-                });
+                $studentsWithPayments = collect($studentsWithPayments)->filter(fn($s) => $s['status'] === 'Paid')->values();
             }
-
             if ($status === 'pending') {
-                $studentsWithPayments = $studentsWithPayments->filter(function ($item) {
-                    return $item['has_paid'] === false;
-                });
+                $studentsWithPayments = collect($studentsWithPayments)->filter(fn($s) => $s['status'] === 'Pending')->values();
             }
-
-            $studentsWithPayments = $studentsWithPayments->values();
         }
 
         $totalTransactions = $payments->count();
@@ -365,7 +391,18 @@ class OrganizationPaymentController extends Controller
             if ($osaId) $organizationIds[] = $osaId;
         }
 
-        $fees = Fee::where('status', 'approved')->whereIn('organization_id', $organizationIds)->orderBy('created_at', 'desc')->get();
+        $fees = Fee::where('status', 'approved')
+            ->whereIn('organization_id', $organizationIds)
+            ->where(function ($q) use ($schoolYearId, $semesterId) {
+                $q->whereNull('created_school_year_id')
+                    ->orWhere('created_school_year_id', '<=', $schoolYearId);
+            })
+            ->where(function ($q) use ($schoolYearId, $semesterId) {
+                $q->whereNull('created_semester_id')
+                    ->orWhere('created_semester_id', '<=', $semesterId);
+            })
+            ->orderBy('created_at', 'desc')
+            ->get();
         $courses = \App\Models\Course::where('college_id', $collegeId)->get();
         $yearLevels = \App\Models\YearLevel::where('college_id', $collegeId)->get();
         $sections = \App\Models\Section::where('college_id', $collegeId)->get();
