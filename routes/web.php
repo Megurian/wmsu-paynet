@@ -3,13 +3,18 @@
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\OSASetupController;
 use App\Http\Controllers\OSACollegeController;
+use App\Http\Controllers\OSADashController;
+use App\Http\Controllers\OSARemittanceController;
 use App\Http\Controllers\OSAOrganizationsController;
 use App\Http\Controllers\CollegeAcademicController;
 use App\Http\Controllers\CollegeStudentController;
+use App\Http\Controllers\CollegeDashboardController;
 use App\Http\Controllers\CollegeHistoryController;
 use App\Http\Controllers\ValidateStudentsController;
 use App\Http\Controllers\UniversityOrgFeesController;
+use App\Http\Controllers\UniversityOrgReportsController;
 use App\Http\Controllers\UniversityOrgOfficesController;
+use App\Http\Controllers\UniversityOrgRemittanceController;
 use App\Http\Controllers\CollegeUserController;
 use App\Http\Middleware\CheckActiveSchoolYear;
 use App\Http\Controllers\AdviserStudentUploadController;
@@ -20,10 +25,11 @@ use App\Http\Controllers\LocalOrgsController;
 use App\Http\Controllers\CollegeOrgApprovalController;
 use App\Http\Controllers\OrganizationPaymentController;
 use App\Http\Controllers\DocumentController;
-
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use App\Http\Controllers\OSAReportsController;
+use App\Http\Controllers\UniversityOrgDashboardController;
 
 Route::get('/test-route', function () {
     return 'Laravel route works!';
@@ -56,9 +62,9 @@ Route::middleware(['auth', 'role:osa'])->group(function () {
 });
 
 Route::middleware(['auth', 'role:osa', CheckActiveSchoolYear::class])->group(function () {
-    Route::get('/osa/dashboard', function () {
-        return view('osa.dashboard');
-    })->name('osa.dashboard');
+    Route::get('/osa/dashboard', [OSADashController::class, 'index'])
+    ->name('osa.dashboard');    
+
     Route::get('/osa/fees', [App\Http\Controllers\OSAFeesController::class, 'index'])->name('osa.fees');
     Route::get('/osa/fees/create', [App\Http\Controllers\OSAFeesController::class, 'create'])->name('osa.fees.create');
     Route::post('/osa/fees', [App\Http\Controllers\OSAFeesController::class, 'store'])->name('osa.fees.store');
@@ -94,24 +100,44 @@ Route::middleware(['auth', 'role:osa', CheckActiveSchoolYear::class])->group(fun
 
     Route::get('/osa/college/{id}', [OSACollegeController::class, 'show'])->name('osa.college.details');
     Route::delete('/osa/college/{id}', [OSACollegeController::class, 'destroy'])->name('osa.college.destroy');
+  Route::get('/osa/reports', [OSAReportsController::class, 'index'])
+        ->name('osa.reports');
+        Route::get('/osa/reports/college/{college}', [OSAReportsController::class, 'collegeDetails'])
+    ->name('osa.reports.college.details');
+// Route::get('/osa/reports/organization/{organization}', [OSAReportsController::class, 'organizationDetails'])
+//     ->name('osa.organization.details');
+
+    Route::get('/osa/reports/organization/{organization}',  [OSAReportsController::class, 'organizationDetails'] )->name('osa.reports.organization.details');
+
+   Route::get('/osa/remittance', [OSARemittanceController::class,'index'])
+    ->name('osa.remittance');
+
+Route::post('/osa/remittance/confirm',
+    [OSARemittanceController::class,'confirm'])
+    ->name('osa.remittance.confirm');
 });
 
 Route::middleware(['auth', 'role:university_org'])->group(function () {
-    Route::get('/university_org/dashboard', function () {
-        return view('university_org.dashboard');
-    })->name('university_org.dashboard');
+    // Route::get('/university_org/dashboard', function () {
+    //     return view('university_org.dashboard');
+    // })->name('university_org.dashboard');
 
+    Route::get('/university_org/dashboard', [UniversityOrgDashboardController::class, 'index'])
+    ->name('university_org.dashboard');
+    
     Route::get('/university_org/offices', function () {
         return redirect()->route('university_org.offices.index');
     })->name('university_org.offices');
 
-    Route::get('/university_org/remittance', function () {
-        return view('university_org.remittance');
-    })->name('university_org.remittance');
+    Route::get('/university_org/reports', [UniversityOrgReportsController::class, 'paymentCollectionReport'])
+    ->name('university_org.reports');
 
-    Route::get('/university_org/reports', function () {
-        return view('university_org.reports');
-    })->name('university_org.reports');
+    
+    Route::get('/university_org/remittance',[UniversityOrgRemittanceController::class,'index']
+    )->name('university_org.remittance');
+
+    Route::post('/university_org/remittance/confirm',[UniversityOrgRemittanceController::class,'confirm']
+    )->name('university_org.remittance.confirm');
 
     Route::get('/university-org/fees', [UniversityOrgFeesController::class, 'index'])->name('university_org.fees');
     Route::get('/university-org/fees/create', [UniversityOrgFeesController::class, 'create'])->name('university_org.fees.create');
@@ -135,12 +161,21 @@ Route::middleware(['auth', 'role:university_org'])->group(function () {
     Route::post('/university-org/documents', [DocumentController::class, 'store'])->name('university_org.documents.store')->defaults('role', 'university_org');
     Route::get('/university-org/documents/{document}/preview', [DocumentController::class, 'preview'])->name('university_org.documents.preview');
     Route::delete('/university-org/documents/{document}', [DocumentController::class, 'destroy'])->name('university_org.documents.destroy');
+
+    Route::get('/university-org/child-org-fees', [UniversityOrgReportsController::class, 'childOrgFees'])
+    ->name('university_org.child_org_fees');
+
+  Route::post('/university-org/reports/generate', [UniversityOrgReportsController::class, 'generateReport'])
+    ->name('university_org.reports.generate');
+    
 });
 
 Route::middleware(['auth', 'role:college_org'])->group(function () {
     Route::get('/college_org/dashboard', function () {
         return view('college_org.dashboard');
     })->name('college_org.dashboard');
+
+    
 
     // Use controller so we can display inherited fees from the mother organization
     Route::get('/college_org/fees', [App\Http\Controllers\CollegeOrgFeesController::class, 'index'])->name('college_org.fees');
@@ -161,21 +196,19 @@ Route::middleware(['auth', 'role:college_org'])->group(function () {
         '/college_org/records',
         [OrganizationPaymentController::class, 'records']
     )->name('college_org.records');
+    // routes/web.php
+    Route::get('college_org/search-students', [OrganizationPaymentController::class, 'searchStudents'])->name('college_org.search_students');
     // Route::get('/college/students/search', [OrganizationPaymentController::class, 'searchStudents'])
     //  ->name('college.students.search');
-
+Route::get('/college-org/generate-report', 
+    [OrganizationPaymentController::class, 'generateReport']
+)->name('college_org.generate_report');
     Route::get('/college/students/search', [OrganizationPaymentController::class,'searchStudents']);
    Route::get('/college_org/students/{student}/fees',
     [OrganizationPaymentController::class,'getStudentFees'])
     ->name('college_org.students.fees');
     Route::post('/college_org/payment/collect', [OrganizationPaymentController::class,'collectPayment']);
-    // receipt route is disabled while email receipts are being implemented
-    // Route::get(
-    // '/college_org/receipt/pdf/{payment}',
-    // [OrganizationPaymentController::class, 'downloadReceipt']
-    //)->name('college_org.payment.receipt');
-
-    // Documents routes
+    
     Route::get('/college_org/documents', [DocumentController::class, 'index'])->name('college_org.documents.index')->defaults('role', 'college_org');
     Route::post('/college_org/documents', [DocumentController::class, 'store'])->name('college_org.documents.store')->defaults('role', 'college_org');
     Route::get('/college_org/documents/{document}/preview', [DocumentController::class, 'preview'])->name('college_org.documents.preview');
@@ -214,10 +247,12 @@ Route::middleware(['auth','role:college'])->group(function () {
 });
 
 Route::middleware(['auth', 'role:treasurer,college,student_coordinator,adviser,assessor'])->group(function () {
-    Route::get('/college/dashboard', function () {
-        return view('college.dashboard');
-    })->name('college.dashboard');
+    // Route::get('/college/dashboard', function () {
+    //     return view('college.dashboard');
+    // })->name('college.dashboard');
 
+    Route::get('/college/dashboard', [CollegeDashboardController::class, 'index'])
+        ->name('college.dashboard');
     Route::get('/college/students', function () {
         return view('college.students');
     })->name('college.students');
@@ -302,7 +337,10 @@ Route::middleware(['auth', 'role:treasurer,college,student_coordinator,adviser,a
     
     Route::get('/college/students/{student}/history', [CollegeHistoryController::class, 'showStudentHistory'])
         ->name('college.students.history');
-       
+
+    Route::get('/college/history/fees', [CollegeHistoryController::class, 'getFeesByOrg']);
+       Route::get('/college/history/report', [CollegeHistoryController::class, 'generateReport'])
+    ->name('college.history.report');
 });
 
     Route::middleware(['auth','role:assessor,student_coordinator'])->group(function(){

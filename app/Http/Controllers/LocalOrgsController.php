@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Fee;
 
+use App\Models\Payment;
+
 class LocalOrgsController extends Controller
 {
     public function index()
@@ -47,6 +49,9 @@ class LocalOrgsController extends Controller
                 ? $request->file('logo')->store('org_logos', 'public')
                 : null;
 
+                $activeSY = \App\Models\SchoolYear::where('is_active', true)->first();
+                $activeSem = \App\Models\Semester::where('is_active', true)->first();
+
             $org = Organization::create([
                 'name' => $request->name,
                 'org_code' => $request->org_code,
@@ -55,6 +60,8 @@ class LocalOrgsController extends Controller
                 'mother_organization_id' => null,
                 'status' => 'pending',
                 'logo' => $logoPath,
+                'created_school_year_id' => $activeSY?->id,
+                    'created_semester_id' => $activeSem?->id,
             ]);
 
             User::create([
@@ -92,5 +99,24 @@ class LocalOrgsController extends Controller
             return redirect()->route('college.local_organizations')->with('status', 'Submission canceled successfully.');
         }
         return redirect()->back()->with('error', 'Cannot cancel this submission.');
+    }
+
+
+    public function records(Organization $org)
+    {
+        $payments = Payment::with([
+            'student',
+            'enrollment.course',
+            'enrollment.yearLevel',
+            'enrollment.section',
+            'fees'
+        ])
+            ->whereHas('fees', function ($query) use ($org) {
+                $query->where('organization_id', $org->id);
+            })
+            ->latest()
+            ->get();
+
+        return view('college.local_organizations.college_org.records', compact('payments', 'org'));
     }
 }

@@ -28,8 +28,8 @@ class StudentsImport implements ToCollection, WithHeadingRow
         $collegeId      = $adviser->college_id;
         $adviserCourseId = $adviser->course_id;
 
-        $activeSY  = SchoolYear::where('is_active', true)->first();
-        $activeSem = Semester::where('is_active', true)->first();
+        $activeSY  = SchoolYear::where('is_active', true)->first() ?? SchoolYear::latest()->first();
+        $activeSem = Semester::where('is_active', true)->first() ?? Semester::latest()->first();
 
         $years = YearLevel::where('college_id', $collegeId)
             ->pluck('id', 'name')
@@ -86,8 +86,40 @@ class StudentsImport implements ToCollection, WithHeadingRow
             $wasNew ? $this->created++ : $this->updated++;
 
             $courseId  = $adviserCourseId;
-            $yearId    = $years[strtoupper($row['year_level'] ?? '')] ?? null;
-            $sectionId = $sections[strtoupper($row['section'] ?? '')] ?? null;
+
+            $yearValue = trim((string) ($row['year_level'] ?? ''));
+            $sectionValue = trim((string) ($row['section'] ?? ''));
+
+            $yearId = $years[strtoupper($yearValue)] ?? null;
+            $sectionId = $sections[strtoupper($sectionValue)] ?? null;
+
+            // Fallback: allow numeric IDs or match by exact name (case-insensitive)
+            if (!$yearId && is_numeric($yearValue)) {
+                // The template may use plain numbers (e.g. "1"), while the database stores names like "1st Year"
+                // Prefer matching on name prefixes like "1" -> "1st Year" when available.
+                $yearId = YearLevel::where('college_id', $collegeId)
+                    ->where(function ($q) use ($yearValue) {
+                        $q->where('id', (int)$yearValue)
+                          ->orWhereRaw('LOWER(name) LIKE ?', [strtolower($yearValue) . '%']);
+                    })
+                    ->value('id');
+            }
+
+            if (!$yearId && $yearValue !== '') {
+                $yearId = YearLevel::where('college_id', $collegeId)
+                    ->whereRaw('LOWER(name) = ?', [strtolower($yearValue)])
+                    ->value('id');
+            }
+
+            if (!$sectionId && is_numeric($sectionValue)) {
+                $sectionId = Section::find((int)$sectionValue)?->id;
+            }
+
+            if (!$sectionId && $sectionValue !== '') {
+                $sectionId = Section::where('college_id', $collegeId)
+                    ->whereRaw('LOWER(name) = ?', [strtolower($sectionValue)])
+                    ->value('id');
+            }
 
             if (!$yearId || !$sectionId) {
                 $prev = StudentEnrollment::where('student_id', $student->id)

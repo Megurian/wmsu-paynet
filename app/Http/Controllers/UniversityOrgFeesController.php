@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Fee;
 use App\Models\Document;
 use App\Models\Organization;
+use App\Models\SchoolYear;
+use App\Models\Semester;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -231,7 +233,8 @@ class UniversityOrgFeesController extends Controller
             return redirect()->route('university_org.fees')
                 ->with('error', 'Organization not found.');
         }
-
+        $activeSY = SchoolYear::where('is_active', true)->first();
+        $activeSem = Semester::where('is_active', true)->first();
         $data = [
             'organization_id' => $organization->id,
             'user_id' => Auth::id(),
@@ -245,6 +248,9 @@ class UniversityOrgFeesController extends Controller
             'fee_scope' => 'university-wide',
             'status' => 'pending',
         ];
+
+        $data['created_school_year_id'] = $activeSY->id;
+        $data['created_semester_id'] = $activeSem->id;
 
         // ensure resolution file is required if mandatory on server-side too (bare validation requested)
         if ($request->requirement_level === 'mandatory') {

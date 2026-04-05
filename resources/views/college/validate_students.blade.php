@@ -154,7 +154,7 @@
                         <span class="text-indigo-600 font-semibold text-sm">Assessment Completed</span>
 
                     @elseif(!$isAdvised)
-                        <span class="text-gray-400 italic text-sm">Waiting for adviser</span>
+                        <span class="text-gray-400 italic text-sm">To be Advised</span>
 
                     @elseif(!$isCleared)
                         @if(auth()->user()->isStudentCoordinator())

@@ -71,10 +71,12 @@ class OSAOrganizationsController extends Controller
             DB::transaction(function () use ($request) {
                 $logoPath = $request->file('logo')?->store('organizations', 'public');
 
-                $status = null; 
+                $status = null;
                 if ($request->role === 'college_org' && $request->college_id) {
-                    $status = 'pending'; 
+                    $status = 'pending';
                 }
+                $activeSY = \App\Models\SchoolYear::where('is_active', true)->first();
+                $activeSem = \App\Models\Semester::where('is_active', true)->first();
                 $organization = Organization::create([
                     'name' => $request->name,
                     'org_code' => strtoupper($request->org_code),
@@ -83,6 +85,8 @@ class OSAOrganizationsController extends Controller
                     'logo' => $logoPath,
                     'status' => $status,
                     'mother_organization_id' => $request->mother_organization_id ?? null,
+                    'created_school_year_id' => $activeSY?->id,
+                    'created_semester_id' => $activeSem?->id,
                 ]);
 
                 User::create([
@@ -109,11 +113,10 @@ class OSAOrganizationsController extends Controller
 
         if (!$organization) {
             return redirect()->route('osa.organizations')
-                            ->withErrors('Organization not found.');
+                ->withErrors('Organization not found.');
         }
 
         return view('osa.organization-details', ['orgDetail' => $organization]);
-
     }
 
 
@@ -139,11 +142,10 @@ class OSAOrganizationsController extends Controller
             'inherits_osa_fees' => !$organization->inherits_osa_fees
         ]);
 
-        $message = $organization->inherits_osa_fees 
+        $message = $organization->inherits_osa_fees
             ? 'Organization now inherits OSA fees.'
             : 'Organization no longer inherits OSA fees.';
 
         return redirect()->route('osa.organizations')->with('status', $message);
     }
-
 }
