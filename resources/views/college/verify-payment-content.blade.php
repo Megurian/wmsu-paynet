@@ -43,6 +43,34 @@
             <div class="mt-3 pt-3 border-t border-gray-300 text-sm">
                 <span :class="allMandatoryFeesPaid ? 'text-green-600 font-semibold' : 'text-yellow-600 font-semibold'" x-text="allMandatoryFeesPaid ? '✓ All mandatory fees paid' : 'Some mandatory fees pending'"></span>
             </div>
+            <template x-if="financialStatus">
+                <div class="mt-3 rounded-lg border px-3 py-2 text-sm" :class="{
+                    'border-gray-200 bg-gray-50 text-gray-800': financialStatus === 'UNPAID',
+                    'border-green-200 bg-green-50 text-green-800': financialStatus === 'PAID',
+                    'border-blue-200 bg-blue-50 text-blue-800': financialStatus === 'DEFERRED',
+                    'border-amber-200 bg-amber-50 text-amber-800': financialStatus === 'PARTIALLY_PAID',
+                    'border-red-200 bg-red-50 text-red-800': financialStatus === 'DEFAULT' || financialStatus === 'BAD_DEBT'
+                }">
+                    <p class="font-semibold">Financial Status: <span x-text="financialStatus"></span></p>
+                    <template x-if="financialStatus === 'DEFERRED' && activePromissoryNote">
+                        <p class="mt-1 text-xs">
+                            Active PN #<span x-text="activePromissoryNote.id"></span> due
+                            <span x-text="activePromissoryNote.due_date || '—'"></span>,
+                            remaining balance <span x-text="`₱ ${parseFloat(activePromissoryNote.remaining_balance || 0).toFixed(2)}`"></span>
+                        </p>
+                    </template>
+                </div>
+            </template>
+
+            <template x-if="canIssuePromissoryNote">
+                <div class="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-3 text-sm text-red-900">
+                    <p class="font-semibold">Promissory note available</p>
+                    <p class="mt-1 text-red-800">Create a PN for the unpaid mandatory fees before clearing this student.</p>
+                    <button type="button" @click="openPromissoryPreview()" class="mt-3 rounded-lg bg-red-800 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700">
+                        Create Promissory Note
+                    </button>
+                </div>
+            </template>
         </div>
     </div>
 

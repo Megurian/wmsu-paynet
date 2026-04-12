@@ -4,13 +4,18 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Carbon;
 use App\Models\Student;
 use App\Models\StudentEnrollment;
+use App\Models\PromissoryNote;
 use App\Models\SchoolYear;
 use App\Models\Semester;
 use App\Models\Course;
 use App\Models\YearLevel;
 use App\Models\Section;
+use App\Services\PromissoryNoteIssuanceService;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\TemplateExport;
 use App\Imports\StudentsImport;
@@ -86,6 +91,11 @@ class ValidateStudentsController extends Controller
             $latest = $student->enrollments->first() ?? null;
             $student->displayEnrollment = $latest ?? $previousEnrollments[$student->id] ?? null;
             $student->isAdvised = $student->displayEnrollment && $student->displayEnrollment->status !== 'NOT_ENROLLED';
+
+            if ($student->displayEnrollment) {
+                $student->displayEnrollment->financial_status = $student->displayEnrollment->financial_status
+                    ?: $student->displayEnrollment->computeFinancialStatus();
+            }
         }
 
         // sort the paginated collection so advised students appear first
@@ -324,51 +334,323 @@ class ValidateStudentsController extends Controller
         $activeSY = SchoolYear::where('is_active', true)->first();
         $activeSem = Semester::where('is_active', true)->first();
 
-        $enrollment = StudentEnrollment::where([
-            'student_id' => $student->id,
-            'school_year_id' => $activeSY->id,
-            'semester_id' => $activeSem->id,
-        ])->firstOrFail();
+        try {
+            $clearanceAudit = null;
 
-        $enrollment->update([
-            'cleared_for_enrollment' => true,
-            'status' => 'PAID',
-            'validated_by' => Auth::id(),
-            'validated_at' => now(),
-        ]);
+            DB::transaction(function () use ($student, $activeSY, $activeSem, &$clearanceAudit) {
+                $enrollment = StudentEnrollment::where([
+                    'student_id' => $student->id,
+                    'school_year_id' => $activeSY->id,
+                    'semester_id' => $activeSem->id,
+                ])->lockForUpdate()->firstOrFail();
+
+                $context = $this->resolveFinancialContext($student, $enrollment);
+
+                if (! $context['can_clear']) {
+                    throw new \RuntimeException('financial_not_clearable');
+                }
+
+                $enrollment->update([
+                    'cleared_for_enrollment' => true,
+                    'financial_status' => $context['workflow_financial_status'] ?? $context['financial_status'],
+                    'validated_by' => Auth::id(),
+                    'validated_at' => now(),
+                ]);
+
+                $clearanceAudit = [
+                    'student_id' => $student->id,
+                    'enrollment_id' => $enrollment->id,
+                    'validated_by' => Auth::id(),
+                    'financial_status' => $context['workflow_financial_status'] ?? $context['financial_status'],
+                ];
+            });
+
+            if ($clearanceAudit) {
+                Log::info('Student cleared for enrollment', $clearanceAudit);
+            }
+        } catch (\RuntimeException $e) {
+            if ($e->getMessage() === 'financial_not_clearable') {
+                return back()->withErrors([
+                    'financial_status' => 'Student is not financially clearable yet.'
+                ]);
+            }
+
+            throw $e;
+        }
 
         return back()->with('status', 'Student cleared for enrollment.');
     }
 
+    public function issuePromissoryNote(Request $request, Student $student, PromissoryNoteIssuanceService $issuanceService)
+    {
+        abort_unless(Auth::user()->isStudentCoordinator(), 403);
+
+        $activeSY = SchoolYear::where('is_active', true)->first();
+        $activeSem = Semester::where('is_active', true)->first();
+
+        if (! $activeSY || ! $activeSem) {
+            return back()->withErrors([
+                'promissory_note' => 'No active academic period is available for PN issuance.',
+            ]);
+        }
+
+        $activeEnrollment = $this->getActiveEnrollment($student);
+
+        if (! $activeEnrollment) {
+            return back()->withErrors([
+                'promissory_note' => 'No active enrollment was found for this student.',
+            ]);
+        }
+
+        $dueDateCeiling = $this->resolvePromissoryNoteDueDateCeiling($activeEnrollment);
+        $activeSemester = Semester::where('is_active', true)->first();
+
+        $validated = $request->validate([
+            'due_date' => ['required', 'date', 'after:today'],
+            'notes' => ['nullable', 'string', 'max:1000'],
+            'selected_fee_ids' => ['required', 'array', 'min:1'],
+            'selected_fee_ids.*' => ['integer'],
+        ]);
+
+        $requestedDueDate = Carbon::parse($validated['due_date']);
+
+        // Validate that due date is within the active semester
+        if ($activeSemester) {
+            $semesterStart = $activeSemester->actualStartDate() ?? $activeSemester->plannedStartDate();
+            $semesterEnd = $activeSemester->effectiveEndDate();
+
+            if ($semesterStart && $requestedDueDate->lessThan($semesterStart)) {
+                return back()->withErrors([
+                    'promissory_note' => 'Due date must be on or after ' . $semesterStart->toDateString() . ' (semester start).',
+                ]);
+            }
+
+            if ($semesterEnd && $requestedDueDate->greaterThan($semesterEnd)) {
+                return back()->withErrors([
+                    'promissory_note' => 'Due date must be on or before ' . $semesterEnd->toDateString() . ' (semester end).',
+                ]);
+            }
+        } elseif ($dueDateCeiling && $requestedDueDate->greaterThan($dueDateCeiling)) {
+            return back()->withErrors([
+                'promissory_note' => 'Due date must be on or before ' . $dueDateCeiling->toDateString() . '.',
+            ]);
+        }
+
+        $context = $this->resolveFinancialContext($student);
+
+        if (! ($context['can_issue_promissory_note'] ?? false)) {
+            return back()->withErrors([
+                'promissory_note' => 'This student is not eligible for a new promissory note.',
+            ]);
+        }
+
+        try {
+            $note = DB::transaction(function () use ($student, $issuanceService, $context, $validated, $requestedDueDate) {
+                $enrollment = StudentEnrollment::where([
+                    'student_id' => $student->id,
+                    'school_year_id' => SchoolYear::where('is_active', true)->value('id'),
+                    'semester_id' => Semester::where('is_active', true)->value('id'),
+                ])->lockForUpdate()->firstOrFail();
+
+                abort_unless(
+                    $enrollment->college_id === Auth::user()->college_id,
+                    403
+                );
+
+                $blockingStatuses = PromissoryNote::OPEN_STATUSES;
+
+                $hasBlockingNote = PromissoryNote::where('student_id', $student->id)
+                    ->whereIn('status', $blockingStatuses)
+                    ->lockForUpdate()
+                    ->exists();
+
+                if ($hasBlockingNote) {
+                    throw new \RuntimeException('Student already has an active or pending promissory note.');
+                }
+
+                $selectedFeeIds = collect($validated['selected_fee_ids'])
+                    ->map(fn ($feeId) => (int) $feeId)
+                    ->unique()
+                    ->values();
+
+                $selectedFees = collect($context['fees'] ?? [])->filter(function ($fee) use ($selectedFeeIds) {
+                    return $fee->requirement_level === 'mandatory'
+                        && (! isset($fee->payments) || $fee->payments->isEmpty())
+                        && $selectedFeeIds->contains((int) $fee->id);
+                });
+
+                if ($selectedFees->count() !== $selectedFeeIds->count()) {
+                    throw new \RuntimeException('Select only unpaid mandatory fees available for this promissory note.');
+                }
+
+                if ($selectedFees->isEmpty()) {
+                    throw new \RuntimeException('No fees were selected for the promissory note.');
+                }
+
+                return $issuanceService->issueNote(
+                    $enrollment,
+                    $selectedFees,
+                    Auth::user(),
+                    $requestedDueDate,
+                    $validated['notes'] ?? null
+                );
+            });
+
+            Log::info('Promissory note issued for student enrollment', [
+                'promissory_note_id' => $note->id,
+                'student_id' => $student->id,
+                'enrollment_id' => $note->enrollment_id,
+                'issued_by' => Auth::id(),
+                'original_amount' => $note->original_amount,
+            ]);
+
+        } catch (\RuntimeException $exception) {
+            return back()->withErrors([
+                'promissory_note' => $exception->getMessage(),
+            ]);
+        } catch (\Throwable $throwable) {
+            report($throwable);
+
+            return back()->withErrors([
+                'promissory_note' => 'Unable to issue the promissory note at this time.',
+            ]);
+        }
+
+        return back()->with('status', 'Promissory note issued for student signature.');
+    }
+
     public function getFeesForStudent(Student $student)
     {
+        return response()->json($this->resolveFinancialContext($student));
+    }
+
+    private function resolveFinancialContext(Student $student, ?StudentEnrollment $enrollment = null): array
+    {
         $collegeId = Auth::user()->college_id;
-        
-        // Get all organizations in this college
+        $activeEnrollment = $enrollment ?? $this->getActiveEnrollment($student);
+
+        if (! $collegeId || ! $activeEnrollment || $activeEnrollment->college_id !== $collegeId) {
+            return [
+                'fees' => [],
+                'financial_status' => null,
+                'workflow_financial_status' => null,
+                'can_clear' => false,
+                'all_mandatory_fees_paid' => false,
+                'promissory_note' => null,
+            ];
+        }
+
+        $fees = $this->getCollegeFeesForStudent($student, $collegeId);
+        $mandatoryFees = $fees->where('requirement_level', 'mandatory');
+        $allMandatoryFeesPaid = $mandatoryFees->isEmpty()
+            || $mandatoryFees->every(fn ($fee) => isset($fee->payments) && $fee->payments->isNotEmpty());
+        $storedFinancialStatus = $activeEnrollment->financial_status ?? $activeEnrollment->computeFinancialStatus();
+        $dueDateCeiling = $this->resolvePromissoryNoteDueDateCeiling($activeEnrollment);
+
+        $defaultDueDate = now()->addDays(30);
+        if ($dueDateCeiling && $defaultDueDate->greaterThan($dueDateCeiling)) {
+            $defaultDueDate = $dueDateCeiling->copy();
+        }
+
+        $activePromissoryNote = PromissoryNote::where('student_id', $student->id)
+            ->where('status', PromissoryNote::STATUS_ACTIVE)
+            ->with(['fees:id,fee_name'])
+            ->first();
+
+        $blockedPromissoryNote = PromissoryNote::where('student_id', $student->id)
+            ->whereIn('status', [
+                PromissoryNote::STATUS_DEFAULT,
+                PromissoryNote::STATUS_BAD_DEBT,
+            ])
+            ->where('remaining_balance', '>', 0)
+            ->orderByDesc('id')
+            ->first();
+
+        $hasBlockingPromissoryNote = PromissoryNote::where('student_id', $student->id)
+            ->whereIn('status', PromissoryNote::OPEN_STATUSES)
+            ->exists();
+
+        if ($blockedPromissoryNote) {
+            $workflowFinancialStatus = $blockedPromissoryNote->status;
+        } elseif ($activePromissoryNote) {
+            $workflowFinancialStatus = StudentEnrollment::FINANCIAL_DEFERRED;
+        } elseif ($allMandatoryFeesPaid) {
+            $workflowFinancialStatus = StudentEnrollment::FINANCIAL_PAID;
+        } elseif ($activeEnrollment->payments()->exists()) {
+            $workflowFinancialStatus = StudentEnrollment::FINANCIAL_PARTIALLY_PAID;
+        } else {
+            $workflowFinancialStatus = StudentEnrollment::FINANCIAL_UNPAID;
+        }
+
+        $unpaidMandatoryFeeIds = $mandatoryFees
+            ->reject(fn ($fee) => isset($fee->payments) && $fee->payments->isNotEmpty())
+            ->pluck('id')
+            ->toArray();
+
+        $coversAllUnpaidMandatory = true;
+        if ($activePromissoryNote) {
+            $activePromissoryNoteFeeIds = $activePromissoryNote->fees->pluck('id')->toArray();
+            // Confirm the active promissory note covers every unpaid mandatory fee before allowing clearance.
+            $coversAllUnpaidMandatory = empty(array_diff($unpaidMandatoryFeeIds, $activePromissoryNoteFeeIds));
+        }
+
+        // Get the active semester for context
+        $activeSemester = Semester::with('schoolYear')->where('is_active', true)->first();
+        $semesterStart = $activeSemester?->actualStartDate() ?? $activeSemester?->plannedStartDate();
+        $semesterEnd = $activeSemester?->effectiveEndDate();
+
+        return [
+            'fees' => $fees,
+            'financial_status' => $storedFinancialStatus,
+            'workflow_financial_status' => $workflowFinancialStatus,
+            'can_clear' => ! $blockedPromissoryNote && ($allMandatoryFeesPaid || ($activePromissoryNote && $coversAllUnpaidMandatory)),
+            'can_issue_promissory_note' => ! $hasBlockingPromissoryNote && ! $blockedPromissoryNote && ! empty($unpaidMandatoryFeeIds),
+            'all_mandatory_fees_paid' => $allMandatoryFeesPaid,
+            'preview_defaults' => [
+                'due_date' => $defaultDueDate->toDateString(),
+                'due_date_min' => $semesterStart?->toDateString(),
+                'due_date_max' => $semesterEnd?->toDateString(),
+                'semester_start_date' => $semesterStart?->toDateString(),
+                'semester_end_date' => $semesterEnd?->toDateString(),
+                'notes' => '',
+            ],
+            'promissory_note' => $activePromissoryNote ? [
+                'id' => $activePromissoryNote->id,
+                'status' => $activePromissoryNote->status,
+                'due_date' => $activePromissoryNote->due_date?->toDateString(),
+                'remaining_balance' => $activePromissoryNote->remaining_balance,
+                'original_amount' => $activePromissoryNote->original_amount,
+                'fees' => $activePromissoryNote->fees->map(fn ($fee) => [
+                    'id' => $fee->id,
+                    'name' => $fee->fee_name,
+                    'amount_deferred' => $fee->pivot->amount_deferred,
+                ])->values(),
+            ] : null,
+        ];
+    }
+
+    private function getCollegeFeesForStudent(Student $student, int $collegeId)
+    {
         $collegeOrgs = \App\Models\Organization::where('college_id', $collegeId)->get();
         $collegeOrgIds = $collegeOrgs->pluck('id')->toArray();
-        
-        // Collect all applicable organization IDs
+
         $allOrgIds = $collegeOrgIds;
-        
-        // For each college org, if it has a mother organization, add that
+
         $motherOrgIds = $collegeOrgs
             ->whereNotNull('mother_organization_id')
             ->pluck('mother_organization_id')
             ->unique()
             ->toArray();
-        
-        if (!empty($motherOrgIds)) {
+
+        if (! empty($motherOrgIds)) {
             $allOrgIds = array_merge($allOrgIds, $motherOrgIds);
         }
-        
-        // Check if any mother orgs have inherits_osa_fees = true, and get OSA org
-        $osaId = null;
-        if (!empty($motherOrgIds)) {
+
+        if (! empty($motherOrgIds)) {
             $hasOSAInheritance = \App\Models\Organization::whereIn('id', $motherOrgIds)
                 ->where('inherits_osa_fees', true)
                 ->exists();
-            
+
             if ($hasOSAInheritance) {
                 $osaId = \App\Models\Organization::where('org_code', 'OSA')->value('id');
                 if ($osaId) {
@@ -376,27 +658,51 @@ class ValidateStudentsController extends Controller
                 }
             }
         }
-        
-        // Remove duplicates
-        $allOrgIds = array_unique($allOrgIds);
-        
-        // Get all fees - both from applicable organizations AND college-wide fees
-        $fees = \App\Models\Fee::where('status', 'APPROVED')
+
+        $allOrgIds = array_values(array_unique($allOrgIds));
+
+        return \App\Models\Fee::where('status', 'APPROVED')
             ->where(function ($q) use ($allOrgIds, $collegeId) {
                 $q->whereIn('organization_id', $allOrgIds)
-                  ->orWhere(function ($q2) use ($collegeId) {
-                      $q2->where('college_id', $collegeId)
-                         ->whereNull('organization_id');
-                  });
+                    ->orWhere(function ($q2) use ($collegeId) {
+                        $q2->where('college_id', $collegeId)
+                            ->whereNull('organization_id');
+                    });
             })
             ->with([
                 'organization',
-                'payments' => fn($q) => $q->where('student_id', $student->id)->with(['collector', 'organization'])
+                'payments' => fn ($q) => $q->where('student_id', $student->id)->with(['collector', 'organization'])
             ])
             ->get()
             ->unique('id')
             ->values();
-        
-        return response()->json($fees);
+    }
+
+    private function getActiveEnrollment(Student $student): ?StudentEnrollment
+    {
+        $activeSY = SchoolYear::where('is_active', true)->first();
+        $activeSem = Semester::where('is_active', true)->first();
+
+        if (! $activeSY || ! $activeSem) {
+            return null;
+        }
+
+        return StudentEnrollment::where([
+            'student_id' => $student->id,
+            'school_year_id' => $activeSY->id,
+            'semester_id' => $activeSem->id,
+        ])->first();
+    }
+
+    private function resolvePromissoryNoteDueDateCeiling(StudentEnrollment $enrollment): ?Carbon
+    {
+        // Get the CURRENTLY ACTIVE semester (not the enrolled semester)
+        // PN due dates must fall within the active semester's effective end date,
+        // which includes planned semester end dates introduced by the OSA model.
+        $activeSemester = Semester::with('schoolYear')
+            ->where('is_active', true)
+            ->first();
+
+        return $activeSemester?->effectiveEndDate();
     }
 }

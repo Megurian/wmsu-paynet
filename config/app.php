@@ -123,4 +123,6 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    'promissory_note_reminder_days_before_due' => env('PROMISSORY_NOTE_REMINDER_DAYS_BEFORE_DUE', 7),
+
 ];

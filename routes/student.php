@@ -29,6 +29,13 @@ Route::prefix('student')->name('student.')->group(function () {
         Route::get('/payments/{payment}/receipt', [StudentPortalController::class, 'downloadReceipt'])
             ->name('payments.receipt');
 
+        Route::get('/promissory-notes', [StudentPortalController::class, 'showPromissoryNotes'])
+            ->name('promissory_notes.index');
+        Route::get('/promissory-notes/{note}/download', [StudentPortalController::class, 'downloadPromissoryNoteTemplate'])
+            ->name('promissory_notes.download');
+        Route::post('/promissory-notes/{note}/sign', [StudentPortalController::class, 'uploadSignedPromissoryNote'])
+            ->name('promissory_notes.sign');
+
         Route::get('/profile', [StudentPortalController::class, 'profile'])->name('profile');
         Route::patch('/profile', [StudentPortalController::class, 'updateProfile'])->name('profile.update');
     });

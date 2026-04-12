@@ -257,6 +257,10 @@
                 @endif
 
                 @if(Auth::user()->role === 'student_coordinator')
+                    <a href="{{ route('college.promissory_notes.index') }}" class="block px-4 py-2 rounded-md transition
+                        {{ request()->routeIs('college.promissory_notes.*') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                        <span>Promissory Notes</span>
+                    </a>
                     <a href="{{ route('college.fees') }}" class="block px-4 py-2 rounded-md transition
                         {{ request()->routeIs('college.fees') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
                         <span>Fees</span>

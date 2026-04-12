@@ -4,6 +4,32 @@
 @section('page-title', 'Report & History')
 
 @section('content')
+@php
+    $formatSemesterName = static function (?string $name): string {
+        $name = trim((string) $name);
+        $normalized = strtolower($name);
+
+        if ($normalized === 'summer' || $normalized === 'summer semester') {
+            return 'SUMMER';
+        }
+
+        if (preg_match('/^(\d+)(st|nd|rd|th)?(?:\s+semester)?$/i', $normalized, $matches)) {
+            $number = (int) $matches[1];
+            $suffix = in_array($number % 100, [11, 12, 13], true)
+                ? 'th'
+                : match ($number % 10) {
+                    1 => 'st',
+                    2 => 'nd',
+                    3 => 'rd',
+                    default => 'th',
+                };
+
+            return $number . $suffix . ' SEMESTER';
+        }
+
+        return $name !== '' ? strtoupper($name) : '';
+    };
+@endphp
 <div x-data="{ openFilter: false }">
     {{--
 <div class="mb-6">
@@ -23,7 +49,7 @@
                             AY {{ \Carbon\Carbon::parse($selectedSchoolYear->sy_start)->year }}
                             –
                             {{ \Carbon\Carbon::parse($selectedSchoolYear->sy_end)->year }}
-                            • {{ ucfirst($selectedSem) }} Semester
+                            • {{ $formatSemesterName($selectedSem) }}
                         </p>
 
                         <p class="text-xs text-gray-500 mt-1">
@@ -59,9 +85,9 @@
                     </label>
                     <select name="semester" onchange="this.form.submit()" class="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm
                            focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
-                        @foreach(['1st', '2nd', 'summer'] as $semName)
+                        @foreach(['1st SEMESTER', '2nd SEMESTER', 'SUMMER'] as $semName)
                         <option value="{{ $semName }}" @selected($selectedSem==$semName)>
-                            {{ ucfirst($semName) }} Semester
+                            {{ $semName }}
                         </option>
                         @endforeach
                     </select>
