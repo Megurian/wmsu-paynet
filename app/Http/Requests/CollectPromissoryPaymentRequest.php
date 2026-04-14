@@ -25,7 +25,7 @@ class CollectPromissoryPaymentRequest extends FormRequest
             'student_id' => 'required|integer|exists:students,id',
             'promissory_note_id' => 'required|integer|exists:promissory_notes,id',
             'selected_fees' => 'required|array|min:1',
-            'selected_fees.*' => 'integer|exists:fees,id',
+            'selected_fees.*' => 'distinct|integer|exists:fees,id',
             'cash_received' => 'required|numeric|min:0.01',
             'note' => 'nullable|string|max:500',
         ];
@@ -43,6 +43,7 @@ class CollectPromissoryPaymentRequest extends FormRequest
             'promissory_note_id.exists' => 'Selected promissory note does not exist.',
             'selected_fees.required' => 'At least one fee must be selected for settlement.',
             'selected_fees.min' => 'At least one fee must be selected.',
+            'selected_fees.*.distinct' => 'Selected fee IDs must be unique.',
             'selected_fees.*.exists' => 'One or more selected fees do not exist.',
             'cash_received.required' => 'Cash received amount is required.',
             'cash_received.numeric' => 'Cash received must be a valid amount.',

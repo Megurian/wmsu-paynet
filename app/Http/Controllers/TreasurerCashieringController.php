@@ -21,13 +21,9 @@ use Illuminate\Support\Facades\Log;
 class TreasurerCashieringController extends Controller
 {
     public function index() {
-        $activeSY = SchoolYear::where('is_active', true)->first();
-        $activeSem = Semester::where('is_active', true)->first();
-
-        $fees = Fee::where('status', 'APPROVED')
+        $fees = Fee::where('status', 'approved')
             ->where('fee_scope', 'college')
             ->where('college_id', Auth::user()->college_id)
-            ->whereNull('organization_id')
             ->get();
 
         return view('college.cashiering', compact('fees'));
@@ -39,6 +35,10 @@ class TreasurerCashieringController extends Controller
         $collegeId = Auth::user()->college_id;
         $activeSY = SchoolYear::where('is_active', true)->first();
         $activeSem = Semester::where('is_active', true)->first();
+
+        if (!$activeSY || !$activeSem) {
+            return response()->json([]);
+        }
 
         $students = Student::whereHas('enrollments', function($q) use ($activeSY, $activeSem, $collegeId) {
             $q->whereIn('status', ['FOR_PAYMENT_VALIDATION', 'ENROLLED'])
@@ -86,11 +86,28 @@ class TreasurerCashieringController extends Controller
             return response()->json(['message' => 'Student does not belong to this college.'], 403);
         }
 
-        $fees = Fee::where('status', 'APPROVED')
+        $activePromissoryNote = PromissoryNote::where('student_id', $student->id)
+            ->whereIn('status', [
+                PromissoryNote::STATUS_ACTIVE,
+                PromissoryNote::STATUS_DEFAULT,
+                PromissoryNote::STATUS_BAD_DEBT,
+            ])
+            ->where('remaining_balance', '>', 0)
+            ->with('fees:id')
+            ->orderByDesc('id')
+            ->first();
+
+        $pnFeeIds = $activePromissoryNote ? $activePromissoryNote->fees->pluck('id')->toArray() : [];
+
+        $feesQuery = Fee::where('status', 'approved')
             ->where('fee_scope', 'college')
-            ->where('college_id', $collegeId)
-            ->whereNull('organization_id')
-            ->get();
+            ->where('college_id', $collegeId);
+
+        if (!empty($pnFeeIds)) {
+            $feesQuery->whereNotIn('id', $pnFeeIds);
+        }
+
+        $fees = $feesQuery->get();
 
         $paidFeeIds = DB::table('fee_payment')
             ->join('payments', 'fee_payment.payment_id', '=', 'payments.id')
@@ -143,6 +160,7 @@ class TreasurerCashieringController extends Controller
         }
 
         // Fetch settleable PN (ACTIVE, DEFAULT, or BAD_DEBT with balance remaining)
+        // Only include promissory fees that belong to this college.
         $settleablePN = PromissoryNote::where('student_id', $student->id)
             ->whereIn('status', [
                 PromissoryNote::STATUS_ACTIVE,
@@ -150,11 +168,48 @@ class TreasurerCashieringController extends Controller
                 PromissoryNote::STATUS_BAD_DEBT,
             ])
             ->where('remaining_balance', '>', 0)
-            ->with('fees:id,fee_name')
+            ->whereHas('fees', function ($q) use ($collegeId) {
+                $q->where('fee_scope', 'college')
+                  ->where('college_id', $collegeId);
+            })
+            ->with(['fees' => function ($q) use ($collegeId) {
+                $q->where('fee_scope', 'college')
+                  ->where('college_id', $collegeId)
+                  ->select('fees.id', 'fees.fee_name');
+            }])
             ->orderByDesc('id')
             ->first();
 
         if (!$settleablePN) {
+            return response()->json(null);
+        }
+
+        $feePayments = DB::table('fee_payment')
+            ->join('payments', 'fee_payment.payment_id', '=', 'payments.id')
+            ->where('payments.promissory_note_id', $settleablePN->id)
+            ->groupBy('fee_payment.fee_id')
+            ->select('fee_payment.fee_id', DB::raw('SUM(fee_payment.amount_paid) as amount_paid'))
+            ->pluck('amount_paid', 'fee_id');
+
+        $fees = $settleablePN->fees->map(function ($fee) use ($feePayments) {
+            $amountDeferred = (float) $fee->pivot->amount_deferred;
+            $amountPaid = (float) ($feePayments[$fee->id] ?? 0);
+            $amountRemaining = max(0, $amountDeferred - $amountPaid);
+
+            if ($amountRemaining <= 0) {
+                return null;
+            }
+
+            return [
+                'id' => $fee->id,
+                'name' => $fee->fee_name,
+                'amount_deferred' => $amountDeferred,
+                'amount_paid' => $amountPaid,
+                'amount_remaining' => $amountRemaining,
+            ];
+        })->filter()->values();
+
+        if ($fees->isEmpty()) {
             return response()->json(null);
         }
 
@@ -166,11 +221,7 @@ class TreasurerCashieringController extends Controller
             'remaining_balance' => $settleablePN->remaining_balance,
             'due_date' => $settleablePN->due_date->toDateString(),
             'status' => $settleablePN->status,
-            'fees' => $settleablePN->fees->map(fn($fee) => [
-                'id' => $fee->id,
-                'name' => $fee->fee_name,
-                'amount_deferred' => $fee->pivot->amount_deferred,
-            ])->toArray(),
+            'fees' => $fees,
         ]);
     }
 
@@ -201,7 +252,7 @@ class TreasurerCashieringController extends Controller
         $request->validate([
             'student_id' => 'required|exists:students,id',
             'fee_ids' => 'required|array|min:1',
-            'fee_ids.*' => 'exists:fees,id',
+            'fee_ids.*' => 'distinct|exists:fees,id',
             'cash_received' => 'required|numeric|min:0',
         ]);
 
@@ -231,6 +282,21 @@ class TreasurerCashieringController extends Controller
             return response()->json(['message' => 'Student does not belong to this college.'], 403);
         }
 
+        $outstandingPN = PromissoryNote::where('student_id', $student->id)
+            ->whereIn('status', [
+                PromissoryNote::STATUS_ACTIVE,
+                PromissoryNote::STATUS_DEFAULT,
+                PromissoryNote::STATUS_BAD_DEBT,
+            ])
+            ->where('remaining_balance', '>', 0)
+            ->exists();
+
+        if ($outstandingPN) {
+            return response()->json([
+                'message' => 'Regular payment is blocked while the student has an outstanding promissory note. Please settle the promissory note first.'
+            ], 422);
+        }
+
         if (!in_array($enrollment->status, [StudentEnrollment::FOR_PAYMENT_VALIDATION, StudentEnrollment::ENROLLED])) {
             return response()->json([
                 'message' => "Student enrollment status '{$enrollment->status}' does not allow payment."
@@ -246,8 +312,7 @@ class TreasurerCashieringController extends Controller
         // Admin collects only college-level fees (no org fees)
         $invalidFees = $fees->filter(function ($fee) use ($collegeId) {
             return $fee->fee_scope !== 'college'
-                || $fee->college_id !== $collegeId
-                || !is_null($fee->organization_id);
+                || $fee->college_id !== $collegeId;
         })->pluck('id')->toArray();
 
         if (!empty($invalidFees)) {
@@ -331,8 +396,11 @@ class TreasurerCashieringController extends Controller
     /**
      * Collect promissory note settlement payment
      */
-    private function collectPromissoryPayment(CollectPromissoryPaymentRequest $request)
+    private function collectPromissoryPayment(Request $request)
     {
+        $rules = (new CollectPromissoryPaymentRequest())->rules();
+        $messages = (new CollectPromissoryPaymentRequest())->messages();
+        $request->validate($rules, $messages);
 
         try {
             $user = Auth::user();
@@ -356,6 +424,18 @@ class TreasurerCashieringController extends Controller
             if ($promissoryNote->enrollment->college_id !== $collegeId) {
                 return response()->json([
                     'message' => 'Promissory note does not belong to this college.'
+                ], 403);
+            }
+
+            $collegeFeeIds = Fee::whereIn('id', $request->selected_fees)
+                ->where('fee_scope', 'college')
+                ->where('college_id', $collegeId)
+                ->pluck('id')
+                ->toArray();
+
+            if (count($collegeFeeIds) !== count($request->selected_fees)) {
+                return response()->json([
+                    'message' => 'Only college-scoped fees belonging to this college can be settled here.'
                 ], 403);
             }
 
@@ -389,9 +469,15 @@ class TreasurerCashieringController extends Controller
             ]);
 
         } catch (PromissoryNoteException $e) {
+            Log::warning('Treasurer PN settlement business exception', [
+                'student_id' => $request->student_id,
+                'promissory_note_id' => $request->promissory_note_id,
+                'exception' => $e->getMessage(),
+                'exception_type' => class_basename($e),
+            ]);
+
             return response()->json([
-                'message' => $e->getMessage(),
-                'error_type' => class_basename($e),
+                'message' => 'Unable to process this payment. Please verify the amount and note status.',
             ], $e->getCode() ?: 422);
         } catch (\Exception $e) {
             Log::error('Treasurer PN settlement failed', [

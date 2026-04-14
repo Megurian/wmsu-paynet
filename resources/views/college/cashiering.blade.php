@@ -69,9 +69,7 @@
                 <div class="space-y-2 text-sm">
                     <p class="font-medium text-slate-600">Fee Items</p>
                     <div id="regularFeesList" class="space-y-2"></div>
-                </div>
-
-                <div class="rounded-xl bg-slate-50 p-4">
+                        <p id="regularPanelNotice" class="text-sm text-red-600"></p>
                     <div class="flex justify-between text-sm">
                         <span class="text-slate-600">Total</span>
                         <span class="font-semibold text-slate-900">₱ <span id="regularTotalAmount">0.00</span></span>
@@ -160,6 +158,7 @@ const regularFeesPanel = document.getElementById('regularFeesPanel');
 const promissoryPanel = document.getElementById('promissoryPanel');
 
 const regularFeesList = document.getElementById('regularFeesList');
+const regularPanelNotice = document.getElementById('regularPanelNotice');
 const regularTotalAmountEl = document.getElementById('regularTotalAmount');
 const regularCashInput = document.getElementById('regularCashInput');
 const regularChangeAmountEl = document.getElementById('regularChangeAmount');
@@ -235,13 +234,21 @@ function loadStudentDetails(studentId) {
 
             studentCard.classList.remove('hidden');
             resultsList.classList.add('hidden');
+            ACTIVE_PROMISSORY_NOTE = null;
+            PROMISSORY_FEES = [];
+            renderPromissoryNoteSummary();
+            regularPanelNotice.textContent = '';
+            promissoryCashInput.disabled = true;
+            promissoryProceedBtn.disabled = true;
 
-            return fetch(`/treasurer/cashiering/promissory-notes/${studentId}`)
+            return fetch(`/treasurer/cashiering/student/${studentId}/promissory-notes`)
                 .then(res => res.ok ? res.json() : null)
                 .catch(() => null);
         })
         .then(promissoryNote => {
-            ACTIVE_PROMISSORY_NOTE = promissoryNote || null;
+            ACTIVE_PROMISSORY_NOTE = promissoryNote && promissoryNote.id && Number(promissoryNote.remaining_balance) > 0
+                ? promissoryNote
+                : null;
             PROMISSORY_FEES = ACTIVE_PROMISSORY_NOTE ? (ACTIVE_PROMISSORY_NOTE.fees || []) : [];
 
             renderPromissoryNoteSummary();
@@ -266,6 +273,9 @@ function renderRegularFees() {
 
     if (FEES.length === 0) {
         regularFeesList.innerHTML = `<p class="text-gray-500 text-sm">No approved fees available.</p>`;
+        regularPanelNotice.textContent = ACTIVE_PROMISSORY_NOTE
+            ? 'All collectable fees are currently covered by an outstanding promissory note.'
+            : '';
         return;
     }
 
@@ -293,6 +303,11 @@ function renderRegularFees() {
 
     document.querySelectorAll('.regularFeeCheckbox').forEach(cb => cb.addEventListener('change', calculateRegularTotal));
     calculateRegularTotal();
+
+    const hasOpenPN = !!(ACTIVE_PROMISSORY_NOTE && Number(ACTIVE_PROMISSORY_NOTE.remaining_balance) > 0);
+    regularPanelNotice.textContent = hasOpenPN
+        ? 'This student has an outstanding promissory note; regular fee collection is disabled until the note is settled.'
+        : '';
 }
 
 function renderPromissoryFees() {
@@ -309,13 +324,15 @@ function renderPromissoryFees() {
     }
 
     PROMISSORY_FEES.forEach(fee => {
-        const amount = parseFloat(fee.amount_deferred) || 0;
+        const amount = parseFloat(fee.amount_remaining) || 0;
+        const paid = parseFloat(fee.amount_paid) || 0;
+        const partialLabel = paid > 0 ? ` <span class="text-xs text-amber-600">(partial paid ₱ ${paid.toFixed(2)})</span>` : '';
         const div = document.createElement('div');
         div.className = 'flex items-center justify-between text-sm';
         div.innerHTML = `
             <label class="flex items-center gap-2">
                 <input type="checkbox" data-id="${fee.id}" data-amount="${amount}" class="promissoryFeeCheckbox" checked>
-                ${fee.name || 'Deferred fee'}
+                ${fee.name || 'Deferred fee'}${partialLabel}
             </label>
             <span>₱ ${amount.toFixed(2)}</span>
         `;
@@ -390,7 +407,8 @@ function updateRegularProceedBtnState() {
     const hasFees = document.querySelectorAll('.regularFeeCheckbox:checked').length > 0;
     const cash = parseFloat(regularCashInput.value) || 0;
     const total = parseFloat(regularTotalAmountEl.textContent) || 0;
-    regularProceedBtn.disabled = !(hasStudent && hasFees && cash >= total);
+    const hasOpenPN = !!(ACTIVE_PROMISSORY_NOTE && Number(ACTIVE_PROMISSORY_NOTE.remaining_balance) > 0);
+    regularProceedBtn.disabled = hasOpenPN || !(hasStudent && hasFees && cash >= total);
 }
 
 function updatePromissoryProceedBtnState() {

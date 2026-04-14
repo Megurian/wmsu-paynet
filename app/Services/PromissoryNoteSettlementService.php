@@ -14,6 +14,7 @@ use App\Exceptions\PromissoryNoteAlreadyClosedException;
 use App\Exceptions\PromissoryNotePartialAllocationException;
 use App\Exceptions\PromissoryNoteLockedForUpdateException;
 use App\Exceptions\PromissoryNoteNotSettleableException;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -86,10 +87,17 @@ class PromissoryNoteSettlementService
                 throw new PromissoryNotePartialAllocationException("No fees selected for settlement.");
             }
 
+            $selectedFeeIds = array_values(array_unique($selectedFeeIds));
             $selectedFees = Fee::whereIn('id', $selectedFeeIds)->get();
             
             if ($selectedFees->count() !== count($selectedFeeIds)) {
                 throw new PromissoryNotePartialAllocationException("One or more selected fees do not exist.");
+            }
+
+            if ($isOrgPayment && $selectedFees->where('fee_scope', 'college')->isNotEmpty()) {
+                throw new PromissoryNotePartialAllocationException(
+                    "Selected fees include college-scoped fees which cannot be settled in organization payment."
+                );
             }
 
             // Validate all selected fees are linked to this PN
@@ -108,17 +116,19 @@ class PromissoryNoteSettlementService
             $feeAllocations = []; // fee_id => amount_paid
             $totalDeferredSelected = 0;
 
-            foreach ($selectedFees as $fee) {
-                // Get deferred amount for this fee on this PN
-                $deferredAmount = $lockedNote->fees()
-                    ->where('fee_id', $fee->id)
-                    ->value('promissory_note_fees.amount_deferred');
+            $deferredAmounts = $lockedNote->fees()
+                ->whereIn('fee_id', $selectedFeeIds)
+                ->pluck('promissory_note_fees.amount_deferred', 'fee_id')
+                ->toArray();
 
-                if (!$deferredAmount || $deferredAmount == 0) {
+            foreach ($selectedFees as $fee) {
+                $deferredAmount = isset($deferredAmounts[$fee->id]) ? (float) $deferredAmounts[$fee->id] : 0;
+
+                if ($deferredAmount <= 0) {
                     continue;
                 }
 
-                $totalDeferredSelected += (float) $deferredAmount;
+                $totalDeferredSelected += $deferredAmount;
 
                 if ($remainingToAllocate <= 0) {
                     break;
@@ -246,8 +256,8 @@ class PromissoryNoteSettlementService
                 throw $e;
             }
 
-            // Handle database lock timeout
-            if (str_contains($e->getMessage(), 'lock')) {
+            // Handle database lock timeout or deadlock errors
+            if ($e instanceof QueryException && preg_match('/lock|deadlock|timeout/i', $e->getMessage())) {
                 throw new PromissoryNoteLockedForUpdateException(
                     "Failed to process payment due to concurrent access. Please try again.",
                     409,

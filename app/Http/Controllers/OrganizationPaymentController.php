@@ -36,6 +36,10 @@ class OrganizationPaymentController extends Controller
         $activeSY = SchoolYear::where('is_active', true)->first();
         $activeSem = Semester::where('is_active', true)->first();
 
+        if (!$activeSY || !$activeSem) {
+            return response()->json([]);
+        }
+
         $students = Student::whereHas('enrollments', function ($q) use ($activeSY, $activeSem, $collegeId) {
             $q->whereIn('status', ['FOR_PAYMENT_VALIDATION', 'ENROLLED'])
                 ->where('school_year_id', $activeSY->id)
@@ -72,6 +76,10 @@ class OrganizationPaymentController extends Controller
         $activeSY = SchoolYear::where('is_active', true)->first();
         $activeSem = Semester::where('is_active', true)->first();
 
+        if (!$activeSY || !$activeSem) {
+            return response()->json(['message' => 'No active school year or semester.'], 422);
+        }
+
         $student = Student::with(['enrollments' => function ($q) use ($activeSY, $activeSem) {
             $q->where('school_year_id', $activeSY->id)
                 ->where('semester_id', $activeSem->id)
@@ -84,7 +92,24 @@ class OrganizationPaymentController extends Controller
         if (!$activeEnrollment) {
             return response()->json(['message' => 'Student not enrolled.'], 404);
         }
+
         $userOrg = Auth::user()->organization;
+        if (!$userOrg) {
+            return response()->json(['message' => 'Organization not found.'], 422);
+        }
+
+        $activePromissoryNote = PromissoryNote::where('student_id', $student->id)
+            ->whereIn('status', [
+                PromissoryNote::STATUS_ACTIVE,
+                PromissoryNote::STATUS_DEFAULT,
+                PromissoryNote::STATUS_BAD_DEBT,
+            ])
+            ->where('remaining_balance', '>', 0)
+            ->with('fees:id')
+            ->orderByDesc('id')
+            ->first();
+
+        $pnFeeIds = $activePromissoryNote ? $activePromissoryNote->fees->pluck('id')->toArray() : [];
 
         $organizationIds = [$userOrg->id];
 
@@ -94,6 +119,7 @@ class OrganizationPaymentController extends Controller
         }
 
         // Build base query: include fees belonging to this organization and — only when allowed — university-wide fees.
+        // Exclude college-scoped fees from the organization payment window.
         $feesQuery = Fee::where('status', 'approved')
             ->where(function ($q) use ($organizationIds, $userOrg) {
                 $q->whereIn('organization_id', $organizationIds);
@@ -106,7 +132,12 @@ class OrganizationPaymentController extends Controller
                     }
                 }
             })
+            ->where('fee_scope', '!=', 'college')
             ->orderBy('created_at', 'desc');
+
+        if (!empty($pnFeeIds)) {
+            $feesQuery->whereNotIn('id', $pnFeeIds);
+        }
 
         // Ensure uniqueness (in case a fee matches multiple conditions)
         $fees = $feesQuery->get()->unique('id')->values();
@@ -181,7 +212,13 @@ class OrganizationPaymentController extends Controller
                 PromissoryNote::STATUS_BAD_DEBT,
             ])
             ->where('remaining_balance', '>', 0)
-            ->with('fees:id,fee_name')
+            ->whereHas('fees', function ($q) {
+                $q->where('fee_scope', '!=', 'college');
+            })
+            ->with(['fees' => function ($q) {
+                $q->where('fee_scope', '!=', 'college')
+                  ->select('fees.id', 'fees.fee_name');
+            }])
             ->orderByDesc('id')
             ->first();
 
@@ -189,7 +226,35 @@ class OrganizationPaymentController extends Controller
             return response()->json(null);
         }
 
-        // Format response with org context
+        $feePayments = DB::table('fee_payment')
+            ->join('payments', 'fee_payment.payment_id', '=', 'payments.id')
+            ->where('payments.promissory_note_id', $settleablePN->id)
+            ->groupBy('fee_payment.fee_id')
+            ->select('fee_payment.fee_id', DB::raw('SUM(fee_payment.amount_paid) as amount_paid'))
+            ->pluck('amount_paid', 'fee_id');
+
+        $fees = $settleablePN->fees->map(function ($fee) use ($feePayments) {
+            $amountDeferred = (float) $fee->pivot->amount_deferred;
+            $amountPaid = (float) ($feePayments[$fee->id] ?? 0);
+            $amountRemaining = max(0, $amountDeferred - $amountPaid);
+
+            if ($amountRemaining <= 0) {
+                return null;
+            }
+
+            return [
+                'id' => $fee->id,
+                'name' => $fee->fee_name,
+                'amount_deferred' => $amountDeferred,
+                'amount_paid' => $amountPaid,
+                'amount_remaining' => $amountRemaining,
+            ];
+        })->filter()->values();
+
+        if ($fees->isEmpty()) {
+            return response()->json(null);
+        }
+
         return response()->json([
             'id' => $settleablePN->id,
             'student_id' => $settleablePN->student_id,
@@ -198,11 +263,7 @@ class OrganizationPaymentController extends Controller
             'remaining_balance' => $settleablePN->remaining_balance,
             'due_date' => $settleablePN->due_date->toDateString(),
             'status' => $settleablePN->status,
-            'fees' => $settleablePN->fees->map(fn($fee) => [
-                'id' => $fee->id,
-                'name' => $fee->fee_name,
-                'amount_deferred' => $fee->pivot->amount_deferred,
-            ])->toArray(),
+            'fees' => $fees,
         ]);
     }
 
@@ -214,7 +275,7 @@ class OrganizationPaymentController extends Controller
         $request->validate([
             'student_id' => 'required|exists:students,id',
             'fee_ids' => 'required|array|min:1',
-            'fee_ids.*' => 'exists:fees,id',
+            'fee_ids.*' => 'distinct|exists:fees,id',
             'cash_received' => 'required|numeric|min:0',
         ]);
 
@@ -247,6 +308,21 @@ class OrganizationPaymentController extends Controller
             return response()->json(['message' => 'Student does not belong to this organization.'], 403);
         }
 
+        $outstandingPN = PromissoryNote::where('student_id', $student->id)
+            ->whereIn('status', [
+                PromissoryNote::STATUS_ACTIVE,
+                PromissoryNote::STATUS_DEFAULT,
+                PromissoryNote::STATUS_BAD_DEBT,
+            ])
+            ->where('remaining_balance', '>', 0)
+            ->exists();
+
+        if ($outstandingPN) {
+            return response()->json([
+                'message' => 'Regular payment is blocked while the student has an outstanding promissory note. Please settle the promissory note first.'
+            ], 422);
+        }
+
         if (!in_array($enrollment->status, [StudentEnrollment::FOR_PAYMENT_VALIDATION, StudentEnrollment::ENROLLED])) {
             return response()->json([
                 'message' => "Student enrollment status '{$enrollment->status}' does not allow payment."
@@ -277,6 +353,13 @@ class OrganizationPaymentController extends Controller
         if (!empty($invalidFees)) {
             return response()->json([
                 'message' => 'One or more selected fees do not belong to your organization.'
+            ], 403);
+        }
+
+        $collegeScopeFees = $fees->where('fee_scope', 'college')->pluck('id')->toArray();
+        if (!empty($collegeScopeFees)) {
+            return response()->json([
+                'message' => 'College-scoped fees cannot be paid in the organization payment window.'
             ], 403);
         }
 
@@ -352,8 +435,11 @@ class OrganizationPaymentController extends Controller
     /**
      * Collect promissory note settlement payment (org-level)
      */
-    private function collectPromissoryPayment(CollectPromissoryPaymentRequest $request)
+    private function collectPromissoryPayment(Request $request)
     {
+        $rules = (new CollectPromissoryPaymentRequest())->rules();
+        $messages = (new CollectPromissoryPaymentRequest())->messages();
+        $request->validate($rules, $messages);
 
         try {
             $user = Auth::user();
@@ -377,6 +463,16 @@ class OrganizationPaymentController extends Controller
             if ($promissoryNote->enrollment->college_id !== $organization->college_id) {
                 return response()->json([
                     'message' => 'Promissory note does not belong to this college.'
+                ], 403);
+            }
+
+            $collegeFeeSelected = Fee::whereIn('id', $request->selected_fees)
+                ->where('fee_scope', 'college')
+                ->exists();
+
+            if ($collegeFeeSelected) {
+                return response()->json([
+                    'message' => 'College-scoped fees cannot be settled in the organization payment window.'
                 ], 403);
             }
 
