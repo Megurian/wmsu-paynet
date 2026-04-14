@@ -31,6 +31,7 @@ The feature is intentionally split across the existing student, coordinator, and
 | Treasurer collection | `/treasurer/cashiering/collect` |
 | Organization lookup | `/college_org/students/{student}/promissory-notes` |
 | Organization collection | `/college_org/payment/collect` |
+| Coordinator issue note | `/college/students/{student}/promissory-notes` |
 
 ## Status Lifecycle
 
@@ -53,8 +54,8 @@ The feature is intentionally split across the existing student, coordinator, and
 5. The coordinator opens the approval queue, reviews the uploaded file, and either approves it to `ACTIVE` or rejects it back to `PENDING_SIGNATURE`.
 6. Once active, the cashier can settle the note during regular payment collection.
 7. When the balance reaches zero, the note closes.
-8. If the student misses the signature deadline, the daily deadline command voids the note.
-9. If the student misses the due date, the delinquency command advances the note to `DEFAULT`, then later to `BAD_DEBT`.
+8. If the student misses the signature deadline, the separate signature deadline command `promissory-notes:check-signature-deadline` voids the note and notifies the student.
+9. If the student misses the due date, the delinquency command `promissory-notes:process-delinquency` advances the note to `DEFAULT` at semester end, then later to `BAD_DEBT` at school year end.
 
 ## Student Flow
 
@@ -72,7 +73,7 @@ The student PN page shows:
 1. Open the PN page at `/student/promissory-notes`.
 2. Click `Download Template`.
 3. Print the PDF, sign it physically, and prepare the file for upload.
-4. Click `Upload Signed Note` and choose a valid PDF or image file.
+4. Click `Upload Signed Note` and choose a valid file. Accepted formats are `pdf`, `jpg`, `jpeg`, or `png`.
 5. Wait for the coordinator review message. The note should move to `PENDING_VERIFICATION`.
 
 ### What to do when the note is `PENDING_VERIFICATION`
@@ -87,7 +88,7 @@ The page remains read-only for collection status. The student should contact the
 
 ### 1. Issue the note
 
-The coordinator issues the note from the verify-payment modal, not from a separate stand-alone issuance screen. The modal only shows the `Create Promissory Note` action when the student has unpaid mandatory fees and is eligible for PN handling.
+The coordinator issues the note from the verify-payment modal, not from a separate stand-alone issuance screen. The modal only shows the `Create Promissory Note` action when the student has unpaid mandatory fees and is eligible for PN handling. The issued due date must fall within the current active semester window, and only unpaid mandatory fees may be deferred onto the note.
 
 ### 2. Review the uploaded note
 
@@ -136,7 +137,7 @@ The clearance workflow uses financial status, not the academic status column, to
 
 ### Signature deadline
 
-Unsigned notes are voided automatically after the signature deadline passes. When a note is voided, the linked fees are detached so they are not stranded on a dead note.
+Unsigned notes are voided automatically after the signature deadline passes. The scheduled command `php artisan promissory-notes:check-signature-deadline` runs daily and voids any `PENDING_SIGNATURE` notes whose `signature_deadline` has passed. When a note is voided, the linked fees are detached so they are not stranded on a dead note.
 
 ### Due-date reminders
 
@@ -148,14 +149,64 @@ The delinquency service can send reminders before the due date, then mark the no
 2. `DEFAULT` note remains unpaid until academic-year end -> `BAD_DEBT`.
 3. `BAD_DEBT` remains collectible. It blocks next-semester enrollment, but it does not block payment settlement.
 
+### How Escalation Is Triggered
+
+Escalation happens when the delinquency logic is executed. This logic can be triggered in two ways:
+
+#### Automatic Scheduler Trigger
+- **When**: Every day via the Linux cron job running `php artisan schedule:run` every minute.
+- **What it runs**: `ProcessPromissoryNoteDelinquency` console command → `PromissoryNoteDelinquencyService::processDelinquency()`.
+- **Result**: All escalation checks happen daily without manual action.
+
+#### Manual Admin Trigger
+- **When**: OSA (Office of Student Affairs) administrator manually ends a semester in the system.
+- **Where**: UI action at `OSASetupController::endSemester()`.
+- **What it runs**: Directly calls `PromissoryNoteDelinquencyService::processDelinquency(now())` as part of the semester-ending transaction.
+- **Result**: Escalations are processed immediately when the semester is ended, without waiting for the next scheduler run.
+
+### Escalation Conditions
+
+Each trigger evaluates these conditions:
+
+#### ACTIVE → DEFAULT (Semester End)
+- **Condition**: Current date reaches or exceeds the active semester's effective end date **AND** the note's due date has passed.
+- **Which column**: The process uses `Semester::effectiveEndDate()`, which checks in this priority order:
+  1. `ended_at` (actual end date, set when OSA manually ends the semester)
+  2. `will_end_at` (planned end date, set during semester creation)
+  3. `school_years.sy_end` (fallback to school year end)
+- **Checked by**: `shouldDefaultNotes()` method in `PromissoryNoteDelinquencyService`.
+- **Effect**: Note moves to `DEFAULT` status; cashier and coordinator continue to monitor it.
+
+#### DEFAULT → BAD_DEBT (School Year End)
+- **Condition**: Current date reaches or exceeds the school year's `sy_end` date.
+- **Checked by**: `shouldPromoteToBadDebt()` method in `PromissoryNoteDelinquencyService`.
+- **Effect**: Note moves to `BAD_DEBT` status; enrollment blocks for the next semester until settled.
+
+### Testing Delinquency Manually
+
+For testing or data backfilling, you can run the delinquency command manually from the terminal. This is useful for verifying that notes correctly transition states (e.g., from `ACTIVE` to `DEFAULT`) without waiting for the actual calendar date.
+
+#### Basic Execution
+Runs the delinquency check using the current system time:
+```powershell
+php artisan promissory-notes:process-delinquency
+```
+
+#### Time Travel (Testing)
+To simulate the command running on a specific date (e.g., to trigger a due-date transition that hasn't happened yet), use the `--as-of` option:
+```powershell
+php artisan promissory-notes:process-delinquency --as-of="2026-12-31"
+```
+The `--as-of` option accepts any valid date string. This will process reminders and state transitions as if it were that date.
+
 ## Production Assurance Checklist
 
 The delinquency command can be tested manually with `php artisan promissory-notes:process-delinquency`, but production confidence depends on the scheduler, queue workers, and logging around it. Before go-live, verify these items:
 
 1. The server has a cron entry that runs `php artisan schedule:run` every minute.
 2. The queue worker is running continuously if `QUEUE_CONNECTION` is not `sync`, so queued PN notifications are actually delivered in the background.
-3. `routes/console.php` still registers `promissory-notes:process-delinquency` on the scheduler.
-4. The application logs show a daily `Processed promissory note delinquency` entry after the scheduler runs.
+3. `routes/console.php` still registers both `promissory-notes:check-signature-deadline` and `promissory-notes:process-delinquency` on the scheduler.
+4. The application logs show daily `Voided ... expired unsigned promissory note(s).` and `Processed promissory note delinquency` entries after the scheduler runs.
 5. A staging or pre-production smoke test is done with at least one overdue note to confirm the status transition and notification path.
 6. The team knows where to check failed jobs, queue worker health, and the app log when the schedule stops running.
 
@@ -206,10 +257,12 @@ If you need to confirm how the feature behaves, start with these files:
 - [Coordinator controller](../app/Http/Controllers/CoordinatorController.php)
 - [Treasurer cashiering controller](../app/Http/Controllers/TreasurerCashieringController.php)
 - [Organization payment controller](../app/Http/Controllers/OrganizationPaymentController.php)
+- [OSA setup controller](../app/Http/Controllers/OSASetupController.php)
 - [Promissory note model](../app/Models/PromissoryNote.php)
 - [Settlement service](../app/Services/PromissoryNoteSettlementService.php)
 - [Issuance service](../app/Services/PromissoryNoteIssuanceService.php)
 - [Delinquency service](../app/Services/PromissoryNoteDelinquencyService.php)
+- [Check signature deadline command](../app/Console/Commands/CheckSignatureDeadlineCommand.php)
 - [Student PN view](../resources/views/student/promissory_notes.blade.php)
 - [Coordinator approval view](../resources/views/college/promissory_notes_approval.blade.php)
 - [Coordinator report view](../resources/views/college/promissory_notes_dashboard.blade.php)
