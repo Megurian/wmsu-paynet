@@ -11,6 +11,12 @@ class SchoolYear extends Model
 
     protected $fillable = ['sy_start', 'sy_end', 'is_active'];
 
+    protected $casts = [
+        'sy_start' => 'date',
+        'sy_end' => 'date',
+        'is_active' => 'boolean',
+    ];
+
     public function semesters() {
         return $this->hasMany(Semester::class);
     }

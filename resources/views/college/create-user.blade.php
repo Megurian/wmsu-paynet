@@ -89,7 +89,13 @@
 
             <!-- Submit -->
             <div class="pt-2 border-t mt-2">
-                <button type="submit" class="px-6 py-2 bg-red-800 text-white rounded hover:bg-red-800 transition">
+                <button type="button"
+                onclick="openConfirmModal({
+                    title: 'Create User',
+                    message: 'Do you want to proceed?',
+                    confirmText: 'Confirm',
+                    onConfirm: () => this.closest('form').submit()
+                })"class="px-6 py-2 bg-red-800 text-white rounded hover:bg-red-800 transition">
                     Create User
                 </button>
             </div>

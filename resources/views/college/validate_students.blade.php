@@ -88,7 +88,8 @@
             $displayEnrollment = $student->displayEnrollment;
             $isAdvised  = $currentEnrollment && $currentEnrollment->status !== 'NOT_ENROLLED';
             $isCleared  = $currentEnrollment && $currentEnrollment->cleared_for_enrollment;
-            $isPaid     = $currentEnrollment && $currentEnrollment->status === 'PAID';
+            $financialStatus = $currentEnrollment ? ($currentEnrollment->financial_status ?? $currentEnrollment->computeFinancialStatus()) : null;
+            $isFinanciallyClearable = in_array($financialStatus, ['PAID', 'DEFERRED']);
             $isEnrolled = $currentEnrollment && $currentEnrollment->status === 'ENROLLED';
         @endphp
 
@@ -217,8 +218,8 @@
 
                     <!-- Payment -->
                     <div class="flex items-center space-x-1">
-                        <div class="w-5 h-5 flex items-center justify-center rounded-full {{ $isCleared ? 'bg-green-600' : 'bg-gray-200' }} text-white">
-                            @if($isCleared)
+                        <div class="w-5 h-5 flex items-center justify-center rounded-full {{ $isFinanciallyClearable ? 'bg-green-600' : 'bg-gray-200' }} text-white">
+                            @if($isFinanciallyClearable)
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
                                 </svg>
@@ -226,10 +227,10 @@
                                 <span class="text-[8px] font-semibold text-gray-500">P</span>
                             @endif
                         </div>
-                        <span class="text-[10px] {{ $isCleared ? 'text-green-600 font-semibold' : 'text-gray-400' }}">Payment</span>
+                        <span class="text-[10px] {{ $isFinanciallyClearable ? 'text-green-600 font-semibold' : 'text-gray-400' }}">Financial</span>
                     </div>
 
-                    <div class="flex-1 border-t-2 border-dashed {{ $isCleared ? 'border-green-300' : 'border-gray-300' }}"></div>
+                    <div class="flex-1 border-t-2 border-dashed {{ $isFinanciallyClearable ? 'border-green-300' : 'border-gray-300' }}"></div>
 
                     <!-- Assessment -->
                     <div class="flex items-center space-x-1">
@@ -262,7 +263,7 @@
     class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 sm:p-6"
 >
     <div
-        @click.away="close()"
+        @click.away="!showPromissoryPreviewModal && close()"
         class="bg-white rounded-xl shadow-xl w-full max-w-6xl max-h-[95vh] "
     >
         <!-- Header -->
@@ -282,13 +283,124 @@
             </button>
             <form :action="clearEnrollmentUrl" method="POST" @submit.prevent="submitClearForm">
                 @csrf
-                <button :disabled="!allMandatoryFeesPaid" type="submit" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition"
-                    :title="!allMandatoryFeesPaid ? 'All mandatory fees must be paid before clearing for assessment' : 'Clear this student for assessment'">
+                <button :disabled="!canClearEnrollment" type="submit" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition"
+                    :title="!canClearEnrollment ? 'Student is not financially clearable yet' : 'Clear this student for assessment'">
                     Clear Student for Assessment
                 </button>
             </form>
         </div>
 
+    </div>
+</div>
+
+<div
+    x-show="showPromissoryPreviewModal"
+    x-cloak
+    class="fixed inset-0 z-[60] flex items-center justify-center bg-black bg-opacity-50 p-4 sm:p-6"
+>
+    <div
+        @click.away="closePromissoryPreview()"
+        class="flex w-full max-w-6xl max-h-[95vh] flex-col overflow-hidden rounded-xl bg-white shadow-xl"
+    >
+        <div class="flex items-start justify-between border-b px-6 py-4">
+            <div>
+                <h3 class="text-xl font-bold text-gray-800">Preview Promissory Note</h3>
+                <p class="text-sm text-gray-500">Review and adjust the note before it is created.</p>
+            </div>
+            <button @click="closePromissoryPreview()" class="text-xl text-gray-400 hover:text-gray-600">&times;</button>
+        </div>
+
+        <form :action="issuePromissoryNoteUrl" method="POST" @submit.prevent="submitPromissoryNote" class="flex min-h-0 flex-1 flex-col">
+            @csrf
+            <div class="min-h-0 flex-1 overflow-y-auto p-6">
+                <div class="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
+                    <div class="space-y-4">
+                        <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                            <h4 class="font-semibold text-slate-800">Student Summary</h4>
+                            <dl class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                <div>
+                                    <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Student</dt>
+                                    <dd class="text-sm font-medium text-slate-900" x-text="studentName"></dd>
+                                </div>
+                                <div>
+                                    <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Student ID</dt>
+                                    <dd class="text-sm font-medium text-slate-900" x-text="studentNumber"></dd>
+                                </div>
+                                <div>
+                                    <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Course</dt>
+                                    <dd class="text-sm font-medium text-slate-900" x-text="studentCourse || '—'"></dd>
+                                </div>
+                                <div>
+                                    <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Year · Section</dt>
+                                    <dd class="text-sm font-medium text-slate-900" x-text="`${studentYear || '—'} · ${studentSection || '—'}`"></dd>
+                                </div>
+                            </dl>
+                        </div>
+
+                        <div class="rounded-xl border border-slate-200 p-4">
+                            <h4 class="font-semibold text-slate-800">Note Details</h4>
+                            <div class="mt-4 grid gap-4 sm:grid-cols-2">
+                                <label class="block">
+                                    <span class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Due Date</span>
+                                    <input type="date" name="due_date" x-model="promissoryPreviewDueDate" :min="promissoryPreviewDueDateMin || todayIsoDate" :max="promissoryPreviewDueDateMax || null" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-red-500 focus:ring-red-500" :class="dueDateValidationError ? 'border-red-500 bg-red-50' : ''">
+                                    <p class="mt-1 text-xs text-slate-500" x-show="semesterStartDate && semesterEndDate" x-text="`Semester: ${semesterStartDate} to ${semesterEndDate}`"></p>
+                                    <p class="mt-1 text-xs text-red-600 font-semibold" x-show="dueDateValidationError" x-text="dueDateValidationError"></p>
+                                </label>
+                                <label class="block sm:col-span-2">
+                                    <span class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Purpose / Reason / Important Notes</span>
+                                    <textarea name="notes" x-model="promissoryPreviewNotes" rows="4" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-red-500 focus:ring-red-500" placeholder="Explain why the note is being issued, special terms, or other important matters."></textarea>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div class="rounded-xl border border-red-200 bg-red-50 p-4">
+                            <div class="flex items-center justify-between gap-3">
+                                <h4 class="font-semibold text-red-900">Selected Fees</h4>
+                                <span class="text-sm font-medium text-red-800" x-text="`${selectedPromissoryFees.length} fee(s)`"></span>
+                            </div>
+                            <p class="mt-1 text-xs text-red-700">Only unpaid mandatory fees are eligible for this note. Deselect any fee the coordinator does not want to defer.</p>
+                            <div class="mt-4 max-h-[24rem] space-y-3 overflow-y-auto pr-1">
+                                <template x-for="fee in unpaidMandatoryFees" :key="fee.id">
+                                    <label class="flex cursor-pointer items-start gap-3 rounded-lg border border-red-100 bg-white px-3 py-3 text-sm shadow-sm hover:border-red-300">
+                                        <input type="checkbox" name="selected_fee_ids[]" class="mt-1 rounded border-gray-300 text-red-700 focus:ring-red-500" :value="String(fee.id)" x-model="selectedPromissoryFeeIds">
+                                        <div class="min-w-0 flex-1">
+                                            <div class="flex items-start justify-between gap-3">
+                                                <div class="min-w-0">
+                                                    <p class="font-semibold text-gray-900" x-text="fee.fee_name"></p>
+                                                    <p class="text-xs text-gray-500" x-text="fee.organization?.name || 'College'"></p>
+                                                </div>
+                                                <p class="shrink-0 font-semibold text-gray-900" x-text="`₱ ${parseFloat(fee.amount || 0).toFixed(2)}`"></p>
+                                            </div>
+                                        </div>
+                                    </label>
+                                </template>
+                            </div>
+                        </div>
+
+                        <div class="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                            <div class="flex items-center justify-between text-sm">
+                                <span class="font-medium text-gray-600">Projected Amount</span>
+                                <span class="text-lg font-bold text-gray-900" x-text="`₱ ${selectedPromissoryTotal.toFixed(2)}`"></span>
+                            </div>
+                            <div class="mt-2 text-xs text-gray-500">
+                                Preview only. The note is not created until you finalize below.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-3 border-t bg-gray-50 px-6 py-4">
+                <button type="button" @click="closePromissoryPreview()" class="rounded-lg border px-4 py-2 text-gray-600 hover:bg-gray-100">
+                    Back
+                </button>
+                <button type="submit" class="rounded-lg bg-red-800 px-4 py-2 font-semibold text-white transition hover:bg-red-700">
+                    Finalize Promissory Note
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -346,6 +458,7 @@ function studentSelection() {
 function paymentVerification() {
     return {
         showPaymentModal: false,
+        showPromissoryPreviewModal: false,
         studentId: null,
         studentName: '',
         studentNumber: '',
@@ -357,11 +470,31 @@ function paymentVerification() {
         studentReligion: '',
         markPaidUrl: '',
         clearEnrollmentUrl: '',
+        issuePromissoryNoteUrl: '',
         fees: [],
         optionalFeeShown: false,
+        financialStatus: null,
+        promissoryNote: null,
+        canIssuePromissoryNote: false,
+        canClearEnrollment: false,
+        selectedPromissoryFeeIds: [],
+        promissoryPreviewDueDate: '',
+        promissoryPreviewDueDateMin: '',
+        promissoryPreviewDueDateMax: '',
+        promissoryPreviewNotes: '',
+        semesterStartDate: '',
+        semesterEndDate: '',
+
+        get todayIsoDate() {
+            return new Date().toISOString().slice(0, 10);
+        },
 
         get mandatoryFees() {
             return this.fees.filter(f => f.requirement_level === 'mandatory');
+        },
+
+        get unpaidMandatoryFees() {
+            return this.mandatoryFees.filter(fee => !fee.payments || fee.payments.length === 0);
         },
 
         get optionalFees() {
@@ -372,8 +505,75 @@ function paymentVerification() {
             return this.mandatoryFees.every(fee => fee.payments && fee.payments.length > 0);
         },
 
+        get activePromissoryNote() {
+            return this.promissoryNote;
+        },
+
+        get selectedPromissoryFees() {
+            const selectedIds = new Set(this.selectedPromissoryFeeIds.map(value => String(value)));
+            return this.unpaidMandatoryFees.filter(fee => selectedIds.has(String(fee.id)));
+        },
+
+        get selectedPromissoryTotal() {
+            return this.selectedPromissoryFees.reduce((total, fee) => total + parseFloat(fee.amount || 0), 0);
+        },
+
+        get dueDateValidationError() {
+            if (!this.promissoryPreviewDueDate) return '';
+            if (this.semesterStartDate && this.promissoryPreviewDueDate < this.semesterStartDate) {
+                return `Due date must be on or after semester start (${this.semesterStartDate})`;
+            }
+            if (this.semesterEndDate && this.promissoryPreviewDueDate > this.semesterEndDate) {
+                return `Due date must be on or before semester end (${this.semesterEndDate})`;
+            }
+            return '';
+        },
+
+        canSubmitPromissoryNote() {
+            return !this.dueDateValidationError;
+        },
+
+        openPromissoryPreview() {
+            this.selectedPromissoryFeeIds = this.unpaidMandatoryFees.map(fee => String(fee.id));
+            const fallbackDueDate = this.promissoryPreviewDueDate || this.todayIsoDate;
+            this.promissoryPreviewDueDate = this.promissoryPreviewDueDateMax && fallbackDueDate > this.promissoryPreviewDueDateMax
+                ? this.promissoryPreviewDueDateMax
+                : fallbackDueDate;
+            this.promissoryPreviewNotes = this.promissoryPreviewNotes || '';
+            this.showPaymentModal = false;
+            this.showPromissoryPreviewModal = true;
+        },
+
+        closePromissoryPreview() {
+            this.showPromissoryPreviewModal = false;
+        },
+
+        submitPromissoryNote(e) {
+            if (!this.selectedPromissoryFeeIds.length) {
+                alert('Select at least one fee to include in the promissory note.');
+                return;
+            }
+
+            if (!this.promissoryPreviewDueDate) {
+                alert('Select a due date for the promissory note.');
+                return;
+            }
+
+            if (this.dueDateValidationError) {
+                alert(this.dueDateValidationError);
+                return;
+            }
+
+            const confirmed = confirm('Finalize and create this promissory note?');
+            if (!confirmed) {
+                return;
+            }
+
+            e.target.submit();
+        },
+
         submitClearForm(e) {
-            if (!this.allMandatoryFeesPaid) {
+            if (!this.canClearEnrollment) {
                 e.preventDefault();
                 return false;
             }
@@ -396,16 +596,29 @@ function paymentVerification() {
             this.studentReligion = religion;
             this.markPaidUrl = `/college/students/${id}/mark-paid`;
             this.clearEnrollmentUrl = `/college/students/${id}/clear-for-enrollment`;
+            this.issuePromissoryNoteUrl = `/college/students/${id}/promissory-notes`;
             this.optionalFeeShown = false;
             this.showPaymentModal = true;
+            this.showPromissoryPreviewModal = false;
             fetch(`/college/students/${id}/fees`)
                 .then(res => res.json())
                 .then(data => {
-                    this.fees = data;
+                    this.fees = data.fees || [];
+                    this.financialStatus = data.financial_status || null;
+                    this.promissoryNote = data.promissory_note || null;
+                    this.canIssuePromissoryNote = Boolean(data.can_issue_promissory_note);
+                    this.canClearEnrollment = Boolean(data.can_clear);
+                    this.promissoryPreviewDueDate = data.preview_defaults?.due_date || this.todayIsoDate;
+                    this.promissoryPreviewDueDateMin = data.preview_defaults?.due_date_min || '';
+                    this.promissoryPreviewDueDateMax = data.preview_defaults?.due_date_max || '';
+                    this.semesterStartDate = data.preview_defaults?.semester_start_date || '';
+                    this.semesterEndDate = data.preview_defaults?.semester_end_date || '';
+                    this.promissoryPreviewNotes = data.preview_defaults?.notes || '';
                 });
         },
         close() {
             this.showPaymentModal = false;
+            this.showPromissoryPreviewModal = false;
         }
     }
 }

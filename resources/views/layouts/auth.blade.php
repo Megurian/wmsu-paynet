@@ -37,9 +37,9 @@
     </div>
 
     <!-- RIGHT COLUMN -->
-    <div class="w-full md:w-1/2 flex items-center justify-center px-6">
+    <div class="w-full md:w-1/2 flex items-center justify-center px-4 py-8 sm:px-6 md:px-6 md:py-0">
         <div
-            class="bg-white w-full max-w-md rounded-xl shadow-xl p-8
+            class="bg-white w-full max-w-md rounded-2xl shadow-xl p-6 sm:p-8
                 transition-all duration-300 ease-in-out
                 animate-slide-in-right"
         >

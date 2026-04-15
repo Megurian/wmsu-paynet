@@ -164,6 +164,7 @@ class AdviserStudentUploadController extends Controller
 
             if (!$enrollment->exists) {
                 $enrollment->status = 'NOT_ENROLLED';
+                $enrollment->financial_status = StudentEnrollment::FINANCIAL_UNPAID;
             }
 
             $enrollment->save();
@@ -210,6 +211,7 @@ public function reAddOldStudent(Request $request, $studentId)
                 'course_id'     => Auth::user()->course_id,
                 'year_level_id' => $yearLevelId,
                 'section_id'    => $sectionId,
+                'financial_status' => StudentEnrollment::FINANCIAL_UNPAID,
             ]);
 
             $enrollment->save();

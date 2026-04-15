@@ -11,6 +11,7 @@ use App\Http\Controllers\CollegeStudentController;
 use App\Http\Controllers\CollegeDashboardController;
 use App\Http\Controllers\CollegeHistoryController;
 use App\Http\Controllers\ValidateStudentsController;
+use App\Http\Controllers\CoordinatorController;
 use App\Http\Controllers\UniversityOrgFeesController;
 use App\Http\Controllers\UniversityOrgReportsController;
 use App\Http\Controllers\UniversityOrgOfficesController;
@@ -56,8 +57,10 @@ Route::middleware('auth')->get('/dashboard', function () {
 
 Route::middleware(['auth', 'role:osa'])->group(function () {
     Route::get('/osa/setup', [OSASetupController::class, 'edit'])->name('osa.setup');
+    Route::get('/osa/setup/create-academic-setup', [OSASetupController::class, 'createAcademicSetup'])->name('osa.setup.create-academic-setup');
     Route::post('/osa/setup', [OSASetupController::class, 'store'])->name('osa.setup.store');
     Route::post('/osa/setup/{id}/add-semester', [OSASetupController::class, 'addSemester'])->name('osa.setup.addSemester');
+    Route::post('/osa/setup/{schoolYear}/start-semester/{semester}', [OSASetupController::class, 'startSemester'])->name('osa.setup.start-semester');
     Route::post('/osa/setup/{schoolYear}/end-semester', [OSASetupController::class, 'endSemester'])->name('osa.setup.end-semester');
 });
 
@@ -207,6 +210,7 @@ Route::get('/college-org/generate-report',
    Route::get('/college_org/students/{student}/fees',
     [OrganizationPaymentController::class,'getStudentFees'])
     ->name('college_org.students.fees');
+    Route::get('/college_org/students/{student}/promissory-notes', [OrganizationPaymentController::class, 'getPromissoryNotes']);
     Route::post('/college_org/payment/collect', [OrganizationPaymentController::class,'collectPayment']);
     
     Route::get('/college_org/documents', [DocumentController::class, 'index'])->name('college_org.documents.index')->defaults('role', 'college_org');
@@ -334,6 +338,8 @@ Route::middleware(['auth', 'role:treasurer,college,student_coordinator,adviser,a
         ->name('college.local_organizations.reject');
         Route::post('/college/students/{student}/clear-for-enrollment', [ValidateStudentsController::class, 'clearForEnrollment'])
     ->name('college.students.clear-for-enrollment');
+        Route::post('/college/students/{student}/promissory-notes', [ValidateStudentsController::class, 'issuePromissoryNote'])
+            ->name('college.students.promissory_notes.store');
     
     Route::get('/college/students/{student}/history', [CollegeHistoryController::class, 'showStudentHistory'])
         ->name('college.students.history');
@@ -351,12 +357,28 @@ Route::middleware(['auth', 'role:treasurer,college,student_coordinator,adviser,a
      Route::get('/college/students/{student}/fees', [ValidateStudentsController::class, 'getFeesForStudent']);
 });
 
+    Route::middleware(['auth', 'role:student_coordinator'])->group(function () {
+        Route::get('/college/promissory-notes', [CoordinatorController::class, 'index'])
+            ->name('college.promissory_notes.index');
+        Route::get('/college/promissory-notes/dashboard', [CoordinatorController::class, 'dashboard'])
+            ->name('college.promissory_notes.dashboard');
+        Route::get('/college/promissory-notes/export', [CoordinatorController::class, 'export'])
+            ->name('college.promissory_notes.export');
+        Route::get('/college/promissory-notes/{note}/document', [CoordinatorController::class, 'viewDocument'])
+            ->name('college.promissory_notes.document');
+        Route::post('/college/promissory-notes/{note}/approve-signature', [CoordinatorController::class, 'approveSignature'])
+            ->name('college.promissory_notes.approve');
+        Route::post('/college/promissory-notes/{note}/reject-signature', [CoordinatorController::class, 'rejectSignature'])
+            ->name('college.promissory_notes.reject');
+    });
+
 
 
 Route::middleware(['auth', 'role:treasurer'])->group(function () {
      Route::get('/college/cashiering', [TreasurerCashieringController::class, 'index'])->name('treasurer.cashiering');
     Route::get('/treasurer/cashiering/search', [TreasurerCashieringController::class, 'searchAdvisedStudents']);
     Route::get('/treasurer/cashiering/student/{student}', [TreasurerCashieringController::class, 'getStudentDetails']);
+    Route::get('/treasurer/cashiering/student/{student}/promissory-notes', [TreasurerCashieringController::class, 'getPromissoryNotes']);
     Route::post('/treasurer/cashiering/collect', [TreasurerCashieringController::class, 'collectPayment']);
     // receipt download disabled for now
     // Route::get('/treasurer/cashiering/receipt/pdf/{payment}', [TreasurerCashieringController::class, 'downloadReceipt'])

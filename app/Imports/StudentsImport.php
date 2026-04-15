@@ -23,7 +23,7 @@ class StudentsImport implements ToCollection, WithHeadingRow
 
     public function collection(Collection $rows)
     {
-        $adviser        = auth()->user();
+        $adviser        = Auth::user();
         $adviserId      = $adviser->id;
         $collegeId      = $adviser->college_id;
         $adviserCourseId = $adviser->course_id;
@@ -155,6 +155,7 @@ class StudentsImport implements ToCollection, WithHeadingRow
 
                 if (!$enrollment->exists) {
                     $enrollment->status = 'NOT_ENROLLED';
+                    $enrollment->financial_status = StudentEnrollment::FINANCIAL_UNPAID;
                 }
 
                 $enrollment->save();
