@@ -32,23 +32,23 @@ class ValidateStudentsController extends Controller
         $activeSem = Semester::where('is_active', true)->first();
 
         $studentsQuery = Student::whereHas('enrollments', function ($e) use ($collegeId, $request) {
-                $e->whereIn('id', function ($q) {
-                    $q->selectRaw('MAX(id)')
-                        ->from('student_enrollments')
-                        ->groupBy('student_id');
-                })
+            $e->whereIn('id', function ($q) {
+                $q->selectRaw('MAX(id)')
+                    ->from('student_enrollments')
+                    ->groupBy('student_id');
+            })
                 ->where('college_id', $collegeId);
 
-                if ($request->course) {
-                    $e->where('course_id', $request->course);
-                }
-                if ($request->year) {
-                    $e->where('year_level_id', $request->year);
-                }
-                if ($request->section) {
-                    $e->where('section_id', $request->section);
-                }
-            })
+            if ($request->course) {
+                $e->where('course_id', $request->course);
+            }
+            if ($request->year) {
+                $e->where('year_level_id', $request->year);
+            }
+            if ($request->section) {
+                $e->where('section_id', $request->section);
+            }
+        })
             ->when($request->search, function ($q) use ($request) {
                 $q->where(function ($sub) use ($request) {
                     $sub->where('student_id', 'like', "%{$request->search}%")
@@ -469,7 +469,7 @@ class ValidateStudentsController extends Controller
                 }
 
                 $selectedFeeIds = collect($validated['selected_fee_ids'])
-                    ->map(fn ($feeId) => (int) $feeId)
+                    ->map(fn($feeId) => (int) $feeId)
                     ->unique()
                     ->values();
 
@@ -503,7 +503,6 @@ class ValidateStudentsController extends Controller
                 'issued_by' => Auth::id(),
                 'original_amount' => $note->original_amount,
             ]);
-
         } catch (\RuntimeException $exception) {
             return back()->withErrors([
                 'promissory_note' => $exception->getMessage(),
@@ -543,7 +542,7 @@ class ValidateStudentsController extends Controller
         $fees = $this->getCollegeFeesForStudent($student, $collegeId);
         $mandatoryFees = $fees->where('requirement_level', 'mandatory');
         $allMandatoryFeesPaid = $mandatoryFees->isEmpty()
-            || $mandatoryFees->every(fn ($fee) => isset($fee->payments) && $fee->payments->isNotEmpty());
+            || $mandatoryFees->every(fn($fee) => isset($fee->payments) && $fee->payments->isNotEmpty());
         $storedFinancialStatus = $activeEnrollment->financial_status ?? $activeEnrollment->computeFinancialStatus();
         $dueDateCeiling = $this->resolvePromissoryNoteDueDateCeiling($activeEnrollment);
 
@@ -583,7 +582,7 @@ class ValidateStudentsController extends Controller
         }
 
         $unpaidMandatoryFeeIds = $mandatoryFees
-            ->reject(fn ($fee) => isset($fee->payments) && $fee->payments->isNotEmpty())
+            ->reject(fn($fee) => isset($fee->payments) && $fee->payments->isNotEmpty())
             ->pluck('id')
             ->toArray();
 
@@ -620,7 +619,7 @@ class ValidateStudentsController extends Controller
                 'due_date' => $activePromissoryNote->due_date?->toDateString(),
                 'remaining_balance' => $activePromissoryNote->remaining_balance,
                 'original_amount' => $activePromissoryNote->original_amount,
-                'fees' => $activePromissoryNote->fees->map(fn ($fee) => [
+                'fees' => $activePromissoryNote->fees->map(fn($fee) => [
                     'id' => $fee->id,
                     'name' => $fee->fee_name,
                     'amount_deferred' => $fee->pivot->amount_deferred,
@@ -660,6 +659,8 @@ class ValidateStudentsController extends Controller
         }
 
         $allOrgIds = array_values(array_unique($allOrgIds));
+ $activeSY = SchoolYear::where('is_active', true)->first();
+$activeSem = Semester::where('is_active', true)->first();
 
         return \App\Models\Fee::where('status', 'APPROVED')
             ->where(function ($q) use ($allOrgIds, $collegeId) {
@@ -671,7 +672,7 @@ class ValidateStudentsController extends Controller
             })
             ->with([
                 'organization',
-                'payments' => fn ($q) => $q->where('student_id', $student->id)->with(['collector', 'organization'])
+                'payments' => fn($q) => $q ->where('student_id', $student->id) ->where('school_year_id', $activeSY->id) ->where('semester_id', $activeSem->id)
             ])
             ->get()
             ->unique('id')
