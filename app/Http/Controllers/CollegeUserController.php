@@ -66,7 +66,7 @@ class CollegeUserController extends Controller
             'course_id' => $request->role === 'adviser' ? $request->course_id : null,
         ]);
 
-        return redirect()->route('college.users.index')
+        return redirect()->route('college.users.index', ['tab' => 'accounts'])
                         ->with('status', 'User created successfully!');
     }
 

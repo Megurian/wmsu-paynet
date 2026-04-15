@@ -307,7 +307,7 @@
 
     {{-- Students Table as Cards --}}
     <div class="space-y-4">
-        <template x-for="student in filteredStudents" :key="student.id">
+        <template x-for="student in filtered" :key="student.id">
             <div class="bg-white shadow rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between space-y-3 md:space-y-0 md:space-x-4">
                <div class="flex items-center md:w-1/3 space-x-2">
                     <template x-if="student.status === 'NOT_ENROLLED'">
@@ -475,11 +475,20 @@
         filterYear: '',
         filterSection: '',
         students: @json($alpineStudents),
+        filtered: [],
 
         selectedStudents: [],
 
-        get filteredStudents() {
-            let result = this.students;
+        init() {
+            this.filtered = [...this.students];
+
+             this.$watch('search', () => this.updateFiltered());
+    this.$watch('filterCourse', () => this.updateFiltered());
+    this.$watch('filterYear', () => this.updateFiltered());
+    this.$watch('filterSection', () => this.updateFiltered());
+        },
+        updateFiltered() {
+            let result = [...this.students];
 
             if (this.search) {
                 const s = this.search.toLowerCase();
@@ -495,13 +504,15 @@
             if (this.filterYear) result = result.filter(st => st.year_level_id == Number(this.filterYear));
             if (this.filterSection) result = result.filter(st => st.section_id == Number(this.filterSection));
 
-            return result;
+            this.filtered = result;
+            this.selectedStudents = [];
         },
 
         toggleAll(event) {
             const checked = event.target.checked;
+
             if (checked) {
-                this.selectedStudents = this.filteredStudents.map(s => s.id);
+                this.selectedStudents = this.filtered.map(s => s.id);
             } else {
                 this.selectedStudents = [];
             }

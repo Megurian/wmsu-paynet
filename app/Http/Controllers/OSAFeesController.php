@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Fee;
 use App\Models\Organization;
 use App\Models\Document;
+use App\Models\SchoolYear;
+use App\Models\Semester;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -13,55 +15,59 @@ class OSAFeesController extends Controller
     public function index(Request $request)
     {
         // show pending fees for OSA to review (includes fees with pending appeals)
-       $pendingFees = Fee::with(['organization', 'user', 'appeals'])
-        ->where(function($q) {
-            $q->where(function($q2) {
-                // Fees specifically pending for OSA (organization or university-wide)
-                $q2->whereIn('fee_scope', ['organization', 'university-wide'])
-                ->where('status', 'pending');
+        $pendingFees = Fee::with(['organization', 'user', 'appeals'])
+            ->where(function ($q) {
+                $q->where(function ($q2) {
+                    // Fees specifically pending for OSA (organization or university-wide)
+                    $q2->whereIn('fee_scope', ['organization', 'university-wide'])
+                        ->where('status', 'pending');
+                })
+                    ->orWhere(function ($q3) {
+                        // College fees assigned to OSA
+                        $q3->where('fee_scope', 'college')
+                            ->where('approval_level', 'osa')
+                            ->where('status', 'pending');
+                    })
+                    ->orWhereHas('appeals', function ($q4) {
+                        $q4->where('status', 'pending');
+                    });
             })
-            ->orWhere(function($q3) {
-                // College fees assigned to OSA
-                $q3->where('fee_scope', 'college')
-                ->where('approval_level', 'osa')
-                ->where('status', 'pending');
-            })
-            ->orWhereHas('appeals', function($q4) {
-                $q4->where('status', 'pending');
-            });
-        })
-        ->orderBy('created_at', 'desc')
-        ->get();
+            ->orderBy('created_at', 'desc')
+            ->get();
 
-        
-        $approvedFees = Fee::with (['organization', 'user'])
+
+        $approvedFees = Fee::with(['organization', 'user'])
             ->where('status', 'approved')
             ->orderByDesc('approved_at')
             ->get();
-           
+
 
         // Status filter (default to approved)
         $status = $request->get('status', 'approved');
 
-// Show university-wide fees and college-organization fees (exclude college-local/student-coordinator entries)
+        // Show university-wide fees and college-organization fees (exclude college-local/student-coordinator entries)
         $filteredQuery = Fee::with(['organization', 'user'])
-            ->where(function($q) {
+            ->where(function ($q) {
                 // university-wide fees (OSA and university orgs)
                 $q->where('fee_scope', 'university-wide')
-                  // college fees that are tied to a college organization (organization_id NOT NULL)
-                  ->orWhere(function($q2) {
-                      $q2->where('fee_scope', 'college')
-                         ->whereNotNull('organization_id');
-                  });
+                    // college fees that are tied to a college organization (organization_id NOT NULL)
+                    ->orWhere(function ($q2) {
+                        $q2->where('fee_scope', 'college')
+                            ->whereNotNull('organization_id');
+                    });
             });
 
         if ($status === 'approved') {
             $filteredQuery->where('status', 'approved')
-                ->whereDoesntHave('appeals', function($q) { $q->where('status', 'pending'); });
+                ->whereDoesntHave('appeals', function ($q) {
+                    $q->where('status', 'pending');
+                });
         } elseif ($status === 'pending') {
-            $filteredQuery->where(function($q) {
+            $filteredQuery->where(function ($q) {
                 $q->where('status', 'pending')
-                  ->orWhereHas('appeals', function($q2) { $q2->where('status', 'pending'); });
+                    ->orWhereHas('appeals', function ($q2) {
+                        $q2->where('status', 'pending');
+                    });
             });
         } elseif ($status === 'disabled') {
             $filteredQuery->where('status', 'disabled');
@@ -128,6 +134,9 @@ class OSAFeesController extends Controller
             $feeScope = 'college';
         }
 
+        $activeSY = SchoolYear::where('is_active', true)->first();
+        $activeSem = Semester::where('is_active', true)->first();
+
         $data = [
             'organization_id' => $request->organization_id,
             'user_id' => Auth::id(),
@@ -142,6 +151,10 @@ class OSAFeesController extends Controller
             // OSA-created fees are auto-approved
             'status' => 'approved',
         ];
+      
+        $data['created_school_year_id'] = $activeSY->id;
+        $data['created_semester_id'] = $activeSem->id;
+
 
         // Store legal basis as a Resolution of Collection document
         if ($request->hasFile('legal_basis_file')) {

@@ -86,7 +86,16 @@
         </div>
 
         <div class="flex justify-end">
-            <button class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Create Fee</button>
+            <button type="button"
+            onclick="openConfirmModal({
+                title: 'Create Fee',
+                message: 'Do you want to proceed?',
+                confirmText: 'Create',
+                onConfirm: () => this.closest('form').submit()
+            })"
+            class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+            Create Fee
+            </button>
         </div>
     </form>
 </div>

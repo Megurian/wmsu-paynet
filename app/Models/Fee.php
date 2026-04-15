@@ -28,6 +28,8 @@ class Fee extends Model
         'approval_level',
         'approved_by',
         'approved_at',
+         'created_school_year_id',
+    'created_semester_id',
     ];
 
     /**
@@ -91,4 +93,11 @@ class Fee extends Model
     {
         return $this->belongsTo(Document::class, 'supporting_document_id');
     }
+    public function createdSchoolYear() {
+    return $this->belongsTo(SchoolYear::class, 'created_school_year_id');
+}
+
+public function createdSemester() {
+    return $this->belongsTo(Semester::class, 'created_semester_id');
+}
 }

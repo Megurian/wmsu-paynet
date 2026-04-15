@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Models\PromissoryNote;
+use App\Observers\PromissoryNoteObserver;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Auth;
@@ -22,6 +24,13 @@ class AppServiceProvider extends ServiceProvider
      */
    public function boot(): void
     {
+        $reminderDays = (int) config('app.promissory_note_reminder_days_before_due', 7);
+        if ($reminderDays <= 0) {
+            throw new \RuntimeException('PROMISSORY_NOTE_REMINDER_DAYS_BEFORE_DUE must be a positive integer.');
+        }
+
+        PromissoryNote::observe(PromissoryNoteObserver::class);
+
         View::composer('*', function ($view) {
 
             $latestSchoolYear = SchoolYear::with('semesters')

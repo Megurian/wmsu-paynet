@@ -11,7 +11,12 @@ use App\Models\Fee;
 use App\Models\Organization;
 use App\Models\StudentEnrollment;
 use App\Models\Payment;
+use App\Models\PromissoryNote;
+use App\Services\PromissoryNoteSettlementService;
+use App\Http\Requests\CollectPromissoryPaymentRequest;
+use App\Exceptions\PromissoryNoteException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class OrganizationPaymentController extends Controller
 {
@@ -31,12 +36,16 @@ class OrganizationPaymentController extends Controller
         $activeSY = SchoolYear::where('is_active', true)->first();
         $activeSem = Semester::where('is_active', true)->first();
 
+        if (!$activeSY || !$activeSem) {
+            return response()->json([]);
+        }
+
         $students = Student::whereHas('enrollments', function ($q) use ($activeSY, $activeSem, $collegeId) {
-                $q->whereIn('status', ['FOR_PAYMENT_VALIDATION', 'ENROLLED'])
-                    ->where('school_year_id', $activeSY->id)
-                    ->where('semester_id', $activeSem->id)
-                    ->where('college_id', $collegeId);
-            })
+            $q->whereIn('status', ['FOR_PAYMENT_VALIDATION', 'ENROLLED'])
+                ->where('school_year_id', $activeSY->id)
+                ->where('semester_id', $activeSem->id)
+                ->where('college_id', $collegeId);
+        })
             ->where(function ($q) use ($query) {
                 $q->where('student_id', 'like', "%{$query}%")
                     ->orWhere('first_name', 'like', "%{$query}%")
@@ -67,6 +76,10 @@ class OrganizationPaymentController extends Controller
         $activeSY = SchoolYear::where('is_active', true)->first();
         $activeSem = Semester::where('is_active', true)->first();
 
+        if (!$activeSY || !$activeSem) {
+            return response()->json(['message' => 'No active school year or semester.'], 422);
+        }
+
         $student = Student::with(['enrollments' => function ($q) use ($activeSY, $activeSem) {
             $q->where('school_year_id', $activeSY->id)
                 ->where('semester_id', $activeSem->id)
@@ -79,7 +92,24 @@ class OrganizationPaymentController extends Controller
         if (!$activeEnrollment) {
             return response()->json(['message' => 'Student not enrolled.'], 404);
         }
-        $userOrg = auth()->user()->organization;
+
+        $userOrg = Auth::user()->organization;
+        if (!$userOrg) {
+            return response()->json(['message' => 'Organization not found.'], 422);
+        }
+
+        $activePromissoryNote = PromissoryNote::where('student_id', $student->id)
+            ->whereIn('status', [
+                PromissoryNote::STATUS_ACTIVE,
+                PromissoryNote::STATUS_DEFAULT,
+                PromissoryNote::STATUS_BAD_DEBT,
+            ])
+            ->where('remaining_balance', '>', 0)
+            ->with('fees:id')
+            ->orderByDesc('id')
+            ->first();
+
+        $pnFeeIds = $activePromissoryNote ? $activePromissoryNote->fees->pluck('id')->toArray() : [];
 
         $organizationIds = [$userOrg->id];
 
@@ -89,8 +119,9 @@ class OrganizationPaymentController extends Controller
         }
 
         // Build base query: include fees belonging to this organization and — only when allowed — university-wide fees.
+        // Exclude college-scoped fees from the organization payment window.
         $feesQuery = Fee::where('status', 'approved')
-            ->where(function($q) use ($organizationIds, $userOrg) {
+            ->where(function ($q) use ($organizationIds, $userOrg) {
                 $q->whereIn('organization_id', $organizationIds);
 
                 // Special exception: only children of mother orgs that inherit OSA fees may see fees created by OSA
@@ -101,7 +132,12 @@ class OrganizationPaymentController extends Controller
                     }
                 }
             })
+            ->where('fee_scope', '!=', 'college')
             ->orderBy('created_at', 'desc');
+
+        if (!empty($pnFeeIds)) {
+            $feesQuery->whereNotIn('id', $pnFeeIds);
+        }
 
         // Ensure uniqueness (in case a fee matches multiple conditions)
         $fees = $feesQuery->get()->unique('id')->values();
@@ -124,22 +160,127 @@ class OrganizationPaymentController extends Controller
                 'section' => $activeEnrollment?->section?->name,
             ],
             'fees' => $fees,
-            'paid_fee_ids' => $paidFeeIds  
+            'paid_fee_ids' => $paidFeeIds
         ]);
     }
 
 
     public function collectPayment(Request $request)
     {
+        // If promissory_note_id is provided, handle PN settlement
+        if ($request->has('promissory_note_id') && $request->promissory_note_id) {
+            return $this->collectPromissoryPayment($request);
+        }
+
+        // Otherwise, handle traditional cash payment
+        return $this->collectCashPayment($request);
+    }
+
+    /**
+     * Fetch active promissory note for a student (org-level context).
+     * Returns 0 or 1 active PN per student.
+     * 
+     * GET /college_org/students/{student_id}/promissory-notes
+     */
+    public function getPromissoryNotes($studentId)
+    {
+        $organization = Auth::user()->organization;
+        $activeSY = SchoolYear::where('is_active', true)->first();
+        $activeSem = Semester::where('is_active', true)->first();
+
+        if (!$activeSY || !$activeSem) {
+            return response()->json(null);
+        }
+
+        $student = Student::findOrFail($studentId);
+
+        // Verify student belongs to this organization's college
+        $enrollment = StudentEnrollment::where('student_id', $student->id)
+            ->where('school_year_id', $activeSY->id)
+            ->where('semester_id', $activeSem->id)
+            ->first();
+
+        if (!$enrollment || $enrollment->college_id !== $organization->college_id) {
+            return response()->json(null);
+        }
+
+        // Fetch the latest settleable PN (ACTIVE, DEFAULT, or BAD_DEBT)
+        $settleablePN = PromissoryNote::where('student_id', $student->id)
+            ->whereIn('status', [
+                PromissoryNote::STATUS_ACTIVE,
+                PromissoryNote::STATUS_DEFAULT,
+                PromissoryNote::STATUS_BAD_DEBT,
+            ])
+            ->where('remaining_balance', '>', 0)
+            ->whereHas('fees', function ($q) {
+                $q->where('fee_scope', '!=', 'college');
+            })
+            ->with(['fees' => function ($q) {
+                $q->where('fee_scope', '!=', 'college')
+                  ->select('fees.id', 'fees.fee_name');
+            }])
+            ->orderByDesc('id')
+            ->first();
+
+        if (! $settleablePN) {
+            return response()->json(null);
+        }
+
+        $feePayments = DB::table('fee_payment')
+            ->join('payments', 'fee_payment.payment_id', '=', 'payments.id')
+            ->where('payments.promissory_note_id', $settleablePN->id)
+            ->groupBy('fee_payment.fee_id')
+            ->select('fee_payment.fee_id', DB::raw('SUM(fee_payment.amount_paid) as amount_paid'))
+            ->pluck('amount_paid', 'fee_id');
+
+        $fees = $settleablePN->fees->map(function ($fee) use ($feePayments) {
+            $amountDeferred = (float) $fee->pivot->amount_deferred;
+            $amountPaid = (float) ($feePayments[$fee->id] ?? 0);
+            $amountRemaining = max(0, $amountDeferred - $amountPaid);
+
+            if ($amountRemaining <= 0) {
+                return null;
+            }
+
+            return [
+                'id' => $fee->id,
+                'name' => $fee->fee_name,
+                'amount_deferred' => $amountDeferred,
+                'amount_paid' => $amountPaid,
+                'amount_remaining' => $amountRemaining,
+            ];
+        })->filter()->values();
+
+        if ($fees->isEmpty()) {
+            return response()->json(null);
+        }
+
+        return response()->json([
+            'id' => $settleablePN->id,
+            'student_id' => $settleablePN->student_id,
+            'organization_id' => $organization->id,
+            'original_amount' => $settleablePN->original_amount,
+            'remaining_balance' => $settleablePN->remaining_balance,
+            'due_date' => $settleablePN->due_date->toDateString(),
+            'status' => $settleablePN->status,
+            'fees' => $fees,
+        ]);
+    }
+
+    /**
+     * Collect traditional cash payment (extracted from original collectPayment)
+     */
+    private function collectCashPayment(Request $request)
+    {
         $request->validate([
             'student_id' => 'required|exists:students,id',
             'fee_ids' => 'required|array|min:1',
-            'fee_ids.*' => 'exists:fees,id',
+            'fee_ids.*' => 'distinct|exists:fees,id',
             'cash_received' => 'required|numeric|min:0',
         ]);
 
         // Authenticate organization and get active periods
-        $user = auth()->user();
+        $user = Auth::user();
         $organization = $user->organization;
 
         if (!$organization) {
@@ -165,6 +306,21 @@ class OrganizationPaymentController extends Controller
         // Verify student belongs to the correct college
         if ($enrollment->college_id !== $organization->college_id) {
             return response()->json(['message' => 'Student does not belong to this organization.'], 403);
+        }
+
+        $outstandingPN = PromissoryNote::where('student_id', $student->id)
+            ->whereIn('status', [
+                PromissoryNote::STATUS_ACTIVE,
+                PromissoryNote::STATUS_DEFAULT,
+                PromissoryNote::STATUS_BAD_DEBT,
+            ])
+            ->where('remaining_balance', '>', 0)
+            ->exists();
+
+        if ($outstandingPN) {
+            return response()->json([
+                'message' => 'Regular payment is blocked while the student has an outstanding promissory note. Please settle the promissory note first.'
+            ], 422);
         }
 
         if (!in_array($enrollment->status, [StudentEnrollment::FOR_PAYMENT_VALIDATION, StudentEnrollment::ENROLLED])) {
@@ -200,6 +356,13 @@ class OrganizationPaymentController extends Controller
             ], 403);
         }
 
+        $collegeScopeFees = $fees->where('fee_scope', 'college')->pluck('id')->toArray();
+        if (!empty($collegeScopeFees)) {
+            return response()->json([
+                'message' => 'College-scoped fees cannot be paid in the organization payment window.'
+            ], 403);
+        }
+
         $totalAmount = $fees->sum('amount');
 
         if ($request->cash_received < $totalAmount) {
@@ -225,14 +388,14 @@ class OrganizationPaymentController extends Controller
 
         $orgCode = $organization->org_code ?? 'GEN';
         $dateStr = now()->format('Ymd');
-        
+
         $countToday = Payment::where('organization_id', $organization->id)
             ->whereDate('created_at', now())
             ->count();
-        
+
         $sequenceNum = str_pad($countToday + 1, 4, '0', STR_PAD_LEFT);
         $randomSuffix = strtoupper(str_pad(dechex(random_int(0, 4095)), 3, '0', STR_PAD_LEFT));
-        
+
         $transactionId = "{$orgCode}-{$dateStr}-{$sequenceNum}-{$randomSuffix}";
 
         $payment = Payment::create([
@@ -241,16 +404,19 @@ class OrganizationPaymentController extends Controller
             'organization_id' => $organization->id,
             'school_year_id' => $activeSY->id,
             'semester_id' => $activeSem->id,
+            'payment_type' => 'CASH',
             'amount_due' => $totalAmount,
             'cash_received' => $request->cash_received,
             'change' => $change,
-            'collected_by' => auth()->id(),
+            'collected_by' => Auth::id(),
             'transaction_id' => $transactionId,
         ]);
 
         foreach ($fees as $fee) {
             $payment->fees()->attach($fee->id, ['amount_paid' => $fee->amount]);
         }
+
+        $enrollment->refreshFinancialStatus();
 
         return response()->json([
             'message' => 'Payment collected successfully.',
@@ -266,64 +432,355 @@ class OrganizationPaymentController extends Controller
         ]);
     }
 
-    // public function downloadReceipt(Payment $payment)
-    // {
-    //     $payment->load([
-    //         'student',
-    //         'fees',
-    //         'enrollment.course',
-    //         'enrollment.yearLevel',
-    //         'enrollment.section',
-    //         'collector'
-    //     ]);
-    //
-    //     $html = view('college_org.receipt_pdf', compact('payment'))->render();
-    //
-    //     $mpdf = new Mpdf([
-    //         'mode' => 'utf-8',
-    //         'format' => 'A4',
-    //     ]);
-    //
-    //     $mpdf->WriteHTML($html);
-    //
-    //     if (!$payment->fees->contains('organization_id', auth()->user()->organization->id)) {
-    //         abort(403);
-    //     }
-    //
-    //     return response(
-    //         $mpdf->Output('receipt-' . $payment->transaction_id . '.pdf', 'S'),
-    //         200,
-    //         [
-    //             'Content-Type' => 'application/pdf',
-    //             'Content-Disposition' => 'inline; filename="receipt-' . $payment->transaction_id . '.pdf"'
-    //         ]
-    //     );
-    // }
+    /**
+     * Collect promissory note settlement payment (org-level)
+     */
+    private function collectPromissoryPayment(Request $request)
+    {
+        $rules = (new CollectPromissoryPaymentRequest())->rules();
+        $messages = (new CollectPromissoryPaymentRequest())->messages();
+        $request->validate($rules, $messages);
+
+        try {
+            $user = Auth::user();
+            $organization = $user->organization;
+
+            if (!$organization) {
+                return response()->json(['message' => 'Organization not found.'], 422);
+            }
+
+            $student = Student::findOrFail($request->student_id);
+            $promissoryNote = PromissoryNote::findOrFail($request->promissory_note_id);
+
+            // Verify PN belongs to this student
+            if ($promissoryNote->student_id !== $student->id) {
+                return response()->json([
+                    'message' => 'Promissory note does not belong to this student.'
+                ], 403);
+            }
+
+            // Verify enrollment belongs to this organization's college
+            if ($promissoryNote->enrollment->college_id !== $organization->college_id) {
+                return response()->json([
+                    'message' => 'Promissory note does not belong to this college.'
+                ], 403);
+            }
+
+            $collegeFeeSelected = Fee::whereIn('id', $request->selected_fees)
+                ->where('fee_scope', 'college')
+                ->exists();
+
+            if ($collegeFeeSelected) {
+                return response()->json([
+                    'message' => 'College-scoped fees cannot be settled in the organization payment window.'
+                ], 403);
+            }
+
+            // Use settlement service to process payment
+            $settlementService = new PromissoryNoteSettlementService();
+
+            $result = $settlementService->settlePayment(
+                $promissoryNote,
+                $request->cash_received,
+                $request->selected_fees,
+                $user,
+                true // Is org payment
+            );
+
+            return response()->json([
+                'message' => 'Promissory note payment collected successfully.',
+                'payment_id' => $result['payment']->id,
+                'transaction_id' => $result['transaction_id'],
+                'promissory_note' => [
+                    'id' => $promissoryNote->id,
+                    'remaining_balance' => $result['remaining_balance'],
+                    'status' => $promissoryNote->fresh()->status,
+                    'is_closed' => $result['is_closed'],
+                ],
+                'change' => $result['payment']->change,
+                'student' => [
+                    'id' => $student->id,
+                    'student_id' => $student->student_id,
+                    'name' => "{$student->first_name} {$student->last_name}"
+                ]
+            ]);
+
+        } catch (PromissoryNoteException $e) {
+            Log::error('Organization PN settlement failed - business rule violation', [
+                'student_id' => $request->student_id,
+                'promissory_note_id' => $request->promissory_note_id,
+                'exception' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'message' => 'Unable to process this payment. Please verify the amount and note status.',
+            ], $e->getCode() ?: 422);
+        } catch (\Exception $e) {
+            Log::error('Organization PN settlement failed', [
+                'student_id' => $request->student_id,
+                'promissory_note_id' => $request->promissory_note_id,
+                'exception' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'message' => 'Unable to process the payment at this time. Please try again later.',
+            ], 500);
+        }
+    }
 
     public function records(Request $request)
     {
-        $user = auth()->user();
+        $user = Auth::user();
+        $organization = $user->organization;
+        $collegeId = $organization->college_id;
 
-        $activeSY = SchoolYear::where('is_active', true)->first();
-        $activeSem = Semester::where('is_active', true)->first();
+        $activeSYId = SchoolYear::where('is_active', true)->value('id');
+        $activeSemId = Semester::where('is_active', true)->value('id');
 
-        $payments = Payment::with([
-            'student',
-            'fees',
-            'enrollment.course',
-            'enrollment.yearLevel',
-            'enrollment.section'
-        ])
-            ->whereHas('fees', function ($q) use ($user) {
-                $q->where('organization_id', $user->organization->id);
-            })
-            ->whereHas('enrollment', function ($q) use ($activeSY, $activeSem) {
-                $q->where('school_year_id', $activeSY->id)
-                    ->where('semester_id', $activeSem->id);
-            })
-            ->latest()
+        $schoolYearId = $request->input('school_year_id', $activeSYId);
+        $semesterId = $request->input('semester_id', $activeSemId);
+
+        $students = Student::whereHas('enrollments', function ($q) use ($collegeId, $schoolYearId, $semesterId) {
+            $q->where('college_id', $collegeId)
+                ->where('school_year_id', $schoolYearId)
+                ->where('semester_id', $semesterId)
+                ->whereIn('status', ['FOR_PAYMENT_VALIDATION', 'ENROLLED']);
+        })->with(['enrollments' => function ($q) use ($schoolYearId, $semesterId) {
+            $q->where('school_year_id', $schoolYearId)
+                ->where('semester_id', $semesterId)
+                ->whereIn('status', ['FOR_PAYMENT_VALIDATION', 'ENROLLED']);
+        }, 'enrollments.course', 'enrollments.yearLevel', 'enrollments.section'])
             ->get();
 
-        return view('college_org.records', compact('payments'));
+        $paymentsQuery = Payment::with(['student', 'fees', 'enrollment.course', 'enrollment.yearLevel', 'enrollment.section'])
+            ->where('organization_id', $organization->id)
+            ->where('school_year_id', $schoolYearId)
+            ->where('semester_id', $semesterId);
+
+
+        if ($request->filled('search')) {
+            $query = $request->input('search');
+            $paymentsQuery->whereHas('student', function ($q) use ($query) {
+                $q->where('student_id', 'like', "%{$query}%")
+                    ->orWhere('first_name', 'like', "%{$query}%")
+                    ->orWhere('last_name', 'like', "%{$query}%");
+            });
+        }
+
+        $payments = $paymentsQuery->latest()->get();
+
+        $studentsWithPayments = [];
+
+        foreach ($students as $student) {
+            $enrollment = $student->enrollments->first();
+            if (!$enrollment) continue;
+
+            $studentPayments = $payments->where('student_id', $student->id);
+
+            foreach ($studentPayments as $payment) {
+                foreach ($payment->fees as $fee) {
+                    $studentsWithPayments[] = [
+                        'student' => $student,
+                        'enrollment' => $enrollment,
+                        'fee' => $fee,
+                        'status' => 'Paid',
+                        'amount' => $payment->pivot->amount_paid ?? $fee->amount,
+                        'payment_date' => $payment->created_at,
+                    ];
+                }
+            }
+
+            $organizationIds = [$organization->id];
+            if ($organization->mother_organization_id) $organizationIds[] = $organization->mother_organization_id;
+            if ($organization->motherOrganization?->inherits_osa_fees) {
+                $osaId = \App\Models\Organization::where('org_code', 'OSA')->value('id');
+                if ($osaId) $organizationIds[] = $osaId;
+            }
+
+            $allFees = Fee::where('status', 'approved')->whereIn('organization_id', $organizationIds)->get();
+            $paidFeeIds = $studentPayments->pluck('fees.*.id')->flatten()->unique()->toArray();
+            $pendingFees = $allFees->whereNotIn('id', $paidFeeIds)->values();
+
+            foreach ($pendingFees as $fee) {
+                $studentsWithPayments[] = [
+                    'student' => $student,
+                    'enrollment' => $enrollment,
+                    'fee' => $fee,
+                    'status' => 'Pending',
+                    'amount' => 0,
+                    'payment_date' => null,
+                ];
+            }
+        }
+
+        if ($request->filled('payment_status')) {
+            $status = $request->input('payment_status');
+            if ($status === 'paid') {
+                $studentsWithPayments = collect($studentsWithPayments)->filter(fn($s) => $s['status'] === 'Paid')->values();
+            }
+            if ($status === 'pending') {
+                $studentsWithPayments = collect($studentsWithPayments)->filter(fn($s) => $s['status'] === 'Pending')->values();
+            }
+        }
+
+        $totalTransactions = $payments->count();
+        $totalCollected = $payments->sum('amount_due');
+        $totalStudents = $students->count();
+        $todayCollections = $payments->where('created_at', '>=', now()->startOfDay())->sum('amount_due');
+
+        $mandatoryCollected = 0;
+        $optionalCollected = 0;
+
+        foreach ($payments as $payment) {
+            foreach ($payment->fees as $fee) {
+                if ($fee->requirement_level === 'mandatory') {
+                    $mandatoryCollected += $fee->pivot->amount_paid ?? $fee->amount;
+                }
+                if ($fee->requirement_level === 'optional') {
+                    $optionalCollected += $fee->pivot->amount_paid ?? $fee->amount;
+                }
+            }
+        }
+
+        $schoolYears = SchoolYear::orderBy('sy_start', 'desc')->get();
+        $semesters = Semester::orderBy('id')->get();
+        $organizationIds = [$organization->id];
+        if ($organization->mother_organization_id) {
+            $organizationIds[] = $organization->mother_organization_id;
+        }
+        if ($organization->motherOrganization?->inherits_osa_fees) {
+            $osaId = \App\Models\Organization::where('org_code', 'OSA')->value('id');
+            if ($osaId) $organizationIds[] = $osaId;
+        }
+
+        $fees = Fee::where('status', 'approved')
+            ->whereIn('organization_id', $organizationIds)
+            ->where(function ($q) use ($schoolYearId, $semesterId) {
+                $q->whereNull('created_school_year_id')
+                    ->orWhere('created_school_year_id', '<=', $schoolYearId);
+            })
+            ->where(function ($q) use ($schoolYearId, $semesterId) {
+                $q->whereNull('created_semester_id')
+                    ->orWhere('created_semester_id', '<=', $semesterId);
+            })
+            ->orderBy('created_at', 'desc')
+            ->get();
+        $courses = \App\Models\Course::where('college_id', $collegeId)->get();
+        $yearLevels = \App\Models\YearLevel::where('college_id', $collegeId)->get();
+        $sections = \App\Models\Section::where('college_id', $collegeId)->get();
+
+        return view('college_org.records', compact(
+            'studentsWithPayments', // 
+            'schoolYears',
+            'semesters',
+            'fees',
+            'courses',
+            'yearLevels',
+            'sections',
+            'schoolYearId',
+            'semesterId',
+            'totalTransactions',
+            'totalCollected',
+            'totalStudents',
+            'todayCollections',
+            'mandatoryCollected',
+            'optionalCollected'
+        ));
+    }
+
+    public function generateReport(Request $request)
+    {
+        $organization = Auth::user()->organization;
+
+        $activeSYId = SchoolYear::where('is_active', true)->value('id');
+        $activeSemId = Semester::where('is_active', true)->value('id');
+
+        $schoolYearId = $request->input('school_year_id', $activeSYId);
+        $semesterId = $request->input('semester_id', $activeSemId);
+
+        $students = Student::whereHas('enrollments', function ($q) use ($organization, $schoolYearId, $semesterId) {
+            $q->where('college_id', $organization->college_id)
+                ->where('school_year_id', $schoolYearId)
+                ->where('semester_id', $semesterId)
+                ->whereIn('status', ['FOR_PAYMENT_VALIDATION', 'ENROLLED']);
+        })->with(['enrollments' => function ($q) use ($schoolYearId, $semesterId) {
+            $q->where('school_year_id', $schoolYearId)
+                ->where('semester_id', $semesterId)
+                ->whereIn('status', ['FOR_PAYMENT_VALIDATION', 'ENROLLED']);
+        }, 'enrollments.course', 'enrollments.yearLevel', 'enrollments.section'])->get();
+
+        $payments = Payment::with(['fees', 'student'])
+            ->where('organization_id', $organization->id)
+            ->where('school_year_id', $schoolYearId)
+            ->where('semester_id', $semesterId)
+            ->get();
+
+        $studentsWithPayments = $students->map(function ($student) use ($payments, $organization) {
+            $enrollment = $student->enrollments->first();
+            $studentPayments = $payments->where('student_id', $student->id);
+
+            $organizationIds = [$organization->id];
+            if ($organization->mother_organization_id) $organizationIds[] = $organization->mother_organization_id;
+            if ($organization->motherOrganization?->inherits_osa_fees) {
+                $osaId = \App\Models\Organization::where('org_code', 'OSA')->value('id');
+                if ($osaId) $organizationIds[] = $osaId;
+            }
+
+            $allFees = Fee::where('status', 'approved')
+                ->whereIn('organization_id', $organizationIds)
+                ->get();
+
+            $paidFeeIds = $studentPayments->pluck('fees.*.id')->flatten()->unique()->toArray();
+
+            $pendingFees = $allFees->whereNotIn('id', $paidFeeIds)->values();
+
+            return [
+                'student' => $student,
+                'payments' => $studentPayments,
+                'pendingFees' => $pendingFees,
+                'has_paid' => $studentPayments->isNotEmpty(),
+                'total_paid' => $studentPayments->sum('amount_due'),
+                'total_pending' => $pendingFees->sum('amount')
+            ];
+        });
+
+        if ($request->filled('payment_status')) {
+            $status = $request->payment_status;
+            if ($status === 'paid') {
+                $studentsWithPayments = $studentsWithPayments->filter(fn($s) => $s['has_paid'])->values();
+            }
+            if ($status === 'pending') {
+                $studentsWithPayments = $studentsWithPayments->filter(fn($s) => !$s['has_paid'] || $s['total_pending'] > 0)->values();
+            }
+        }
+
+        if ($request->format === 'pdf') {
+            $html = view('college_org.reports.payment_report_pdf', [
+                'studentsWithPayments' => $studentsWithPayments,
+                'schoolYearId' => $schoolYearId,
+                'semesterId' => $semesterId
+            ])->render();
+
+            $mpdf = new \Mpdf\Mpdf(['format' => 'A4']);
+            $mpdf->WriteHTML($html);
+
+            return response(
+                $mpdf->Output('payment-report.pdf', 'S'),
+                200,
+                [
+                    'Content-Type' => 'application/pdf',
+                    'Content-Disposition' => 'inline; filename="payment-report.pdf"'
+                ]
+            );
+        }
+
+        if ($request->format === 'excel') {
+            return \Maatwebsite\Excel\Facades\Excel::download(
+                new \App\Exports\PaymentReportExport($studentsWithPayments),
+                'payment-report.xlsx'
+            );
+        }
+
+        abort(404);
     }
 }

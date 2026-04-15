@@ -55,10 +55,16 @@
                         {{ $org->inherits_osa_fees ? 'Remove OSA Inheritance' : 'Enable OSA Inheritance' }}
                     </button>
                 </form>
-                <form action="{{ route('osa.organizations.destroy', $org->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this organization?');" class="border-t">
+                <form id="deleteForm-{{ $org->id }}"  action="{{ route('osa.organizations.destroy', $org->id) }}" method="POST" class="border-t">
                     @csrf
                     @method('DELETE')
-                    <button type="submit" class="w-full text-center px-4 py-2 text-sm text-red-600 hover:bg-gray-100">Delete</button>
+                    <button type="button"
+                        onclick="openConfirmModal({
+                            title: 'Delete Organization',
+                            message: 'Are you sure you want to delete this?',
+                            confirmText: 'Delete',
+                            onConfirm: () => document.getElementById('deleteForm-{{ $org->id }}').submit()
+                        })" class="w-full text-center px-4 py-2 text-sm text-red-600 hover:bg-gray-100">Delete</button>
                 </form>
             </div>
         </div>

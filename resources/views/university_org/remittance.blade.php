@@ -1,115 +1,167 @@
 @extends('layouts.dashboard')
 
-@section('title', 'Remittance')
-@section('page-title', ($organization?->org_code ?? 'Organization') . ' Remittances')
-
+@section('title','Remittance')
+@section('page-title','Remittance Management')
 
 @section('content')
-<div class="mb-8">
-    <h2 class="text-3xl font-bold text-gray-800">USC Remittance</h2>
-    <p class="text-sm text-gray-500 mt-1">
-        Welcome, {{ Auth::user()->name }}. Here you can manage the remittance details for different colleges within the university.
-    </p>
-</div>
 
-<div class="container mx-auto px-0">
 
-    <!-- Setup of Fees Section -->
-    <div class="bg-white rounded-xl shadow-md border border-gray-200 p-6 mb-10">
-
-        <!-- Add New Fee Section -->
-        <div class="border-t pt-4">
-            <h3 class="text-lg font-semibold text-gray-800 mb-1">Remittance</h3> <br>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                <div>
-                    <label class="block text-gray-700 text-sm font-medium mb-2" for="college">
-                        College
-                    </label>
-                    <div class="relative">
-                        <select class="shadow border-gray-300 rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="college">
-                            <option value="" disabled selected>Select College</option>
-                            <option value="CAS">College of Arts and Sciences</option>
-                            <option value="CIT">College of Information Technology</option>
-                            <option value="CBM">College of Business and Management</option>
-                            <option value="CCS">College of Computing Studies</option>
-                        </select>
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-gray-700 text-sm font-medium mb-2" for="Amount">
-                        Amount Received
-                    </label>
-                    <input class="shadow appearance-none border-gray-300 rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" 
-                           id="Amount" type="number" placeholder="Enter Amount Received">
-                </div>
-                <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">
-                    Date Received
-                </label>
-                <input type="date" name="dtreceived"
-                       class="w-full rounded-lg border-gray-300 focus:border-red-600 focus:ring-red-600"
-                       required>
-            </div>
-            </div>
-            <div class="flex justify-end">
-                <button type="submit"
-                    class="bg-red-700 hover:bg-red-800 text-white px-6 py-2.5 rounded-lg font-medium transition">
-               Save
-                </button>
-            </div>
-        </div>
+<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+    <div class="bg-white p-5 rounded-xl shadow hover:shadow-md transition">
+        <div class="text-sm text-gray-500">Total Collected by Offices</div>
+        <div class="text-2xl font-bold text-indigo-600">₱ {{ number_format($totalCollected,2) }}</div>
     </div>
 
-    <!-- Records Section -->
-    <div class="mb-8 flex justify-between items-center">
-        <h2 class="text-2xl font-bold text-gray-800">Records</h2>
-        <div class="flex items-center space-x-4">
-            <div class="flex items-center">
-                <label for="date-filter" class="block text-sm font-medium text-gray-700 mr-2">Filter by Date:</label>
-                <input type="date" id="date-filter" class="rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500">
-            </div>
-        </div>
+    <div class="bg-white p-5 rounded-xl shadow hover:shadow-md transition">
+        <div class="text-sm text-gray-500">Total Expected Remittance</div>
+        <div class="text-2xl font-bold text-blue-600">₱ {{ number_format($totalExpected,2) }}</div>
     </div>
 
-    <div class="bg-white rounded-lg shadow-md p-6">
-        <div class="overflow-x-auto">
-            <table class="min-w-full bg-white">
-                <thead>
-                    <tr class="bg-gray-100">
-                        <th class="py-2 px-4 border-b text-left">Code</th>
-                        <th class="py-2 px-4 border-b text-left">College</th>
-                        <th class="py-2 px-4 border-b text-left">Amount</th>
-                        <th class="py-2 px-4 border-b text-left">Date</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr class="hover:bg-gray-50">
-                        <td class="py-2 px-4 border-b">CAS</td>
-                        <td class="py-2 px-4 border-b">College of Arts and Sciences</td>
-                        <td class="py-2 px-4 border-b">3,000</td>
-                        <td class="py-2 px-4 border-b">12-03-2025</td>
-                    </tr>
-                    <tr class="hover:bg-gray-50">
-                        <td class="py-2 px-4 border-b">CIT</td>
-                        <td class="py-2 px-4 border-b">College of Information Technology</td>
-                        <td class="py-2 px-4 border-b">6,000</td>
-                        <td class="py-2 px-4 border-b">12-03-2025</td>
-                    </tr>
-                    <tr class="hover:bg-gray-50">
-                        <td class="py-2 px-4 border-b">CBM</td>
-                        <td class="py-2 px-4 border-b">College of Business and Management</td>
-                        <td class="py-2 px-4 border-b">3,500</td>
-                        <td class="py-2 px-4 border-b">12-05-2025</td>
-                    </tr>
-                    <tr class="hover:bg-gray-50">
-                        <td class="py-2 px-4 border-b">CCS</td>
-                        <td class="py-2 px-4 border-b">College of Computing Studies</td>
-                        <td class="py-2 px-4 border-b">2,000</td>
-                        <td class="py-2 px-4 border-b">12-04-2025</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+    <div class="bg-white p-5 rounded-xl shadow hover:shadow-md transition">
+        <div class="text-sm text-gray-500">Total Remitted</div>
+        <div class="text-2xl font-bold text-green-600">₱ {{ number_format($totalRemitted,2) }}</div>
+    </div>
+
+    <div class="bg-white p-5 rounded-xl shadow hover:shadow-md transition">
+        <div class="text-sm text-gray-500">Total Remaining Unremitted</div>
+        <div class="text-2xl font-bold text-red-600">₱ {{ number_format($remaining,2) }}</div>
     </div>
 </div>
+
+<div class="bg-white rounded-xl shadow p-6 mb-10">
+    <h3 class="text-lg font-semibold mb-5 border-b pb-2">Remit Funds</h3>
+
+    <form method="POST" action="{{ route('university_org.remittance.confirm') }}" class="grid grid-cols-1 md:grid-cols-3 gap-5 items-end">
+        @csrf
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Select Office</label>
+            <select name="from_organization_id" id="from_organization_id" required
+                class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                onchange="updateRemaining()">
+                <option value="">-- Choose Office --</option>
+                @foreach($remittanceData as $row)
+                <option value="{{ $row['organization']->id }}" data-remaining="{{ $row['remaining'] }}" data-fee-id="{{ $row['defaultFeeId'] }}">
+                    {{ $row['organization']->name }} (Remaining: ₱ {{ number_format($row['remaining'],2) }})
+                </option>
+                @endforeach
+            </select>
+            {{-- <p class="text-xs text-gray-500 mt-1" id="remaining-info">Select an office to see remaining balance</p> --}}
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Amount</label>
+            <input type="number" step="0.01" name="amount" id="amount" required placeholder="Enter amount"
+                class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+            <input type="hidden" name="fee_id" id="fee_id" value="">
+        </div>
+
+        <div>
+            <button type="submit"
+                class="w-full bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition">
+                Confirm Remittance
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+function updateRemaining() {
+    const select = document.getElementById('from_organization_id');
+    const amountInput = document.getElementById('amount');
+    const info = document.getElementById('remaining-info');
+
+    const selectedOption = select.options[select.selectedIndex];
+    const remaining = parseFloat(selectedOption?.dataset?.remaining ?? 0);
+    const feeId = selectedOption?.dataset?.feeId;
+
+    amountInput.max = remaining;
+    if (info) {
+        info.textContent = `Maximum allowable amount: ₱ ${remaining.toFixed(2)}`;
+    }
+
+    const feeIdInput = document.getElementById('fee_id');
+    if (feeIdInput) {
+        feeIdInput.value = feeId ?? '';
+    }
+}
+</script>
+
+{{-- Remittance by Office --}}
+<div class="bg-white rounded-xl shadow p-6 mb-10">
+    <h3 class="text-lg font-semibold mb-5 border-b pb-2">Remittance by Office</h3>
+    <div class="overflow-x-auto">
+        <table class="min-w-full text-sm table-auto border-collapse">
+            <thead class="bg-gray-100">
+                <tr>
+                    <th class="p-3 text-left font-medium">Office</th>
+                    <th class="p-3 font-medium">Fee</th>
+                    <th class="p-3 font-medium text-center">Students Paid</th>
+                    <th class="p-3 font-medium text-center">Collected</th>
+                    <th class="p-3 font-medium text-center">Remitted</th>
+                    <th class="p-3 font-medium text-center">Remaining</th>
+                    <th class="p-3 font-medium text-center">Status</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y">
+                @foreach($remittanceData as $row)
+                    @foreach($row['feeDetails'] as $feeRow)
+                    <tr class="hover:bg-gray-50">
+                        <td class="p-3 font-medium">{{ $row['organization']->name }}</td>
+                        <td class="p-3">{{ $feeRow['fee']->fee_name }}</td>
+                        <td class="p-3 text-center">{{ $feeRow['studentsPaid'] }}</td>
+                        <td class="p-3 text-center">₱ {{ number_format($feeRow['totalCollected'],2) }}</td>
+
+                        @if($loop->first)
+                        <td class="p-3 text-center text-green-600 font-semibold" rowspan="{{ count($row['feeDetails']) }}">
+                            ₱ {{ number_format($row['remitted'],2) }}
+                        </td>
+                        <td class="p-3 text-center text-red-500" rowspan="{{ count($row['feeDetails']) }}">
+                            ₱ {{ number_format($row['remaining'],2) }}
+                        </td>
+                        <td class="p-3 text-center" rowspan="{{ count($row['feeDetails']) }}">
+                            <span class="px-2 py-1 rounded text-xs font-semibold
+                                @if($row['status']=='Completed') bg-green-100 text-green-700
+                                @elseif($row['status']=='Partial') bg-yellow-100 text-yellow-700
+                                @else bg-red-100 text-red-700
+                                @endif">
+                                {{ $row['status'] }}
+                            </span>
+                        </td>
+                        @endif
+                    </tr>
+                    @endforeach
+                @endforeach
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{{-- Remittance History --}}
+<div class="bg-white rounded-xl shadow p-6">
+    <h3 class="text-lg font-semibold mb-5 border-b pb-2">Remittance History</h3>
+    <div class="overflow-x-auto max-h-[350px]">
+        <table class="min-w-full text-sm table-auto border-collapse">
+            <thead class="bg-gray-100 sticky top-0">
+                <tr>
+                    <th class="p-3 font-medium text-left">Office</th>
+                    <th class="p-3 font-medium text-center">Amount Remitted</th>
+                    <th class="p-3 font-medium text-center">Date</th>
+                    <th class="p-3 font-medium text-left">Confirmed By</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y">
+                @foreach($history as $item)
+                <tr class="hover:bg-gray-50">
+                    <td class="p-3">{{ $item->fromOrganization->name }}</td>
+                    <td class="p-3 text-center font-semibold text-green-600">₱ {{ number_format($item->amount,2) }}</td>
+                    <td class="p-3 text-center">{{ $item->created_at->format('M d Y') }}</td>
+                    <td class="p-3">{{ $item->confirmer->name ?? 'System' }}</td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
+</div>
+
 @endsection

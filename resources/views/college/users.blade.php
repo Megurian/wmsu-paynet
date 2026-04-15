@@ -60,7 +60,13 @@
                                value="{{ $currentCollege->name ?? '' }}"
                                class="flex-1 border rounded px-3 py-3 focus:outline-none focus:ring focus:ring-red-700 text-lg"
                                placeholder="Enter College Name">
-                        <button type="submit" class="px-6 py-3 bg-red-800 text-white rounded hover:bg-red-700 whitespace-nowrap">
+                        <button type="button"
+                            onclick="openConfirmModal({
+                                title: 'Update College Name',
+                                message: 'Do you want to proceed?',
+                                confirmText: 'Update',
+                                onConfirm: () => this.closest('form').submit()
+                            })" class="px-6 py-3 bg-red-800 text-white rounded hover:bg-red-700 whitespace-nowrap">
                             Update
                         </button>
                     </div>
@@ -79,17 +85,29 @@
                 <form method="POST" action="{{ route('college.courses.store') }}" class="flex gap-2 mb-4">
                     @csrf
                     <input type="text" name="name" required class="flex-1 border rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-red-500" placeholder="e.g. BS Computer Science">
-                    <button class="bg-red-800 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition">Add</button>
+                    <button type="button"
+                            onclick="openConfirmModal({
+                                title: 'Course',
+                                message: 'Do you want to proceed?',
+                                confirmText: 'Confirm',
+                                onConfirm: () => this.closest('form').submit()
+                            })" class="bg-red-800 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition">Add</button>
                 </form>
 
                 <ul class="text-gray-800 space-y-2 max-h-48 overflow-y-auto">
                     @forelse($courses as $course)
                         <li class="flex justify-between items-center border-b py-1">
                             <span>{{ $course->name }}</span>
-                            <form action="{{ route('college.courses.destroy', $course->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this course?');">
+                            <form action="{{ route('college.courses.destroy', $course->id) }}" method="POST" >
                                 @csrf
                                 @method('DELETE')
-                                <button class="text-red-600 hover:text-red-800 text-sm">Delete</button>
+                                <button type="button"
+                                   onclick="openConfirmModal({
+                                    title: 'Delete Course',
+                                    message: 'Do you want to proceed?',
+                                    confirmText: 'Confirm',
+                                    onConfirm: () => this.closest('form').submit()
+                                })"class="text-red-600 hover:text-red-800 text-sm">Delete</button>
                             </form>
                         </li>
                     @empty
@@ -106,7 +124,13 @@
                 <form method="POST" action="{{ route('college.years.store') }}" class="flex gap-2 mb-4">
                     @csrf
                     <input type="text" name="name" required class="flex-1 border rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-red-500" placeholder="e.g. 1st Year">
-                    <button class="bg-red-800 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition">Add</button>
+                    <button  type="button"
+                            onclick="openConfirmModal({
+                            title: 'Year Level',
+                            message: 'Do you want to proceed?',
+                            confirmText: 'Confirm',
+                            onConfirm: () => this.closest('form').submit()
+                        })"class="bg-red-800 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition">Add</button>
                 </form>
 
                 <ul class="text-gray-800 space-y-2 max-h-48 overflow-y-auto">
@@ -116,7 +140,13 @@
                             <form action="{{ route('college.years.destroy', $year->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this year level?');">
                                 @csrf
                                 @method('DELETE')
-                                <button class="text-red-600 hover:text-red-800 text-sm">Delete</button>
+                                <button type="button"
+                                   onclick="openConfirmModal({
+                                    title: 'Delete Year Level',
+                                    message: 'Do you want to proceed?',
+                                    confirmText: 'Confirm',
+                                    onConfirm: () => this.closest('form').submit()
+                                })"class="text-red-600 hover:text-red-800 text-sm">Delete</button>
                             </form>
                         </li>
                     @empty
@@ -133,7 +163,13 @@
                 <form method="POST" action="{{ route('college.sections.store') }}" class="flex gap-2 mb-4">
                     @csrf
                     <input type="text" name="name" required class="flex-1 border rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-red-500" placeholder="Section (e.g. A)">
-                    <button class="bg-red-800 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition">Add</button>
+                    <button type="button"
+                                   onclick="openConfirmModal({
+                                    title: 'Sections',
+                                    message: 'Do you want to proceed?',
+                                    confirmText: 'Confirm',
+                                    onConfirm: () => this.closest('form').submit()
+                                })"class="bg-red-800 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition">Add</button>
                 </form>
 
                 <ul class="text-gray-800 space-y-2 max-h-48 overflow-y-auto">
@@ -143,7 +179,13 @@
                             <form action="{{ route('college.sections.destroy', $section->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this section?');">
                                 @csrf
                                 @method('DELETE')
-                                <button class="text-red-600 hover:text-red-800 text-sm">Delete</button>
+                                <button type="button"
+                                   onclick="openConfirmModal({
+                                    title: 'Delete Section',
+                                    message: 'Do you want to proceed?',
+                                    confirmText: 'Confirm',
+                                    onConfirm: () => this.closest('form').submit()
+                                })"class="text-red-600 hover:text-red-800 text-sm">Delete</button>
                             </form>
                         </li>
                     @empty
@@ -217,7 +259,13 @@
                                 <form action="{{ route('college.users.destroy', $user) }}" method="POST" onsubmit="return confirm('Delete this user?');">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="text-sm font-medium text-red-600 hover:text-red-800">
+                                    <button type="button"
+                                        onclick="openConfirmModal({
+                                            title: 'Delete User',
+                                            message: 'Do you want to proceed?',
+                                            confirmText: 'Confirm',
+                                            onConfirm: () => this.closest('form').submit()
+                                        })" class="text-sm font-medium text-red-600 hover:text-red-800">
                                         Delete
                                     </button>
                                 </form>
@@ -285,14 +333,18 @@
     }
 
     function confirmLogoUpdate(input) {
-        if(input.files.length > 0) {
-            const confirmed = confirm("Are you sure you want to update the college logo?");
-            if(confirmed) {
+        if (!input.files || input.files.length === 0) return;
+
+        const fileName = input.files[0].name;
+
+        openConfirmModal({
+            title: 'Update Logo',
+            message: `Upload "${fileName}" as new logo?`,
+            confirmText: 'Upload',
+            onConfirm: () => {
                 input.form.submit();
-            } else {
-                input.value = '';
             }
-        }
+        });
     }
 
     function confirmNameUpdate() {

@@ -69,4 +69,46 @@ class Student extends Authenticatable
     {
         $this->notify(new StudentResetPasswordNotification($token));
     }
+    public function getFullNameAttribute()
+    {
+        return trim("{$this->first_name} {$this->middle_name} {$this->last_name}" . ($this->suffix ? " {$this->suffix}" : ''));
+    }
+
+    // ============ PROMISSORY NOTE RELATIONSHIPS ============
+
+    /**
+     * All promissory notes for this student
+     */
+    public function promissoryNotes()
+    {
+        return $this->hasMany(PromissoryNote::class, 'student_id');
+    }
+
+    /**
+     * Check if student has any unpaid prior semester PN (blocks next-semester enrollment)
+     */
+    public function hasUnpaidPriorNote(): bool
+    {
+        return $this->promissoryNotes()
+            ->whereIn('status', [
+                PromissoryNote::STATUS_DEFAULT,
+                PromissoryNote::STATUS_BAD_DEBT,
+            ])
+            ->where('remaining_balance', '>', 0)
+            ->exists();
+    }
+
+    /**
+     * Scope: get students blocked from next semester due to unpaid prior PN
+     */
+    public function scopeBlockedFromNextSemester($query)
+    {
+        return $query->whereHas('promissoryNotes', function ($q) {
+            $q->whereIn('status', [
+                PromissoryNote::STATUS_DEFAULT,
+                PromissoryNote::STATUS_BAD_DEBT,
+            ])
+                ->where('remaining_balance', '>', 0);
+        });
+    }
 }

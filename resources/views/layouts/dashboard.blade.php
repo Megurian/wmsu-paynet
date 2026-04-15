@@ -139,6 +139,14 @@
                     {{ request()->routeIs('osa.fees') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
                     <span>Fees</span>
                 </a>
+                <a href="{{ route('osa.remittance') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('osa.remittance') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span>Remittance</span>
+                </a>
+                 <a href="{{ route('osa.reports') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('osa.reports') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span>Reports</span>
+                </a>
                 <a href="{{ route('osa.organizations') }}" class="block px-4 py-2 rounded-md transition
                     {{ request()->routeIs('osa.organizations') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
                     <span>Organizations</span>
@@ -249,6 +257,10 @@
                 @endif
 
                 @if(Auth::user()->role === 'student_coordinator')
+                    <a href="{{ route('college.promissory_notes.index') }}" class="block px-4 py-2 rounded-md transition
+                        {{ request()->routeIs('college.promissory_notes.*') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                        <span>Promissory Notes</span>
+                    </a>
                     <a href="{{ route('college.fees') }}" class="block px-4 py-2 rounded-md transition
                         {{ request()->routeIs('college.fees') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
                         <span>Fees</span>
@@ -371,6 +383,39 @@
                         </div>
                     </div>
                     @endif
+
+                   <!-- CONFIRMATION MODAL -->
+                    <div id="confirmModal"
+                        class="fixed inset-0 z-[60] hidden items-center justify-center bg-black bg-opacity-40">
+
+                        <div class="bg-white rounded-xl shadow-lg max-w-sm w-full p-6 text-center animate-fade-in">
+
+                            <div class="mx-auto mb-3 w-12 h-12 flex items-center justify-center rounded-full bg-yellow-100">
+                                <svg class="w-6 h-6 text-yellow-700" fill="none" stroke="currentColor" stroke-width="2"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M12 9v2m0 4h.01M12 3C7 3 3 7 3 12s4 9 9 9 9-4 9-9-4-9-9-9z"/>
+                                </svg>
+                            </div>
+
+                            <h3 id="confirmTitle" class="text-lg font-semibold mb-1">Are you sure?</h3>
+                            <p id="confirmMessage" class="text-sm text-gray-600 mb-4">
+                                This action cannot be undone.
+                            </p>
+
+                            <div class="flex justify-center gap-3">
+                                <button onclick="closeConfirmModal()"
+                                        class="px-4 py-2 rounded-lg border">
+                                    Cancel
+                                </button>
+
+                                <button id="confirmActionBtn"
+                                        class="bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-lg">
+                                    Confirm
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 @yield('content')
             </main>
         </div>
@@ -410,6 +455,38 @@
             }
 
             setTimeout(() => closeSuccessModal(), 3000);
+
+            let confirmCallback = null;
+
+            function openConfirmModal({
+                title = "Are you sure?",
+                message = "This action cannot be undone.",
+                onConfirm = null,
+                confirmText = "Confirm"
+            }) {
+                document.getElementById('confirmTitle').innerText = title;
+                document.getElementById('confirmMessage').innerText = message;
+                document.getElementById('confirmActionBtn').innerText = confirmText;
+
+                confirmCallback = onConfirm;
+
+                const modal = document.getElementById('confirmModal');
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            }
+
+            function closeConfirmModal() {
+                const modal = document.getElementById('confirmModal');
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+
+            document.getElementById('confirmActionBtn').addEventListener('click', function () {
+                if (typeof confirmCallback === 'function') {
+                    confirmCallback();
+                }
+                closeConfirmModal();
+            });
         </script>
     </div>
 

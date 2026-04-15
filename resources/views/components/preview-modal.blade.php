@@ -56,12 +56,18 @@
             }
 
             const targetFormId = modal.dataset.targetForm;
-            if (targetFormId) {
-                const f = document.getElementById(targetFormId);
-                if (f) {
-                    f.submit();
+
+            openConfirmModal({
+                title: 'Confirm Submission',
+                message: 'Do you want to proceed?',
+                confirmText: 'Yes, Submit',
+                onConfirm: () => {
+                    if (targetFormId) {
+                        const f = document.getElementById(targetFormId);
+                        if (f) f.submit();
+                    }
                 }
-            }
+            });
         }
     }
 
