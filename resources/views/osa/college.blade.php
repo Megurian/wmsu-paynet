@@ -46,7 +46,7 @@
 
                     <button type="button"
                         onclick="openConfirmModal({
-                            title: 'Delete Record',
+                            title: 'Delete College',
                             message: 'Are you sure you want to delete this?',
                             confirmText: 'Delete',
                             onConfirm: () => document.getElementById('deleteForm-{{ $college->id }}').submit()

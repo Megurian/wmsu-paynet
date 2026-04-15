@@ -14,22 +14,6 @@
     </p>
 </div>
 
-{{-- @if(session('status'))
-<div  id="successModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-    <div class="bg-white rounded-xl shadow-xl w-full max-w-sm p-6 text-center relative animate-fade-in">
-        <div class="mx-auto mb-3 flex items-center justify-center w-12 h-12 rounded-full bg-green-100">
-            <svg class="w-6 h-6 text-green-700" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-            </svg>
-        </div>
-        <h3 class="text-lg font-semibold text-gray-800 mb-1"> Success </h3>
-        <p class="text-sm text-gray-600 mb-4"> {{ session('status') }} </p>
-
-        <button onclick="closeSuccessModal()" class="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-lg text-sm font-medium transition"> OK </button>
-        <button onclick="closeSuccessModal()" class="absolute top-3 right-3 text-gray-400 hover:text-gray-600"> ✕ </button>
-    </div>
-</div>
-@endif --}}
 
 
 @if($errors->any())
@@ -202,12 +186,18 @@
     @if($isActive)
         @if($activeSemester)
             {{-- END SEMESTER --}}
-            <form method="POST"
+            <form  id="createForm" method="POST" 
                   action="{{ route('osa.setup.end-semester', $sy->id) }}"
                   onsubmit="return confirm('Are you sure you want to end the current semester?')"
                   class="inline">
                 @csrf
-                <button type="submit"
+                <button type="button"
+                        onclick="openConfirmModal({
+                            title: 'End Semester',
+                            message: 'Are you sure you want to end the current semester?',
+                            confirmText: 'Confirm',
+                            onConfirm: () => document.getElementById('createForm').submit()
+                        })"
                         class="bg-gray-700 hover:bg-gray-800 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
                     End Semester
                 </button>
@@ -218,12 +208,18 @@
                 $nextSemester = $sy->semesters->firstWhere(fn($s) => !$s->is_active && !$s->ended_at);
             @endphp
             @if($nextSemester)
-                <form method="POST"
+                <form id="createForm" method="POST"
                       action="{{ route('osa.setup.start-semester', ['schoolYear' => $sy->id, 'semester' => $nextSemester->id]) }}"
                       onsubmit="return confirm('Start {{ $formatSemesterName($nextSemester->name) }}?')"
                       class="inline">
                     @csrf
-                    <button type="submit"
+                    <button type="button"
+                        onclick="openConfirmModal({
+                            title: 'Start Semester',
+                            message: 'Start {{ $formatSemesterName($nextSemester->name) }}?',
+                            confirmText: 'Confirm',
+                            onConfirm: () => document.getElementById('createForm').submit()
+                        })"
                             class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
                         Start Semester
                     </button>
