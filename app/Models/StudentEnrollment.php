@@ -24,6 +24,7 @@ class StudentEnrollment extends Model
         'assessed_at' => 'datetime',
         'cleared_for_enrollment' => 'boolean',
         'financial_status' => 'string',
+        'is_void' => 'boolean',
     ];
 
     protected $fillable = [
@@ -43,6 +44,7 @@ class StudentEnrollment extends Model
         'assessed_at',
         'cleared_for_enrollment',
         'financial_status',
+        'is_void',
     ];
 
     public function student() {

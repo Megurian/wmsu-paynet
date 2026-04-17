@@ -154,7 +154,7 @@ class StudentsImport implements ToCollection, WithHeadingRow
                 ]);
 
                 if (!$enrollment->exists) {
-                    $enrollment->status = 'NOT_ENROLLED';
+                    $enrollment->status = StudentEnrollment::FOR_PAYMENT_VALIDATION;
                     $enrollment->financial_status = StudentEnrollment::FINANCIAL_UNPAID;
                 }
 

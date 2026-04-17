@@ -21,6 +21,7 @@ class Student extends Authenticatable
         'email',
         'religion',
         'password',
+        'is_graduated',
     ];
 
     protected $hidden = [
@@ -33,6 +34,7 @@ class Student extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'is_graduated' => 'boolean',
         ];
     }
 
