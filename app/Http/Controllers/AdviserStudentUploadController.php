@@ -52,10 +52,14 @@ class AdviserStudentUploadController extends Controller
             }
         }])
 
-        ->when($request->filled('year_level_id'), function ($q) use ($request) {
+       ->when($request->filled('year_level_id'), function ($q) use ($request) {
             $q->whereHas('enrollments', function ($e) use ($request) {
                 $e->where('year_level_id', $request->year_level_id)
-                ->latest('school_year_id');
+                ->whereIn('id', function ($sub) {
+                    $sub->selectRaw('MAX(id)')
+                        ->from('student_enrollments')
+                        ->groupBy('student_id');
+                });
             });
         })
 

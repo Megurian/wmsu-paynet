@@ -238,10 +238,6 @@
 
         {{-- Action Buttons --}}
         <div class="flex justify-end gap-4 mt-4 i items-center">
-
-             <div class="text-gray-500 text-sm italic">
-                This view shows the students you are assigned to. You can manage, add, or import student data for your course.
-            </div>
             <button @click="showModal = true"
                 class="bg-red-800 text-white px-4 py-2 rounded hover:bg-red-700 transition">
                 New Student
