@@ -488,6 +488,59 @@ public function promotionExecute()
     ]);
 }
 
+public function promoteAndPay(Request $request, $studentId)
+{
+    $adviser = Auth::user();
+
+    $activeSY = SchoolYear::where('is_active', true)->first();
+    $activeSem = Semester::where('is_active', true)->first();
+
+    $student = Student::findOrFail($studentId);
+
+    $enrollment = StudentEnrollment::where('student_id', $studentId)
+        ->latest('id')
+        ->first();
+
+    if (!$enrollment) {
+        return response()->json([
+            'message' => 'No enrollment found'
+        ], 404);
+    }
+
+    $yearLevelId = $request->year_level_id;
+
+    if ($request->promote) {
+        $nextYear = YearLevel::where('college_id', $adviser->college_id)
+            ->where('id', '>', $enrollment->year_level_id)
+            ->orderBy('id')
+            ->first();
+
+        $yearLevelId = $nextYear?->id ?? $enrollment->year_level_id;
+    }
+
+    $new = StudentEnrollment::firstOrNew([
+        'student_id' => $studentId,
+        'school_year_id' => $activeSY->id,
+        'semester_id' => $activeSem->id,
+    ]);
+
+    $new->fill([
+        'college_id' => $adviser->college_id,
+        'adviser_id' => $adviser->id,
+        'course_id' => $enrollment->course_id,
+        'year_level_id' => $yearLevelId,
+        'section_id' => $request->section_id ?? $enrollment->section_id,
+        'status' => 'FOR_PAYMENT_VALIDATION',
+        'financial_status' => StudentEnrollment::FINANCIAL_UNPAID,
+        'advised_at' => now(),
+    ]);
+
+    $new->save();
+
+    return response()->json([
+        'message' => 'Student promoted and sent to payment successfully'
+    ]);
+}
 
 }
 

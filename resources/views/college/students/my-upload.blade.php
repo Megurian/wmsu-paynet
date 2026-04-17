@@ -381,6 +381,65 @@
         </button>
     </div>
 
+    <div x-show="showStudentPromotionModal" x-cloak
+     class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+
+    <div class="bg-white rounded-xl shadow-lg w-full max-w-lg p-6">
+
+        <h3 class="text-lg font-semibold mb-3">
+            Proceed to Payment
+        </h3>
+
+        <!-- Student Info -->
+        <div class="border rounded p-3 mb-4 text-sm">
+            <div class="font-semibold"
+                 x-text="activeStudent?.student_id + ' - ' + activeStudent?.last_name + ', ' + activeStudent?.first_name"></div>
+        </div>
+
+        <!-- Promotion Checkbox -->
+        <label class="flex items-center gap-2 mb-3 text-sm">
+            <input type="checkbox" x-model="studentPromotion.promote">
+            Promote Year Level (Auto Advance)
+        </label>
+
+        <!-- Year Level -->
+        <div class="mb-3">
+            <label class="text-xs text-gray-600">Next Year Level</label>
+            <select x-model="studentPromotion.next_year_level_id"
+                    class="w-full border rounded px-2 py-1 text-sm">
+                <option value="">Keep Current</option>
+                @foreach($years as $year)
+                    <option value="{{ $year->id }}">{{ $year->name }}</option>
+                @endforeach
+            </select>
+        </div>
+
+        <!-- Section -->
+        <div class="mb-4">
+            <label class="text-xs text-gray-600">Section</label>
+            <select x-model="studentPromotion.section_id"
+                    class="w-full border rounded px-2 py-1 text-sm">
+                @foreach($sections as $section)
+                    <option value="{{ $section->id }}">{{ $section->name }}</option>
+                @endforeach
+            </select>
+        </div>
+
+        <!-- Buttons -->
+        <div class="flex justify-end gap-2">
+            <button @click="showStudentPromotionModal = false"
+                    class="px-4 py-2 bg-gray-300 rounded text-sm">
+                Close
+            </button>
+
+            <button @click="confirmStudentPromotion()"
+                    class="px-4 py-2 bg-green-600 text-white rounded text-sm">
+                Confirm & Proceed
+            </button>
+        </div>
+
+    </div>
+</div>
     {{-- Students Table as Cards --}}
     <div class="space-y-4">
 
@@ -460,7 +519,9 @@
                                 <input type="hidden" name="course_id" :value="student.course_id">
                                 <input type="hidden" name="year_level_id" :value="student.year_level_id">
                                 <input type="hidden" name="section_id" :value="student.section_id">
-                                <button type="submit" class="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-500 text-xs" onclick="return confirm('Confirm this Student is Advised and may proceed to payment?')">
+                                <button type="button"
+                                        @click="openStudentPromotion(student)"
+                                        class="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-500 text-xs">
                                     Proceed to Payment
                                 </button>
                             </form>
@@ -558,6 +619,13 @@
         showPromotionModal: false,
         promotionPreview: { breakdown: [], total: 0 },
         promotionLoading: false,
+        showStudentPromotionModal: false,
+        activeStudent: null,
+        studentPromotion: {
+            promote: true,
+            next_year_level_id: null,
+            section_id: null
+        },
 
        init() {
             this.$watch('selectedStudents', (value) => {
@@ -720,6 +788,48 @@
             alert('Promotion failed');
         }
     },
+    openStudentPromotion(student) {
+    this.activeStudent = student;
+
+    this.studentPromotion.promote = true;
+    this.studentPromotion.next_year_level_id = null;
+    this.studentPromotion.section_id = student.section_id;
+
+    this.showStudentPromotionModal = true;
+},
+async confirmStudentPromotion() {
+    if (!this.activeStudent) return;
+
+    if (!confirm('Proceed student to payment and apply promotion?')) return;
+
+    try {
+        const res = await fetch(`/college/students/${this.activeStudent.id}/promote-pay`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+                promote: this.studentPromotion.promote,
+                section_id: this.studentPromotion.section_id,
+                year_level_id: this.studentPromotion.next_year_level_id
+            })
+        });
+
+        const data = await res.json();
+
+        alert(data.message);
+
+        this.showStudentPromotionModal = false;
+        this.activeStudent = null;
+
+        window.location.reload();
+
+    } catch (e) {
+        alert('Failed to process student');
+    }
+}
     }
 }
 
