@@ -94,7 +94,6 @@
     </div>
 
 
-    {{-- Import result flash messages --}}
     @if(session('import_success'))
     <div class="mb-4 p-4 bg-green-100 border border-green-400 text-green-800 rounded-lg text-sm">
         ✓ {{ session('import_success') }}
@@ -113,53 +112,67 @@
 
     {{-- Filters and Actions --}}
     <div class="bg-white border border-gray-200 rounded-xl p-4 mb-5 shadow-sm">
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
+        <form method="GET" class="bg-white border border-gray-200 rounded-xl p-4 mb-5 shadow-sm">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
 
-            {{-- Search --}}
-            <div class="relative col-span-1 sm:col-span-2">
-                <input type="text" x-model="search" placeholder="Search by name or Student ID"
-                    class="w-full px-3 py-2 pr-10 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none">
-                <button type="button" x-show="search" @click="search=''"
-                    class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none transition">&times;</button>
-            </div>
-
-            
-            @if(Auth::user()->role === 'adviser')
-                <select class="rounded-lg border border-gray-300 px-4 py-2.5 text-sm bg-gray-100 cursor-not-allowed" disabled>
-                    <option value="{{ Auth::user()->course_id }}" selected>
-                        {{ Auth::user()->course?->name ?? 'No course assigned' }}
-                    </option>
-                </select>
-            @else
-                <select x-model="filterCourse"
-                        class="rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
-                    <option value="">All Courses</option>
-                    @foreach($courses as $course)
-                    <option value="{{ $course->id }}">{{ $course->name }}</option>
-                    @endforeach
-                </select>
-            @endif
-            
-
-            {{-- Year --}}
-            <select x-model="filterYear"
-                class="rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
-                <option value="">All Year Levels</option>
-                @foreach($years as $year)
-                <option value="{{ $year->id }}">{{ $year->name }}</option>
-                @endforeach
-            </select>
-
-            {{-- Section --}}
-            <select x-model="filterSection"
-                class="rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
-                <option value="">All Sections</option>
-                @foreach($sections as $section)
-                <option value="{{ $section->id }}">{{ $section->name }}</option>
-                @endforeach
-            </select>
-
+        <div class="relative col-span-1 sm:col-span-2">
+            <input type="text"
+                   name="search"
+                   value="{{ request('search') }}"
+                   placeholder="Search by name or Student ID"
+                   class="w-full px-3 py-2 pr-10 rounded-lg border border-gray-300">
         </div>
+
+        {{-- Adviser Course (LOCKED) --}}
+            <select class="rounded-lg border border-gray-300 px-4 py-2.5 text-sm bg-gray-100 cursor-not-allowed" disabled>
+                <option>
+                    {{ Auth::user()->course?->name ?? 'No course assigned' }}
+                </option>
+            </select>
+
+        {{-- Year --}}
+        <select name="year_level_id"
+                class="rounded-lg border border-gray-300 px-4 py-2.5 text-sm">
+            <option value="">All Year Levels</option>
+            @foreach($years as $year)
+                <option value="{{ $year->id }}"
+                    {{ request('year_level_id') == $year->id ? 'selected' : '' }}>
+                    {{ $year->name }}
+                </option>
+            @endforeach
+        </select>
+
+        {{-- Section --}}
+        <select name="section_id"
+                class="rounded-lg border border-gray-300 px-4 py-2.5 text-sm">
+            <option value="">All Sections</option>
+            @foreach($sections as $section)
+                <option value="{{ $section->id }}"
+                    {{ request('section_id') == $section->id ? 'selected' : '' }}>
+                    {{ $section->name }}
+                </option>
+            @endforeach
+        </select>
+    </div>
+
+    <div class="flex justify-between mt-4">
+        <div class="text-gray-500 text-sm italic">
+            This view shows the students you are assigned to.
+        </div>
+
+        <div class="flex gap-2">
+            <a href="{{ route('college.students.my-upload') }}"
+               class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 text-sm">
+                Reset
+            </a>
+
+            <button type="submit"
+                    class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-500 text-sm">
+                Apply Filters
+            </button>
+        </div>
+    </div>
+</form>
 
         {{-- Action Buttons --}}
         <div class="flex justify-end gap-4 mt-4 i items-center">
@@ -307,7 +320,11 @@
 
     {{-- Students Table as Cards --}}
     <div class="space-y-4">
-        <template x-for="student in filtered" :key="student.id">
+
+        <div class="mt-4">
+    {{ $students->links() }}
+</div>
+        <template x-for="student in students" :key="student.id">
             <div class="bg-white shadow rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between space-y-3 md:space-y-0 md:space-x-4">
                <div class="flex items-center md:w-1/3 space-x-2">
                     <template x-if="student.status === 'NOT_ENROLLED'">
@@ -470,43 +487,11 @@
         importFile: null,
         importPreview: { new_count: 0, existing_match: [], existing_mismatch: [] },
         importPreviewing: false,
-        search: '',
-        filterCourse: '',
-        filterYear: '',
-        filterSection: '',
         students: @json($alpineStudents),
-        filtered: [],
 
         selectedStudents: [],
 
-        init() {
-            this.filtered = [...this.students];
-
-             this.$watch('search', () => this.updateFiltered());
-    this.$watch('filterCourse', () => this.updateFiltered());
-    this.$watch('filterYear', () => this.updateFiltered());
-    this.$watch('filterSection', () => this.updateFiltered());
-        },
-        updateFiltered() {
-            let result = [...this.students];
-
-            if (this.search) {
-                const s = this.search.toLowerCase();
-                result = result.filter(st =>
-                    st.student_id.toLowerCase().includes(s) ||
-                    st.first_name.toLowerCase().includes(s) ||
-                    st.last_name.toLowerCase().includes(s) ||
-                    (st.middle_name && st.middle_name.toLowerCase().includes(s))
-                );
-            }
-
-            if (this.filterCourse) result = result.filter(st => st.course_id == Number(this.filterCourse));
-            if (this.filterYear) result = result.filter(st => st.year_level_id == Number(this.filterYear));
-            if (this.filterSection) result = result.filter(st => st.section_id == Number(this.filterSection));
-
-            this.filtered = result;
-            this.selectedStudents = [];
-        },
+       
 
         toggleAll(event) {
             const checked = event.target.checked;
