@@ -159,19 +159,33 @@
 <div x-show="showBulkModal" x-cloak
      class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
 
-    <div class="bg-white rounded-xl shadow-lg w-full max-w-5xl p-6">
+    <div class="bg-white rounded-xl shadow-lg w-full max-w-6xl p-6">
 
-        <h3 class="text-lg font-semibold mb-4">
-            Bulk Proceed to Payment
-        </h3>
-
-        <!-- Promote All -->
-        <div class="flex items-center gap-2 mb-3">
-            <input type="checkbox" x-model="promoteAll" @change="togglePromoteAll">
-            <label class="text-sm font-medium">Promote All</label>
+        <div class="flex items-start justify-between gap-4 mb-4">
+            <div>
+                <h3 class="text-lg font-semibold">Bulk Proceed to Payment</h3>
+                <p class="text-sm text-gray-600 mt-1">
+                    Selected students: <span x-text="bulkStudents.filter(s => s.include).length"></span>
+                </p>
+            </div>
+            <button @click="showBulkModal = false" class="text-gray-500 hover:text-gray-800">&times;</button>
         </div>
 
-        <!-- TABLE -->
+        <div class="flex flex-col gap-3 mb-4 text-sm text-gray-600">
+            <div class="flex items-center gap-2">
+                <input type="checkbox" x-model="promoteAll" @change="togglePromoteAll">
+                <label class="font-medium">Promote All</label>
+            </div>
+            <p>
+                Bulk proceed to payment follows the same eligibility rules as single student processing.
+                Students must have no unsettled previous-semester fees,
+                and a valid previous enrollment if no current semester enrollment exists.
+            </p>
+            <p>
+                Promotion is only available in 1st SEMESTER. Fourth year students may be marked graduated when available.
+            </p>
+        </div>
+
         <div class="max-h-96 overflow-y-auto border rounded">
             <table class="w-full text-sm">
                 <thead class="bg-gray-100 sticky top-0">
@@ -179,58 +193,53 @@
                         <th class="p-2">Include</th>
                         <th>ID</th>
                         <th>Name</th>
-                        <th>Promotion</th>
-                        <th>Next Year</th>
+                        <th>Current Year</th>
+                        <th class="text-center">Promote</th>
+                        <th class="text-center">Graduated</th>
                         <th>Section</th>
                     </tr>
                 </thead>
-
                 <tbody>
                     <template x-for="s in bulkStudents" :key="s.id">
-                        <tr class="border-t">
-
-                            <!-- INCLUDE -->
+                        <tr :class="s.include ? '' : 'opacity-70'" class="border-t">
                             <td class="p-2 text-center">
-                                <input type="checkbox" x-model="s.include">
+                                <input type="checkbox" x-model="s.include" :disabled="s.disabled" :title="s.bulkDisabledReason || 'Include student in bulk payment'">
                             </td>
-
-                            <!-- INFO -->
                             <td x-text="s.student_id"></td>
                             <td x-text="s.last_name + ', ' + s.first_name"></td>
-
-                            <!-- PROMOTE -->
+                            <td x-text="getBulkPromotionPreviewText(s)"></td>
                             <td class="text-center">
-                                <input type="checkbox" x-model="s.promote" @change="checkPromoteAll">
+                                <input type="checkbox"
+                                    x-model="s.promote"
+                                    @change="checkPromoteAll"
+                                    :disabled="!canBulkPromote(s)"
+                                    :title="canBulkPromote(s) ? 'Promote student' : 'Promotion unavailable'"
+                                >
                             </td>
-
-                            <!-- YEAR -->
-                            <td>
-                                <select x-model="s.next_year_level_id"
-                                        class="border rounded px-2 py-1 text-xs">
-                                    <option value="">Auto</option>
-                                    @foreach($years as $year)
-                                        <option value="{{ $year->id }}">{{ $year->name }}</option>
-                                    @endforeach
-                                </select>
+                            <td class="text-center">
+                                <template x-if="s.showGraduatedCheckbox">
+                                    <input type="checkbox"
+                                        x-model="s.graduated"
+                                        @change="if (s.graduated) s.promote = false"
+                                        class="h-4 w-4 rounded border-gray-300 text-indigo-600"
+                                    >
+                                </template>
                             </td>
-
-                            <!-- SECTION -->
                             <td>
                                 <select x-model="s.section_id"
-                                        class="border rounded px-2 py-1 text-xs">
+                                    class="border rounded px-2 py-1 text-xs w-full"
+                                    :disabled="s.disabled">
                                     @foreach($sections as $section)
                                         <option value="{{ $section->id }}">{{ $section->name }}</option>
                                     @endforeach
                                 </select>
                             </td>
-
                         </tr>
                     </template>
                 </tbody>
             </table>
         </div>
 
-        <!-- ACTIONS -->
         <div class="flex justify-end gap-2 mt-4">
             <button @click="showBulkModal = false"
                     class="px-4 py-2 bg-gray-300 rounded">
@@ -480,29 +489,47 @@
             Proceed to Payment
         </h3>
 
-        <!-- Student Info -->
-        <div class="border rounded p-3 mb-4 text-sm">
-            <div class="font-semibold"
-                 x-text="activeStudent?.student_id + ' - ' + activeStudent?.last_name + ', ' + activeStudent?.first_name"></div>
+        <!-- Confirmed Student Info -->
+        <div class="border rounded-xl p-4 mb-4 bg-gray-50 text-sm">
+            <div class="font-semibold mb-2" x-text="activeStudent?.student_id + ' - ' + activeStudent?.last_name + ', ' + activeStudent?.first_name"></div>
+            <div class="text-gray-600">
+                This student will be moved to payment validation for the current academic year and semester.
+            </div>
         </div>
 
         <!-- Promotion Checkbox -->
-        <label class="flex items-center gap-2 mb-3 text-sm">
-            <input type="checkbox" x-model="studentPromotion.promote">
-            Promote Year Level (Auto Advance)
+        <label class="flex items-center gap-2 mb-2 text-sm" :class="promotionDisabled || studentPromotion.graduated ? 'opacity-50 cursor-not-allowed' : ''">
+            <input
+                type="checkbox"
+                x-model="studentPromotion.promote"
+                :disabled="promotionDisabled || studentPromotion.graduated"
+                class="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
+            >
+            <span class="font-medium">Promote Student Year</span>
         </label>
 
-        <!-- Year Level -->
-        <div class="mb-3">
-            <label class="text-xs text-gray-600">Next Year Level</label>
-            <select x-model="studentPromotion.next_year_level_id"
-                    class="w-full border rounded px-2 py-1 text-sm">
-                <option value="">Keep Current</option>
-                @foreach($years as $year)
-                    <option value="{{ $year->id }}">{{ $year->name }}</option>
-                @endforeach
-            </select>
-        </div>
+        <template x-if="showGraduatedCheckbox">
+            <label class="flex items-center gap-2 mb-2 text-sm">
+                <input
+                    type="checkbox"
+                    x-model="studentPromotion.graduated"
+                    @change="if (studentPromotion.graduated) studentPromotion.promote = false"
+                    class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                >
+                <span class="font-medium">Graduated</span>
+            </label>
+            <p class="text-xs text-gray-500 mb-4">
+                Mark this 4th year student as graduated instead of promoting to the next year level.
+            </p>
+        </template>
+
+        <p class="text-sm font-semibold text-green-800 bg-green-50 border border-green-100 rounded-xl px-3 py-2 mb-4">
+            <span x-text="promotionPreviewText"></span>
+        </p>
+
+        <template x-if="promotionDisabled">
+            <p class="text-xs text-red-600 mb-4" x-text="promotionDisabledReason"></p>
+        </template>
 
         <!-- Section -->
         <div class="mb-4">
@@ -523,6 +550,8 @@
             </button>
 
             <button @click="confirmStudentPromotion()"
+                    :disabled="paymentBlocked"
+                    :class="paymentBlocked ? 'px-4 py-2 bg-gray-300 text-white rounded text-sm cursor-not-allowed' : 'px-4 py-2 bg-green-600 text-white rounded text-sm'"
                     class="px-4 py-2 bg-green-600 text-white rounded text-sm">
                 Confirm & Proceed
             </button>
@@ -545,7 +574,8 @@
                             <input type="checkbox" 
                                 x-model="selectedStudents" 
                                 :value="student.id" 
-                                :disabled="student.status !== 'NOT_ENROLLED'"
+                                :disabled="student.status !== 'NOT_ENROLLED' || isFinanciallyBlocked(student) || !isBulkAdviseEligible(student)"
+                                :title="isBulkAdviseEligible(student) ? (isFinanciallyBlocked(student) ? 'Unsettled previous fees' : '') : 'Student must have a valid previous semester enrollment or be voided.'"
                                 class="w-5 h-5 border-gray-400 rounded cursor-pointer">
                         </div>
                     </template>
@@ -611,7 +641,9 @@
                                 <input type="hidden" name="section_id" :value="student.section_id">
                                 <button type="button"
                                         @click="openStudentPromotion(student)"
-                                        class="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-500 text-xs">
+                                        :disabled="isFinanciallyBlocked(student)"
+                                        :title="isFinanciallyBlocked(student) ? 'This student has unsettled fees from previous semester.' : ''"
+                                        :class="isFinanciallyBlocked(student) ? 'px-3 py-1 bg-gray-300 text-white rounded text-xs cursor-not-allowed' : 'px-3 py-1 bg-green-600 text-white rounded hover:bg-green-500 text-xs'">
                                     Proceed to Payment
                                 </button>
                             </form>
@@ -711,9 +743,16 @@
         promotionLoading: false,
         showStudentPromotionModal: false,
         activeStudent: null,
+        activeSemesterName: @json($activeSemesterName),
+        yearLevels: @json($years->map(fn($year) => ['id' => $year->id, 'name' => $year->name])),
+        blockedFinancialStatuses: ['UNPAID', 'DEFAULT', 'BAD_DEBT', 'PARTIALLY_PAID'],
+        promotionDisabled: false,
+        paymentBlocked: false,
+        promotionDisabledReason: '',
+        showGraduatedCheckbox: false,
         studentPromotion: {
             promote: true,
-            next_year_level_id: null,
+            graduated: false,
             section_id: null
         },
         showBulkModal: false,
@@ -721,6 +760,8 @@
         promoteAll: true,
 
        init() {
+            this.promotionDisabled = this.activeSemesterName !== '1st SEMESTER';
+
             this.$watch('selectedStudents', (value) => {
                 this.isDirty = value.length > 0;
             });
@@ -748,7 +789,7 @@
 
             if (checked) {
                 this.selectedStudents = this.students
-                    .filter(s => s.status === 'NOT_ENROLLED')
+                    .filter(s => s.status === 'NOT_ENROLLED' && !this.isFinanciallyBlocked(s) && this.isBulkAdviseEligible(s))
                     .map(s => s.id);
             } else {
                 this.selectedStudents = [];
@@ -757,19 +798,29 @@
         proceedToPayment() {
             if (this.selectedStudents.length === 0) return;
 
-            console.log('Selected:', this.selectedStudents);
+            const selectedIds = this.selectedStudents.map(Number);
+            const students = this.students.filter(s => selectedIds.includes(Number(s.id)));
+            const eligible = students.filter(s => !this.isFinanciallyBlocked(s) && this.isBulkAdviseEligible(s));
+            const ineligible = students.filter(s => this.isFinanciallyBlocked(s) || !this.isBulkAdviseEligible(s));
 
-            this.bulkStudents = this.students
-                .filter(s => this.selectedStudents.map(Number).includes(Number(s.id)))
-                .map(s => ({
-                    ...s,
-                    include: true,
-                    promote: true,
-                    next_year_level_id: null,
-                    section_id: s.section_id
-                }));
+            if (ineligible.length > 0) {
+                alert('Some selected students are not eligible for bulk payment and have been removed.');
+                this.selectedStudents = eligible.map(s => s.id);
+            }
 
-            console.log('Bulk:', this.bulkStudents);
+            if (eligible.length === 0) return;
+
+            this.bulkStudents = eligible.map(s => ({
+                ...s,
+                include: true,
+                promote: this.activeSemesterName === '1st SEMESTER',
+                graduated: false,
+                next_year_level_id: null,
+                section_id: s.section_id,
+                showGraduatedCheckbox: this.isFourthYearStudent(s) && this.activeSemesterName === '1st SEMESTER',
+                disabled: false,
+                bulkDisabledReason: '',
+            }));
 
             this.promoteAll = true;
             this.showBulkModal = true;
@@ -883,19 +934,150 @@
             alert('Promotion failed');
         }
     },
+
+    getCurrentYearName() {
+        return this.yearLevels.find(year => Number(year.id) === Number(this.activeStudent?.year_level_id))?.name || 'Unknown';
+    },
+
+    getYearName(yearLevelId) {
+        return this.yearLevels.find(year => Number(year.id) === Number(yearLevelId))?.name || 'Unknown';
+    },
+
+    getNextYearName() {
+        const currentId = Number(this.activeStudent?.year_level_id);
+        const currentIndex = this.yearLevels.findIndex(year => Number(year.id) === currentId);
+
+        if (currentIndex === -1) {
+            return 'Unknown';
+        }
+
+        const next = this.yearLevels[currentIndex + 1];
+        return next ? next.name : 'Graduated';
+    },
+
+    getNextYearNameFromId(yearLevelId) {
+        const currentId = Number(yearLevelId);
+        const currentIndex = this.yearLevels.findIndex(year => Number(year.id) === currentId);
+
+        if (currentIndex === -1) {
+            return 'Unknown';
+        }
+
+        const next = this.yearLevels[currentIndex + 1];
+        return next ? next.name : 'Graduated';
+    },
+
+    getBulkPromotionPreviewText(student) {
+        if (student.graduated) {
+            return 'Graduation selected; the student will be marked graduated instead of promoted.';
+        }
+
+        const current = this.getYearName(student.year_level_id);
+        const next = student.promote
+            ? (student.next_year_level_id
+                ? this.getYearName(student.next_year_level_id)
+                : this.getNextYearNameFromId(student.year_level_id))
+            : current;
+
+        return `Year level: [${current} → ${next}]`;
+    },
+
+    isBulkAdviseEligible(student) {
+        const hasActiveEnrollment = student.has_current_enrollment;
+        const previousEligible = student.previous_is_void || student.previous_status === 'ENROLLED';
+        const currentNotAllowed = hasActiveEnrollment && !['NOT_ENROLLED', 'ENROLLED'].includes(student.status);
+        const noCurrentAndPreviousNotEligible = !hasActiveEnrollment && !previousEligible;
+
+        return !(currentNotAllowed || noCurrentAndPreviousNotEligible);
+    },
+
+    bulkAdviseDisabledReason(student) {
+        if (student.has_current_enrollment && !['NOT_ENROLLED', 'ENROLLED'].includes(student.status)) {
+            return 'Current semester enrollment must be NOT_ENROLLED or ENROLLED.';
+        }
+
+        if (!student.has_current_enrollment && !student.previous_is_void && student.previous_status !== 'ENROLLED') {
+            return 'Previous semester record must be ENROLLED or voided.';
+        }
+
+        return '';
+    },
+
+    canBulkPromote(student) {
+        return this.activeSemesterName === '1st SEMESTER' && !student.graduated;
+    },
+
+    promotionPreviewText() {
+        if (!this.activeStudent) {
+            return '';
+        }
+
+        if (this.studentPromotion.graduated) {
+            return 'Graduation selected; the student will be marked graduated instead of promoted.';
+        }
+
+        const current = this.getCurrentYearName();
+        const next = this.studentPromotion.promote ? this.getNextYearName() : current;
+        return `Year level: [${current} → ${next}]`;
+    },
+
+    isFinanciallyBlocked(student) {
+        if (student.previous_is_void) {
+            return false;
+        }
+
+        const status = student.previous_financial_status ?? student.financial_status;
+        return this.blockedFinancialStatuses.includes(status);
+    },
+
+    isFourthYearStudent(student) {
+        const yearName = this.yearLevels.find(year => Number(year.id) === Number(student.year_level_id))?.name || '';
+        const numericMatch = yearName.match(/(\d+)/);
+
+        if (numericMatch) {
+            return Number(numericMatch[1]) >= 4;
+        }
+
+        return /(^|\s)(fourth|fifth|sixth|seventh|eighth|ninth|tenth|eleventh|twelfth)(\s|$)/i.test(yearName);
+    },
+
     openStudentPromotion(student) {
             this.activeStudent = student;
 
-            this.studentPromotion.promote = true;
-            this.studentPromotion.next_year_level_id = null;
+            const semesterNotFirst = this.activeSemesterName !== '1st SEMESTER';
+            const previousEligible = student.previous_is_void || student.previous_status === 'ENROLLED';
+            const hasActiveEnrollment = student.has_current_enrollment;
+            const currentNotAllowed = hasActiveEnrollment && !['NOT_ENROLLED', 'ENROLLED'].includes(student.status);
+            const noCurrentAndPreviousNotEligible = !hasActiveEnrollment && !previousEligible;
+
+            const paymentBlocked = this.isFinanciallyBlocked(student);
+            const isFourthYear = this.isFourthYearStudent(student);
+            const showGraduatedCheckbox = isFourthYear && this.activeSemesterName === '1st SEMESTER';
+
+            this.promotionDisabled = semesterNotFirst || currentNotAllowed || noCurrentAndPreviousNotEligible;
+            this.paymentBlocked = paymentBlocked;
+            this.showGraduatedCheckbox = showGraduatedCheckbox;
+            this.promotionDisabledReason = paymentBlocked
+                ? 'This student cannot proceed to payment because their financial status is not cleared.'
+                : semesterNotFirst
+                    ? 'Promotion is only available during 1st SEMESTER.'
+                    : currentNotAllowed
+                        ? 'Promotion requires the student’s current semester enrollment to be NOT_ENROLLED or ENROLLED.'
+                        : noCurrentAndPreviousNotEligible
+                            ? 'Promotion requires the student’s most recent previous semester enrollment status to be ENROLLED or voided.'
+                            : '';
+
+            this.studentPromotion.graduated = false;
+            this.studentPromotion.promote = !this.promotionDisabled;
             this.studentPromotion.section_id = student.section_id;
 
             this.showStudentPromotionModal = true;
         },
         async confirmStudentPromotion() {
             if (!this.activeStudent) return;
+            if (this.paymentBlocked) return;
 
-            if (!confirm('Proceed student to payment and apply promotion?')) return;
+            // if (!confirm('Proceed student to payment and apply promotion?')) return;
 
             try {
                 const res = await fetch(`/college/students/${this.activeStudent.id}/promote-pay`, {
@@ -907,8 +1089,8 @@
                     },
                     body: JSON.stringify({
                         promote: this.studentPromotion.promote,
-                        section_id: this.studentPromotion.section_id,
-                        year_level_id: this.studentPromotion.next_year_level_id
+                        graduated: this.studentPromotion.graduated,
+                        section_id: this.studentPromotion.section_id
                     })
                 });
 
@@ -927,17 +1109,25 @@
         },
         togglePromoteAll() {
             this.bulkStudents.forEach(s => {
-                s.promote = this.promoteAll;
+                if (this.canBulkPromote(s)) {
+                    s.promote = this.promoteAll;
+                }
             });
         },
 
         checkPromoteAll() {
-            this.promoteAll = this.bulkStudents.every(s => s.promote);
+            this.promoteAll = this.bulkStudents.every(s => !this.canBulkPromote(s) || s.promote);
         },
 
         async submitBulkPromotion() {
 
-        const selected = this.bulkStudents.filter(s => s.include);
+        const selected = this.bulkStudents
+            .filter(s => s.include)
+            .map(s => ({
+                ...s,
+                next_year_level_id: s.next_year_level_id || null,
+                section_id: s.section_id ? Number(s.section_id) : null,
+            }));
 
         if (selected.length === 0) {
             alert('No students selected');
