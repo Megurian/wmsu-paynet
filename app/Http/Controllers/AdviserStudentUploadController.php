@@ -100,9 +100,9 @@ class AdviserStudentUploadController extends Controller
         return [
             'id' => $s->id,
             'student_id' => $s->student_id,
-            'last_name' => $s->last_name,
-            'first_name' => $s->first_name,
-            'middle_name' => $s->middle_name,
+           'last_name' => strtoupper($s->last_name),
+            'first_name' => strtoupper($s->first_name),
+            'middle_name' => $s->middle_name ? strtoupper($s->middle_name) : null,
 
             'course_id' => $enrollment->course_id ?? $prev->course_id ?? null,
             'year_level_id' => $enrollment->year_level_id ?? $prev->year_level_id ?? null,
@@ -143,9 +143,17 @@ class AdviserStudentUploadController extends Controller
             'section_id' => 'required|exists:sections,id',
         ]);
 
-        $student = Student::updateOrCreate(
+      $student = Student::updateOrCreate(
             ['student_id' => $request->student_id],
-            $request->only(['last_name', 'first_name', 'middle_name', 'contact', 'email', 'suffix', 'religion'])
+            [
+                'last_name'   => strtoupper($request->last_name),
+                'first_name'  => strtoupper($request->first_name),
+                'middle_name' => $request->middle_name ? strtoupper($request->middle_name) : null,
+                'contact'     => $request->contact,
+                'email'       => $request->email,
+                'suffix'      => $request->suffix,
+                'religion'    => $request->religion,
+            ]
         );
 
         $activeSY = SchoolYear::where('is_active', true)->first();
