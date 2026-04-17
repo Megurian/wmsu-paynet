@@ -333,6 +333,7 @@
                             <input type="checkbox" 
                                 x-model="selectedStudents" 
                                 :value="student.id" 
+                                :disabled="student.status !== 'NOT_ENROLLED'"
                                 class="w-5 h-5 border-gray-400 rounded cursor-pointer">
                         </div>
                     </template>
@@ -468,7 +469,7 @@
             </div>
         </template>
 
-        <div x-show="filteredStudents.length === 0" class="text-center text-gray-500 py-6 italic">
+        <div x-show="students.length === 0" class="text-center text-gray-500 py-6 italic">
             No students found.
         </div>
     </div>
@@ -490,19 +491,18 @@
         students: @json($alpineStudents),
 
         selectedStudents: [],
-
-       
-
+    
         toggleAll(event) {
             const checked = event.target.checked;
 
             if (checked) {
-                this.selectedStudents = this.filtered.map(s => s.id);
+                this.selectedStudents = this.students
+                    .filter(s => s.status === 'NOT_ENROLLED')
+                    .map(s => s.id);
             } else {
                 this.selectedStudents = [];
             }
         },
-
         proceedToPayment() {
             if (this.selectedStudents.length === 0) return;
 
@@ -573,6 +573,12 @@
                 if (data.success) console.log('Updated successfully');
             })
             .catch(err => console.error(err));
+        },
+
+        watchSelected() {
+            this.selectedStudents = this.selectedStudents.filter(id =>
+                this.students.some(s => s.id === id && s.status === 'NOT_ENROLLED')
+            );
         }
     }
 }

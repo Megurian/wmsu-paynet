@@ -231,11 +231,49 @@ public function reAddBulk(Request $request)
         'students.*' => 'exists:students,id',
     ]);
 
+    $adviserId = Auth::id();
+    $collegeId = Auth::user()->college_id;
+
+    $activeSY = SchoolYear::where('is_active', true)->first();
+    $activeSem = Semester::where('is_active', true)->first();
+
     foreach ($request->students as $studentId) {
-        $this->reAddOldStudent($request, $studentId);
+
+        $prev = StudentEnrollment::where('student_id', $studentId)
+            ->where(function($q) use ($activeSY, $activeSem) {
+                $q->where('school_year_id', '<', $activeSY->id)
+                  ->orWhere(function($q2) use ($activeSY, $activeSem) {
+                      $q2->where('school_year_id', $activeSY->id)
+                         ->where('semester_id', '<', $activeSem->id);
+                  });
+            })
+            ->latest('id')
+            ->first();
+
+        $enrollment = StudentEnrollment::firstOrNew([
+            'student_id'     => $studentId,
+            'school_year_id' => $activeSY->id,
+            'semester_id'    => $activeSem->id,
+        ]);
+
+        if (!$enrollment->exists || $enrollment->status === 'NOT_ENROLLED') {
+
+            $enrollment->fill([
+                'college_id'       => $collegeId,
+                'adviser_id'       => $adviserId,
+                'status'           => 'FOR_PAYMENT_VALIDATION',
+                'advised_at'       => now(),
+                'course_id'        => Auth::user()->course_id,
+                'year_level_id'    => $prev?->year_level_id,
+                'section_id'       => $prev?->section_id,
+                'financial_status' => StudentEnrollment::FINANCIAL_UNPAID,
+            ]);
+
+            $enrollment->save();
+        }
     }
 
-    return back()->with('status', count($request->students) . ' student(s) added successfully. They may now proceed to payment.');
+    return back()->with('status', count($request->students) . ' student(s) added successfully.');
 }
 
 }
