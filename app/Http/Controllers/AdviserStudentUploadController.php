@@ -250,6 +250,20 @@ public function reAddBulk(Request $request)
             ->latest('id')
             ->first();
 
+        $latestEnrollment = StudentEnrollment::where('student_id', $studentId)
+            ->latest('id')
+            ->first();
+
+        $yearLevelId = $prev?->year_level_id
+            ?? $latestEnrollment?->year_level_id;
+
+        $sectionId = $prev?->section_id
+            ?? $latestEnrollment?->section_id;
+
+        if (!$yearLevelId || !$sectionId) {
+            continue; 
+        }
+
         $enrollment = StudentEnrollment::firstOrNew([
             'student_id'     => $studentId,
             'school_year_id' => $activeSY->id,
@@ -264,8 +278,8 @@ public function reAddBulk(Request $request)
                 'status'           => 'FOR_PAYMENT_VALIDATION',
                 'advised_at'       => now(),
                 'course_id'        => Auth::user()->course_id,
-                'year_level_id'    => $prev?->year_level_id,
-                'section_id'       => $prev?->section_id,
+                'year_level_id'    => $yearLevelId,
+                'section_id'       => $sectionId,
                 'financial_status' => StudentEnrollment::FINANCIAL_UNPAID,
             ]);
 
@@ -273,7 +287,10 @@ public function reAddBulk(Request $request)
         }
     }
 
-    return back()->with('status', count($request->students) . ' student(s) added successfully.');
+    return back()->with(
+        'status',
+        count($request->students) . ' student(s) processed successfully.'
+    );
 }
 
 }
