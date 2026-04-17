@@ -13,6 +13,10 @@
        class="px-4 py-2 font-medium {{ $activeTab === 'college' ? 'border-b-2 border-red-600 text-red-600' : 'text-gray-600 hover:text-red-600' }}">
        College Info
     </a>
+    <a href="{{ route('college.users.index', ['tab' => 'employees']) }}"
+       class="px-4 py-2 font-medium {{ $activeTab === 'employees' ? 'border-b-2 border-red-600 text-red-600' : 'text-gray-600 hover:text-red-600' }}">
+      Staff Management
+    </a>
     <a href="{{ route('college.users.index', ['tab' => 'accounts']) }}"
        class="px-4 py-2 font-medium {{ $activeTab === 'accounts' ? 'border-b-2 border-red-600 text-red-600' : 'text-gray-600 hover:text-red-600' }}">
        Account Management
@@ -306,6 +310,10 @@
             </div>
         </div>
     </div>
+@endif
+
+@if($activeTab === 'employees')
+    @include('college.employees')
 @endif
 
 <script>

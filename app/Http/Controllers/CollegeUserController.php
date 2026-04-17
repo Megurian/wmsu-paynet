@@ -9,6 +9,7 @@ use App\Models\YearLevel;
 use App\Models\Section;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
+use App\Models\Employee;
 
 class CollegeUserController extends Controller
 {
@@ -24,6 +25,7 @@ class CollegeUserController extends Controller
             'courses' => Course::where('college_id', $collegeId)->get(),
             'years' => YearLevel::where('college_id', $collegeId)->get(),
             'sections' => Section::where('college_id', $collegeId)->get(),
+            'employees' => Employee::where('college_id', Auth::user()->college_id)->get(),
         ]);
     }
 

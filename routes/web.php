@@ -31,6 +31,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use App\Http\Controllers\OSAReportsController;
 use App\Http\Controllers\UniversityOrgDashboardController;
+use App\Http\Controllers\EmployeeController;
 
 Route::get('/test-route', function () {
     return 'Laravel route works!';
@@ -367,7 +368,12 @@ Route::middleware(['auth', 'role:treasurer,college,student_coordinator,adviser,a
 
     Route::post('/college/students/bulk-promote-pay', [AdviserStudentUploadController::class, 'bulkPromoteAndPay'])
     ->name('college.students.bulk.promote-pay');
+
+    Route::post('/employees', [EmployeeController::class, 'store'])->name('employees.store');
+Route::put('/employees/{employee}', [EmployeeController::class, 'update'])->name('employees.update');
+Route::delete('/employees/{employee}', [EmployeeController::class, 'destroy'])->name('employees.destroy');
 });
+
 
     Route::middleware(['auth','role:assessor,student_coordinator'])->group(function(){
     Route::get('students/validate', [ValidateStudentsController::class, 'index'])->name('college.students.validate');
