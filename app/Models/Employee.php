@@ -16,4 +16,8 @@ class Employee extends Model
         'position',
         'has_account',
     ];
+
+    protected $casts = [
+    'position' => 'array',
+];
 }

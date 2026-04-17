@@ -153,7 +153,7 @@
                                     </div>
                                     <div class="border border-gray-300 rounded p-3">
                                         <p class="text-gray-600 font-medium">Role</p>
-                                        <p class="text-gray-800">{{ ucwords(str_replace('_', ' ', $admin->role)) }}</p>
+                                        <p class="text-gray-800"> {{ ucwords(str_replace('_', ' ', implode(', ', $admin->role))) }}</p>
                                     </div>
                                 </div>
                                 @else

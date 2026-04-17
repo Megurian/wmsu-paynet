@@ -44,17 +44,30 @@ Route::get('/', function () {
 
 
 Route::middleware('auth')->get('/dashboard', function () {
-    $role = Auth::user()->role;
+    $user = Auth::user();
 
-    return match($role) {
-        'osa' => redirect()->route('osa.dashboard'),
-        'university_org' => redirect()->route('university_org.dashboard'),
-        'college_org' => redirect()->route('college_org.dashboard'),
-        'college' => redirect()->route('college.dashboard'),
-        'treasurer' => redirect()->route('treasurer.cashiering'),
-        default => abort(403), 
-    };
-})->name('dashboard');
+    if ($user->hasRole('osa')) {
+        return redirect()->route('osa.dashboard');
+    }
+
+    if ($user->hasRole('university_org')) {
+        return redirect()->route('university_org.dashboard');
+    }
+
+    if ($user->hasRole('college_org')) {
+        return redirect()->route('college_org.dashboard');
+    }
+
+    if ($user->hasRole('treasurer')) {
+        return redirect()->route('treasurer.cashiering');
+    }
+
+    if ($user->hasRole('college')) {
+        return redirect()->route('college.dashboard');
+    }
+
+    abort(403);
+});
 
 Route::middleware(['auth', 'role:osa'])->group(function () {
     Route::get('/osa/setup', [OSASetupController::class, 'edit'])->name('osa.setup');
@@ -372,6 +385,7 @@ Route::middleware(['auth', 'role:treasurer,college,student_coordinator,adviser,a
     Route::post('/employees', [EmployeeController::class, 'store'])->name('employees.store');
 Route::put('/employees/{employee}', [EmployeeController::class, 'update'])->name('employees.update');
 Route::delete('/employees/{employee}', [EmployeeController::class, 'destroy'])->name('employees.destroy');
+Route::post('/employees/{employee}/create-account', [EmployeeController::class, 'createAccount']);
 });
 
 

@@ -22,7 +22,7 @@ return new class extends Migration
             $table->string('suffix')->nullable();
 
             $table->string('department')->nullable();
-            $table->string('position')->nullable();
+            $table->json('position')->nullable();
 
             $table->boolean('has_account')->default(false);
 

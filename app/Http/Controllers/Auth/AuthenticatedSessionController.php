@@ -31,12 +31,20 @@ class AuthenticatedSessionController extends Controller
         // return redirect()->intended(route('dashboard', absolute: false));
         $user = auth()->user();
 
-        return match ($user->role) {
-            'osa' => redirect()->route('osa.dashboard'),
-            'university_org' => redirect()->route('university_org.dashboard'),
-            'college_org' => redirect()->route('college_org.dashboard'),
-            default => redirect()->route('college.dashboard'),
-        };
+        if ($user->hasRole('osa')) {
+            return redirect()->route('osa.dashboard');
+        }
+
+        if ($user->hasRole('university_org')) {
+            return redirect()->route('university_org.dashboard');
+        }
+
+        if ($user->hasRole('college_org')) {
+            return redirect()->route('college_org.dashboard');
+        }
+
+        // default (college / dean)
+        return redirect()->route('college.dashboard');
     }
 
     /**

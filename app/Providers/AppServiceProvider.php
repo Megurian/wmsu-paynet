@@ -39,17 +39,30 @@ class AppServiceProvider extends ServiceProvider
                 ->first();
 
             $user = Auth::user();
+
             $organization = null;
             $currentCollege = null;
+            if (!$user) {
+                $view->with([
+                    'latestSchoolYear' => $latestSchoolYear,
+                    'organization' => null,
+                    'currentCollege' => null,
+                ]);
 
-            if ($user) {
-                if (in_array($user->role, ['university_org', 'college_org'])) {
-                    $organization = $user->organization;
-                }
+                return;
+            }
 
-                if (in_array($user->role, ['college', 'student_coordinator', 'adviser', 'assessor'])) {
-                    $currentCollege = $user->college;
-                }
+            if ($user->hasRole('university_org') || $user->hasRole('college_org')) {
+                $organization = $user->organization;
+            }
+
+            if (
+                $user->hasRole('college') ||
+                $user->hasRole('student_coordinator') ||
+                $user->hasRole('adviser') ||
+                $user->hasRole('assessor')
+            ) {
+                $currentCollege = $user->college;
             }
 
             $view->with([

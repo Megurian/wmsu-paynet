@@ -51,6 +51,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'role' => 'array',
         ];
     }
     public function getFullNameAttribute(): string
@@ -70,24 +71,41 @@ class User extends Authenticatable
         return $this->belongsTo(Organization::class, 'organization_id');
     }
 
-    public function hasRole($role)
-    {
-        return $this->role === $role;
-    }
+   public function hasRole($role)
+{
+    return in_array($role, $this->role ?? []);
+}
 
-    public function isAssessor(): bool
-    {
-        return $this->role === 'assessor';
-    }
+public function isAssessor(): bool
+{
+    return in_array('assessor', $this->role ?? []);
+}
 
+public function isStudentCoordinator(): bool
+{
+    return in_array('student_coordinator', $this->role ?? []);
+}
 
-    public function isStudentCoordinator(): bool
-    {
-        return $this->role === 'student_coordinator';
-    }
+public function isCollege(): bool
+{
+    return in_array('college', $this->role ?? []);
+}
     public function course()
     {
         return $this->belongsTo(Course::class);
     }
 
+public function getRoleAttribute($value)
+{
+    $decoded = json_decode($value, true);
+
+    return is_array($decoded) ? $decoded : [$value];
+}
+
+public function getRoleLabelAttribute(): string
+{
+    return collect($this->role ?? [])
+        ->map(fn($r) => ucwords(str_replace('_', ' ', $r)))
+        ->join(', ');
+}
 }

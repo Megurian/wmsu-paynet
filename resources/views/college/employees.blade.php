@@ -35,7 +35,16 @@
                     </td>
 
                     <td class="p-2">{{ $employee->department ?? '-' }}</td>
-                    <td class="p-2">{{ $employee->position ?? '-' }}</td>
+                    <td class="p-2">
+                       @php
+                            $roles = $user->role ?? [];
+                            if (!is_array($roles)) {
+                                $roles = [$roles]; // fallback for old data
+                            }
+                        @endphp
+
+                        {{ implode(', ', $roles ?? []) }}
+                    </td>
 
                     <td class="p-2">
                         @if($employee->has_account)
@@ -45,8 +54,27 @@
                         @endif
                     </td>
 
-                    <td class="p-2">
-                        <form action="{{ route('employees.destroy', $employee) }}" method="POST">
+                    <td class="p-2 space-x-2">
+                        <!-- VIEW / EDIT -->
+                        <button
+                            onclick="openEditEmployeeModal({{ $employee->id }})"
+                            class="text-blue-600 hover:underline">
+                            Edit
+                        </button>
+
+                        <!-- CREATE ACCOUNT -->
+                        @if(!$employee->has_account)
+                            <button
+                                onclick="openCreateAccountModal({{ $employee->id }}, '{{ $employee->first_name }} {{ $employee->last_name }}')"
+                                class="text-green-600 hover:underline">
+                                Create Account
+                            </button>
+                        @else
+                            <span class="text-gray-400 text-sm">Account Created</span>
+                        @endif
+
+                        <!-- DELETE -->
+                        <form action="{{ route('employees.destroy', $employee) }}" method="POST" class="inline">
                             @csrf
                             @method('DELETE')
 
@@ -57,10 +85,11 @@
                                     confirmText: 'Delete',
                                     onConfirm: () => this.closest('form').submit()
                                 })"
-                                class="text-red-600">
+                                class="text-red-600 hover:underline">
                                 Delete
                             </button>
                         </form>
+
                     </td>
                 </tr>
                 @empty
@@ -111,14 +140,6 @@
                 placeholder="Enter Department"
                 class="border p-2 w-full mb-2 hidden">
 
-            <!-- POSITION DROPDOWN -->
-            <label class="text-sm text-gray-600">Position</label>
-            <select name="position" class="border p-2 w-full mb-4">
-                <option value="">Select Position</option>
-                <option value="faculty">Faculty</option>
-                <option value="staff">Staff</option>
-            </select>
-
             <div class="flex justify-end gap-2">
                 <button type="button"
                     onclick="document.getElementById('addEmployeeModal').classList.add('hidden')"
@@ -128,6 +149,97 @@
 
                 <button class="bg-red-800 text-white px-3 py-2 rounded">
                     Save
+                </button>
+            </div>
+
+        </form>
+    </div>
+</div>
+
+<div id="editEmployeeModal" class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center">
+    <div class="bg-white p-6 rounded w-full max-w-md">
+
+        <h2 class="text-lg font-bold mb-4">Edit Employee</h2>
+
+        <form id="editEmployeeForm" method="POST">
+            @csrf
+            @method('PUT')
+
+            <input name="first_name" id="edit_first_name" class="border p-2 w-full mb-2">
+            <input name="last_name" id="edit_last_name" class="border p-2 w-full mb-2">
+            <input name="middle_name" id="edit_middle_name" class="border p-2 w-full mb-2">
+
+            <select name="department" id="edit_department" class="border p-2 w-full mb-2">
+                @foreach($courses as $course)
+                    <option value="{{ $course->name }}">{{ $course->name }}</option>
+                @endforeach
+                <option value="other">Other</option>
+            </select>
+
+
+            <div class="flex justify-end gap-2">
+                <button type="button"
+                    onclick="document.getElementById('editEmployeeModal').classList.add('hidden')"
+                    class="bg-gray-300 px-3 py-2 rounded">
+                    Cancel
+                </button>
+
+                <button class="bg-red-800 text-white px-3 py-2 rounded">
+                    Update
+                </button>
+            </div>
+
+        </form>
+    </div>
+</div>
+
+<div id="createAccountModal" class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center">
+    <div class="bg-white p-6 rounded w-full max-w-md">
+
+        <h2 class="text-lg font-bold mb-2">Create Account</h2>
+        <p class="text-sm text-gray-600 mb-4" id="accountEmployeeName"></p>
+
+        <form method="POST" id="createAccountForm">
+            @csrf
+
+             <!-- ✅ POSITION MOVED HERE -->
+            <label class="text-sm text-gray-600">Position</label>
+
+            <div class="space-y-1 mb-4">
+                <label>
+                    <input type="checkbox" name="position[]" value="assessor">
+                    Assessor
+                </label>
+
+                <label>
+                    <input type="checkbox" name="position[]" value="student_coordinator">
+                    Student Coordinator
+                </label>
+
+                <label>
+                    <input type="checkbox" name="position[]" value="adviser">
+                    Adviser
+                </label>
+
+                <label>
+                    <input type="checkbox" name="position[]" value="treasurer">
+                    Treasurer
+                </label>
+            </div>
+
+            <input name="email" placeholder="Email" class="border p-2 w-full mb-2">
+
+            <input name="password" type="password" placeholder="Password" class="border p-2 w-full mb-4">
+
+            <div class="flex justify-end gap-2">
+                <button type="button"
+                    onclick="document.getElementById('createAccountModal').classList.add('hidden')"
+                    class="bg-gray-300 px-3 py-2 rounded">
+                    Cancel
+                </button>
+
+                <button class="bg-green-600 text-white px-3 py-2 rounded">
+                    Create
                 </button>
             </div>
 

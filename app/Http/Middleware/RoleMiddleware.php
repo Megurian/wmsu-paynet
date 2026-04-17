@@ -21,10 +21,16 @@ class RoleMiddleware
             return redirect()->route('login');
         }
 
-        if (! in_array(auth()->user()->role, $roles)) {
-            abort(403, 'Unauthorized access.');
+        $userRoles = auth()->user()->role ?? [];
+
+        foreach ($roles as $role) {
+            if (in_array($role, $userRoles)) {
+                return $next($request);
+            }
         }
 
-        return $next($request);
+        abort(403, 'Unauthorized access.');
+
+                return $next($request);
     }
 }
