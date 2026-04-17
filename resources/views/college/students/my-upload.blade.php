@@ -156,6 +156,96 @@
     </div>
 </div>
 
+<div x-show="showBulkModal" x-cloak
+     class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+
+    <div class="bg-white rounded-xl shadow-lg w-full max-w-5xl p-6">
+
+        <h3 class="text-lg font-semibold mb-4">
+            Bulk Proceed to Payment
+        </h3>
+
+        <!-- Promote All -->
+        <div class="flex items-center gap-2 mb-3">
+            <input type="checkbox" x-model="promoteAll" @change="togglePromoteAll">
+            <label class="text-sm font-medium">Promote All</label>
+        </div>
+
+        <!-- TABLE -->
+        <div class="max-h-96 overflow-y-auto border rounded">
+            <table class="w-full text-sm">
+                <thead class="bg-gray-100 sticky top-0">
+                    <tr>
+                        <th class="p-2">Include</th>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Promotion</th>
+                        <th>Next Year</th>
+                        <th>Section</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    <template x-for="s in bulkStudents" :key="s.id">
+                        <tr class="border-t">
+
+                            <!-- INCLUDE -->
+                            <td class="p-2 text-center">
+                                <input type="checkbox" x-model="s.include">
+                            </td>
+
+                            <!-- INFO -->
+                            <td x-text="s.student_id"></td>
+                            <td x-text="s.last_name + ', ' + s.first_name"></td>
+
+                            <!-- PROMOTE -->
+                            <td class="text-center">
+                                <input type="checkbox" x-model="s.promote" @change="checkPromoteAll">
+                            </td>
+
+                            <!-- YEAR -->
+                            <td>
+                                <select x-model="s.next_year_level_id"
+                                        class="border rounded px-2 py-1 text-xs">
+                                    <option value="">Auto</option>
+                                    @foreach($years as $year)
+                                        <option value="{{ $year->id }}">{{ $year->name }}</option>
+                                    @endforeach
+                                </select>
+                            </td>
+
+                            <!-- SECTION -->
+                            <td>
+                                <select x-model="s.section_id"
+                                        class="border rounded px-2 py-1 text-xs">
+                                    @foreach($sections as $section)
+                                        <option value="{{ $section->id }}">{{ $section->name }}</option>
+                                    @endforeach
+                                </select>
+                            </td>
+
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- ACTIONS -->
+        <div class="flex justify-end gap-2 mt-4">
+            <button @click="showBulkModal = false"
+                    class="px-4 py-2 bg-gray-300 rounded">
+                Cancel
+            </button>
+
+            <button @click="submitBulkPromotion()"
+                    class="px-4 py-2 bg-green-600 text-white rounded">
+                Confirm & Proceed
+            </button>
+        </div>
+
+    </div>
+</div>
+
     @if(session('import_success'))
     <div class="mb-4 p-4 bg-green-100 border border-green-400 text-green-800 rounded-lg text-sm">
         ✓ {{ session('import_success') }}
@@ -248,10 +338,10 @@
                 Import Student List
             </button>
 
-            <button @click="openPromotionPreview()"
+            {{-- <button @click="openPromotionPreview()"
                 class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-500 text-sm">
                 Year Level Promotion
-            </button>
+            </button> --}}
         </div>
     </div>
 
@@ -626,6 +716,9 @@
             next_year_level_id: null,
             section_id: null
         },
+        showBulkModal: false,
+        bulkStudents: [],
+        promoteAll: true,
 
        init() {
             this.$watch('selectedStudents', (value) => {
@@ -664,21 +757,23 @@
         proceedToPayment() {
             if (this.selectedStudents.length === 0) return;
 
-            if (!confirm(`Proceed to payment for ${this.selectedStudents.length} student(s)?`)) return;
+            console.log('Selected:', this.selectedStudents);
 
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = '{{ route("college.students.readd.bulk") }}';
-            form.innerHTML = `
-                @csrf
-                ${this.selectedStudents.map(id => `<input type="hidden" name="students[]" value="${id}">`).join('')}
-            `;
-            document.body.appendChild(form);
-            this.isDirty = false;
-             this.selectedStudents = [];
-            form.submit();
+            this.bulkStudents = this.students
+                .filter(s => this.selectedStudents.includes(s.id.toString()))
+                .map(s => ({
+                    ...s,
+                    include: true,
+                    promote: true,
+                    next_year_level_id: null,
+                    section_id: s.section_id
+                }));
+
+            console.log('Bulk:', this.bulkStudents);
+
+            this.promoteAll = true;
+            this.showBulkModal = true;
         },
-
         resetImport() {
             this.showImportModal = false;
             this.importStep = 'select';
@@ -789,47 +884,94 @@
         }
     },
     openStudentPromotion(student) {
-    this.activeStudent = student;
+            this.activeStudent = student;
 
-    this.studentPromotion.promote = true;
-    this.studentPromotion.next_year_level_id = null;
-    this.studentPromotion.section_id = student.section_id;
+            this.studentPromotion.promote = true;
+            this.studentPromotion.next_year_level_id = null;
+            this.studentPromotion.section_id = student.section_id;
 
-    this.showStudentPromotionModal = true;
-},
-async confirmStudentPromotion() {
-    if (!this.activeStudent) return;
+            this.showStudentPromotionModal = true;
+        },
+        async confirmStudentPromotion() {
+            if (!this.activeStudent) return;
 
-    if (!confirm('Proceed student to payment and apply promotion?')) return;
+            if (!confirm('Proceed student to payment and apply promotion?')) return;
 
-    try {
-        const res = await fetch(`/college/students/${this.activeStudent.id}/promote-pay`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify({
-                promote: this.studentPromotion.promote,
-                section_id: this.studentPromotion.section_id,
-                year_level_id: this.studentPromotion.next_year_level_id
-            })
-        });
+            try {
+                const res = await fetch(`/college/students/${this.activeStudent.id}/promote-pay`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        promote: this.studentPromotion.promote,
+                        section_id: this.studentPromotion.section_id,
+                        year_level_id: this.studentPromotion.next_year_level_id
+                    })
+                });
 
-        const data = await res.json();
+                const data = await res.json();
 
-        alert(data.message);
+                alert(data.message);
 
-        this.showStudentPromotionModal = false;
-        this.activeStudent = null;
+                this.showStudentPromotionModal = false;
+                this.activeStudent = null;
 
-        window.location.reload();
+                window.location.reload();
 
-    } catch (e) {
-        alert('Failed to process student');
+            } catch (e) {
+                alert('Failed to process student');
+            }
+        },
+        togglePromoteAll() {
+            this.bulkStudents.forEach(s => {
+                s.promote = this.promoteAll;
+            });
+        },
+
+        checkPromoteAll() {
+            this.promoteAll = this.bulkStudents.every(s => s.promote);
+        },
+
+        async submitBulkPromotion() {
+
+        const selected = this.bulkStudents.filter(s => s.include);
+
+        if (selected.length === 0) {
+            alert('No students selected');
+            return;
+        }
+
+        if (!confirm('Proceed selected students to payment?')) return;
+
+        try {
+            const res = await fetch('{{ route("college.students.bulk.promote-pay") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    students: selected
+                })
+            });
+
+            const data = await res.json();
+
+            alert(data.message);
+
+            this.showBulkModal = false;
+            this.selectedStudents = [];
+
+            window.location.reload();
+
+        } catch (e) {
+            alert('Bulk process failed');
+        }
     }
-}
     }
 }
 

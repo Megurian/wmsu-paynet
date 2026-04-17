@@ -542,5 +542,58 @@ public function promoteAndPay(Request $request, $studentId)
     ]);
 }
 
+public function bulkPromoteAndPay(Request $request)
+{
+    $adviser = Auth::user();
+
+    $activeSY = SchoolYear::where('is_active', true)->first();
+    $activeSem = Semester::where('is_active', true)->first();
+
+    foreach ($request->students as $s) {
+
+        $studentId = $s['id'];
+
+        $latest = StudentEnrollment::where('student_id', $studentId)
+            ->latest('id')
+            ->first();
+
+        if (!$latest) continue;
+
+        $yearLevelId = $s['next_year_level_id'];
+
+        if ($s['promote']) {
+            $nextYear = YearLevel::where('college_id', $adviser->college_id)
+                ->where('id', '>', $latest->year_level_id)
+                ->orderBy('id')
+                ->first();
+
+            $yearLevelId = $nextYear?->id ?? $latest->year_level_id;
+        }
+
+        $new = StudentEnrollment::firstOrNew([
+            'student_id' => $studentId,
+            'school_year_id' => $activeSY->id,
+            'semester_id' => $activeSem->id,
+        ]);
+
+        $new->fill([
+            'college_id' => $adviser->college_id,
+            'adviser_id' => $adviser->id,
+            'course_id' => $latest->course_id,
+            'year_level_id' => $yearLevelId,
+            'section_id' => $s['section_id'],
+            'status' => 'FOR_PAYMENT_VALIDATION',
+            'financial_status' => StudentEnrollment::FINANCIAL_UNPAID,
+            'advised_at' => now(),
+        ]);
+
+        $new->save();
+    }
+
+    return response()->json([
+        'message' => 'Bulk students processed successfully'
+    ]);
+}
+
 }
 

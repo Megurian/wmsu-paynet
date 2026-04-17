@@ -364,6 +364,9 @@ Route::middleware(['auth', 'role:treasurer,college,student_coordinator,adviser,a
     Route::post('/college/students/{id}/promote-pay', 
         [AdviserStudentUploadController::class, 'promoteAndPay']
     )->name('college.students.promote.pay');
+
+    Route::post('/college/students/bulk-promote-pay', [AdviserStudentUploadController::class, 'bulkPromoteAndPay'])
+    ->name('college.students.bulk.promote-pay');
 });
 
     Route::middleware(['auth','role:assessor,student_coordinator'])->group(function(){
