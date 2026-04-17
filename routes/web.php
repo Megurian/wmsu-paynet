@@ -352,6 +352,14 @@ Route::middleware(['auth', 'role:treasurer,college,student_coordinator,adviser,a
         AdviserStudentUploadController::class,
         'updateField'
     ])->name('college.students.update-field');
+
+    Route::get('/college/students/promotion/preview',
+        [AdviserStudentUploadController::class, 'promotionPreview']
+    )->name('college.students.promotion.preview');
+
+    Route::post('/college/students/promotion/execute',
+        [AdviserStudentUploadController::class, 'promotionExecute']
+    )->name('college.students.promotion.execute');
 });
 
     Route::middleware(['auth','role:assessor,student_coordinator'])->group(function(){

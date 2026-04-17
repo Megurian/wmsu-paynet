@@ -93,6 +93,68 @@
         </div>
     </div>
 
+    <div x-show="showPromotionModal" x-cloak
+     class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+
+    <div class="bg-white rounded-xl shadow-lg w-full max-w-2xl p-6">
+
+        <h3 class="text-lg font-semibold mb-2">
+            Year Level Promotion
+        </h3>
+
+        <p class="text-sm text-gray-600 mb-4">
+            Total eligible students: <span x-text="promotionPreview.total"></span>
+        </p>
+
+        <template x-if="promotionLoading">
+            <p class="text-sm text-gray-500">Loading...</p>
+        </template>
+
+        <template x-if="!promotionLoading">
+
+            <div class="space-y-3 max-h-96 overflow-y-auto">
+
+                <template x-for="group in promotionPreview.breakdown" :key="group.from">
+
+                    <div class="border rounded-lg p-3">
+
+                        <div class="font-semibold text-sm mb-2">
+                            <span x-text="group.from"></span>
+                            →
+                            <span x-text="group.to"></span>
+                            (<span x-text="group.count"></span>)
+                        </div>
+
+                        <div class="text-xs text-gray-600 max-h-24 overflow-y-auto">
+                            <template x-for="s in group.students" :key="s.id">
+                                <div x-text="s.student_id + ' - ' + s.name"></div>
+                            </template>
+                        </div>
+
+                    </div>
+
+                </template>
+
+            </div>
+
+        </template>
+
+        <div class="flex justify-end gap-2 mt-4">
+
+            <button @click="showPromotionModal = false"
+                class="px-4 py-2 bg-gray-300 rounded text-sm">
+                Cancel
+            </button>
+
+            <button @click="confirmPromotion()"
+                class="px-4 py-2 bg-indigo-600 text-white rounded text-sm">
+               Proceed to Payment
+            </button>
+
+        </div>
+
+    </div>
+</div>
 
     @if(session('import_success'))
     <div class="mb-4 p-4 bg-green-100 border border-green-400 text-green-800 rounded-lg text-sm">
@@ -188,6 +250,11 @@
             <button @click="showImportModal = true"
                 class="px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-500 transition">
                 Import Student List
+            </button>
+
+            <button @click="openPromotionPreview()"
+                class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-500 text-sm">
+                Year Level Promotion
             </button>
         </div>
     </div>
@@ -492,6 +559,9 @@
 
         selectedStudents: [],
         isDirty: false,
+        showPromotionModal: false,
+        promotionPreview: { breakdown: [], total: 0 },
+        promotionLoading: false,
 
        init() {
             this.$watch('selectedStudents', (value) => {
@@ -611,11 +681,49 @@
         .catch(err => console.error('Update failed:', err));
     },
 
-        watchSelected() {
-            this.selectedStudents = this.selectedStudents.filter(id =>
-                this.students.some(s => s.id === id && s.status === 'NOT_ENROLLED')
-            );
+    watchSelected() {
+        this.selectedStudents = this.selectedStudents.filter(id =>
+            this.students.some(s => s.id === id && s.status === 'NOT_ENROLLED')
+        );
+    },
+    async openPromotionPreview() {
+        this.showPromotionModal = true;
+        this.promotionLoading = true;
+
+        try {
+            const res = await fetch('{{ route("college.students.promotion.preview") }}');
+            this.promotionPreview = await res.json();
+        } catch (e) {
+            alert('Failed to load promotion preview');
+        } finally {
+            this.promotionLoading = false;
         }
+    },
+
+    async confirmPromotion() {
+        if (!confirm('Proceed with year promotion and send students to payment process?')) return;
+
+        try {
+            const res = await fetch('{{ route("college.students.promotion.execute") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json'
+                }
+            });
+
+            const data = await res.json();
+
+            alert(data.message);
+
+            this.showPromotionModal = false;
+            window.location.reload();
+
+        } catch (e) {
+            alert('Promotion failed');
+        }
+    },
     }
 }
 

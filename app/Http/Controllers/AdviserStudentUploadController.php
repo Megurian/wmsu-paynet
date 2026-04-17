@@ -335,5 +335,155 @@ public function updateField(Request $request, $id)
         'message' => 'Updated successfully'
     ]);
 }
+
+private function nextYearLevel($currentYearLevelId)
+{
+    $current = YearLevel::find($currentYearLevelId);
+
+    if (!$current) return null;
+
+    return YearLevel::where('college_id', Auth::user()->college_id)
+        ->where('id', '>', $current->id)
+        ->orderBy('id', 'asc')
+        ->first();
+}
+
+public function promotionPreview()
+{
+    $adviser = Auth::user();
+
+    $activeSY = SchoolYear::where('is_active', true)->first();
+    $activeSem = Semester::where('is_active', true)->first();
+
+    $students = Student::whereHas('enrollments', function ($q) use ($adviser) {
+            $q->where('adviser_id', $adviser->id);
+        })
+
+        ->whereDoesntHave('enrollments', function ($q) use ($activeSY, $activeSem) {
+            $q->where('school_year_id', $activeSY->id)
+              ->where('semester_id', $activeSem->id);
+        })
+
+        ->whereHas('enrollments')
+
+        ->with(['enrollments' => function ($q) use ($activeSY, $activeSem) {
+            $q->where(function ($sub) use ($activeSY, $activeSem) {
+                $sub->where('school_year_id', '<', $activeSY->id)
+                    ->orWhere(function ($q2) use ($activeSY, $activeSem) {
+                        $q2->where('school_year_id', $activeSY->id)
+                           ->where('semester_id', '<', $activeSem->id);
+                    });
+            })
+            ->orderBy('school_year_id', 'desc')
+            ->orderBy('semester_id', 'desc');
+        }])
+        ->get();
+
+    $breakdown = [];
+
+    foreach ($students as $student) {
+
+        $enrollment = $student->enrollments->first();
+        if (!$enrollment) continue;
+
+        $from = $enrollment->yearLevel->name ?? 'Unknown';
+
+        $next = $this->nextYearLevel($enrollment->year_level_id);
+        $to = $next->name ?? 'Graduated';
+
+        $key = $from . '→' . $to;
+
+        if (!isset($breakdown[$key])) {
+            $breakdown[$key] = [
+                'from' => $from,
+                'to' => $to,
+                'count' => 0,
+                'students' => []
+            ];
+        }
+
+        $breakdown[$key]['count']++;
+
+        $breakdown[$key]['students'][] = [
+            'id' => $student->id,
+            'student_id' => $student->student_id,
+            'name' => $student->last_name . ', ' . $student->first_name,
+        ];
+    }
+
+    return response()->json([
+        'breakdown' => array_values($breakdown),
+        'total' => $students->count()
+    ]);
+}
+
+public function promotionExecute()
+{
+    $adviser = Auth::user();
+
+    $activeSY = SchoolYear::where('is_active', true)->first();
+    $activeSem = Semester::where('is_active', true)->first();
+
+    $students = Student::whereHas('enrollments', function ($q) use ($adviser) {
+            $q->where('adviser_id', $adviser->id);
+        })
+        ->whereDoesntHave('enrollments', function ($q) use ($activeSY, $activeSem) {
+            $q->where('school_year_id', $activeSY->id)
+              ->where('semester_id', $activeSem->id);
+        })
+        ->with(['enrollments' => function ($q) use ($activeSY, $activeSem) {
+            $q->where(function ($sub) use ($activeSY, $activeSem) {
+                $sub->where('school_year_id', '<', $activeSY->id)
+                    ->orWhere(function ($q2) use ($activeSY, $activeSem) {
+                        $q2->where('school_year_id', $activeSY->id)
+                           ->where('semester_id', '<', $activeSem->id);
+                    });
+            })
+            ->orderBy('school_year_id', 'desc')
+            ->orderBy('semester_id', 'desc');
+        }])
+        ->get();
+
+    $updated = 0;
+
+    foreach ($students as $student) {
+
+        $enrollment = $student->enrollments->first();
+        if (!$enrollment) continue;
+
+        $nextYear = YearLevel::where('college_id', $adviser->college_id)
+            ->where('id', '>', $enrollment->year_level_id)
+            ->orderBy('id', 'asc')
+            ->first();
+
+        if (!$nextYear) continue;
+
+        $new = StudentEnrollment::firstOrNew([
+            'student_id'     => $student->id,
+            'school_year_id' => $activeSY->id,
+            'semester_id'    => $activeSem->id,
+        ]);
+
+        $new->fill([
+            'college_id'       => $adviser->college_id,
+            'adviser_id'       => $adviser->id,
+            'course_id'        => $enrollment->course_id,
+            'year_level_id'    => $nextYear->id,
+            'section_id'       => $enrollment->section_id,
+            'status'           => 'FOR_PAYMENT_VALIDATION',
+            'financial_status' => StudentEnrollment::FINANCIAL_UNPAID,
+            'advised_at'       => now(),
+        ]);
+
+        $new->save();
+        $updated++;
+    }
+
+    return response()->json([
+        'message' => "Promotion completed. Students forwarded to payment validation: $updated"
+    ]);
+}
+
+
 }
 
