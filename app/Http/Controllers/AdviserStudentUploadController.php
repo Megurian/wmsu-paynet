@@ -66,7 +66,7 @@ class AdviserStudentUploadController extends Controller
             });
         })
 
-        ->paginate(10)
+        ->paginate(25)
         ->withQueryString();
 
     $courses = Course::where('college_id', $collegeId)->get();
@@ -293,5 +293,47 @@ public function reAddBulk(Request $request)
     );
 }
 
+
+public function updateField(Request $request, $id)
+{
+    $request->validate([
+        'field' => 'required|string',
+        'value' => 'nullable',
+    ]);
+
+    $allowedFields = [
+        'year_level_id',
+        'section_id',
+        'course_id',
+    ];
+
+    if (!in_array($request->field, $allowedFields)) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Invalid field'
+        ], 422);
+    }
+
+    $student = Student::findOrFail($id);
+
+    $enrollment = StudentEnrollment::where('student_id', $student->id)
+        ->latest('id')
+        ->first();
+
+    if (!$enrollment) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Enrollment not found'
+        ], 404);
+    }
+
+    $enrollment->{$request->field} = $request->value;
+    $enrollment->save();
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Updated successfully'
+    ]);
+}
 }
 

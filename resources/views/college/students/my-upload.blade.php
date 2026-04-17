@@ -542,7 +542,6 @@
                 });
                 if (!res.ok) throw new Error('Preview request failed');
                 this.importPreview = await res.json();
-                // If no existing or mismatch students, skip confirmation and submit directly
                 if (this.importPreview.existing_match.length === 0 && this.importPreview.existing_mismatch.length === 0) {
                     this.submitImport();
                 } else {
@@ -560,20 +559,31 @@
         },
 
         updateStudent(studentId, field, value) {
-            fetch(`/college/students/${studentId}/update-field`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                },
-                body: JSON.stringify({ field, value })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) console.log('Updated successfully');
-            })
-            .catch(err => console.error(err));
-        },
+        fetch(`/college/students/${studentId}/update-field`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ field, value })
+        })
+        .then(async res => {
+            if (!res.ok) {
+                const text = await res.text();
+                throw new Error(text);
+            }
+            return res.json();
+        })
+        .then(data => {
+            if (data.success) {
+                console.log('Updated successfully');
+            } else {
+                console.error(data.message);
+            }
+        })
+        .catch(err => console.error('Update failed:', err));
+    },
 
         watchSelected() {
             this.selectedStudents = this.selectedStudents.filter(id =>
