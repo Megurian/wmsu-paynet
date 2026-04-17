@@ -7,7 +7,7 @@
 @php
     $isCleared =  false;
 @endphp
-<div x-data="myStudentsUpload()" x-init="">
+<div x-data="myStudentsUpload()" x-init="init()">
     {{-- Import Modal --}}
     <div x-show="showImportModal" x-cloak class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
         <div @click.away="resetImport()" class="bg-white rounded-xl shadow-lg w-full max-w-lg p-6 relative">
@@ -112,7 +112,7 @@
 
     {{-- Filters and Actions --}}
     <div class="bg-white border border-gray-200 rounded-xl p-4 mb-5 shadow-sm">
-        <form method="GET" class="bg-white border border-gray-200 rounded-xl p-4 mb-5 shadow-sm">
+        <form method="GET"  @submit="if(isDirty && !confirm('You have selected students. Leave anyway?')) $event.preventDefault()" class="bg-white border border-gray-200 rounded-xl p-4 mb-5 shadow-sm">
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
 
         <div class="relative col-span-1 sm:col-span-2">
@@ -491,7 +491,31 @@
         students: @json($alpineStudents),
 
         selectedStudents: [],
-    
+        isDirty: false,
+
+       init() {
+            this.$watch('selectedStudents', (value) => {
+                this.isDirty = value.length > 0;
+            });
+
+            this._beforeUnloadHandler = (e) => {
+                if (this.selectedStudents.length > 0) {
+                    e.preventDefault();
+                    e.returnValue = '';
+                }
+            };
+
+            window.addEventListener('beforeunload', this._beforeUnloadHandler);
+        },
+        destroy() {
+            window.removeEventListener('beforeunload', this._beforeUnloadHandler);
+        },
+        beforeUnloadHandler(e) {
+            if (this.selectedStudents.length > 0) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        },
         toggleAll(event) {
             const checked = event.target.checked;
 
@@ -516,6 +540,8 @@
                 ${this.selectedStudents.map(id => `<input type="hidden" name="students[]" value="${id}">`).join('')}
             `;
             document.body.appendChild(form);
+            this.isDirty = false;
+             this.selectedStudents = [];
             form.submit();
         },
 
