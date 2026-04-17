@@ -760,7 +760,7 @@
             console.log('Selected:', this.selectedStudents);
 
             this.bulkStudents = this.students
-                .filter(s => this.selectedStudents.includes(s.id.toString()))
+                .filter(s => this.selectedStudents.map(Number).includes(Number(s.id)))
                 .map(s => ({
                     ...s,
                     include: true,
