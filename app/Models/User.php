@@ -95,17 +95,22 @@ public function isCollege(): bool
         return $this->belongsTo(Course::class);
     }
 
-public function getRoleAttribute($value)
-{
-    $decoded = json_decode($value, true);
+// public function getRoleAttribute($value)
+// {
+//     $decoded = json_decode($value, true);
 
-    return is_array($decoded) ? $decoded : [$value];
-}
+//     return is_array($decoded) ? $decoded : [$value];
+// }
 
 public function getRoleLabelAttribute(): string
 {
     return collect($this->role ?? [])
         ->map(fn($r) => ucwords(str_replace('_', ' ', $r)))
         ->join(', ');
+}
+
+public function employee()
+{
+    return $this->belongsTo(Employee::class);
 }
 }

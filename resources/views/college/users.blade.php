@@ -204,7 +204,68 @@
 
 <!-- Account Management Tab -->
 @if($activeTab === 'accounts')
-    
+
+    <div class="bg-white p-6 rounded shadow">
+
+    <h2 class="text-xl font-bold mb-4">
+        ROLE ASSIGNMENT (AY 2025-2026 | 1st Sem)
+    </h2>
+
+    <form method="POST" action="{{ route('college.roles.bulkAssign') }}">
+        @csrf
+
+        <div class="mb-4">
+            <input type="text"
+                   placeholder="Search Employee..."
+                   class="w-full border rounded px-3 py-2">
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full border text-sm">
+                <thead class="bg-gray-100">
+                    <tr>
+                        <th class="border px-3 py-2 text-left">Employee</th>
+                        <th class="border px-3 py-2">Advisor</th>
+                        <th class="border px-3 py-2">Coordinator</th>
+                        <th class="border px-3 py-2">Assessor</th>
+                        <th class="border px-3 py-2">Treasurer</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    @foreach($employees as $employee)
+                        <tr class="border-b">
+                            <td class="px-3 py-2 font-medium">
+                                {{ $employee->first_name }} {{ $employee->last_name }}
+                            </td>
+
+                            @php
+                                $roles = $employee->position ?? [];
+                            @endphp
+
+                            @foreach(['adviser','student_coordinator','assessor','treasurer'] as $role)
+                                <td class="text-center">
+                                    <input type="checkbox"
+                                           name="roles[{{ $employee->id }}][]"
+                                           value="{{ $role }}"
+                                           {{ in_array($role, $roles) ? 'checked' : '' }}>
+                                </td>
+                            @endforeach
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+
+        <div class="mt-4 flex justify-end">
+            <button type="submit"
+                    class="bg-red-800 text-white px-6 py-2 rounded hover:bg-red-700">
+                Save Assignments
+            </button>
+        </div>
+
+    </form>
+</div>
 @endif
 
 @if($activeTab === 'employees')

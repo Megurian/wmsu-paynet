@@ -386,6 +386,9 @@ Route::middleware(['auth', 'role:treasurer,college,student_coordinator,adviser,a
 Route::put('/employees/{employee}', [EmployeeController::class, 'update'])->name('employees.update');
 Route::delete('/employees/{employee}', [EmployeeController::class, 'destroy'])->name('employees.destroy');
 Route::post('/employees/{employee}/create-account', [EmployeeController::class, 'createAccount']);
+
+Route::post('/college/roles/bulk-assign', [EmployeeController::class, 'bulkAssign'])
+    ->name('college.roles.bulkAssign');
 });
 
 

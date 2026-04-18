@@ -132,4 +132,7 @@ class CollegeUserController extends Controller
         return redirect()->route('college.users.index', ['tab' => 'accounts'])
                         ->with('status', 'Course assigned to adviser successfully!');
     }
+
+
+   
 }

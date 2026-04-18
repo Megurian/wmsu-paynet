@@ -15,9 +15,15 @@ class Employee extends Model
         'department',
         'position',
         'has_account',
+         'user_id',
     ];
 
     protected $casts = [
     'position' => 'array',
 ];
+
+public function user()
+{
+    return $this->belongsTo(User::class, 'user_id');
+}
 }

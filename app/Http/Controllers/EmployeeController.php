@@ -61,15 +61,12 @@ class EmployeeController extends Controller
         'position.*' => 'in:assessor,student_coordinator,adviser,treasurer',
     ]);
 
-    // ✅ GET ROLES FROM FORM (NOT FROM EMPLOYEE)
     $roles = $request->position;
 
-    // ✅ SAVE ROLES BACK TO EMPLOYEE
     $employee->update([
         'position' => $roles,
     ]);
 
-    // ✅ PRIORITY LOGIC
     $priority = ['adviser', 'assessor', 'treasurer', 'student_coordinator'];
 
     $primaryRole = 'student_coordinator';
@@ -81,7 +78,6 @@ class EmployeeController extends Controller
         }
     }
 
-    // ✅ CREATE USER
     $user = User::create([
         'email' => $request->email,
         'password' => bcrypt($request->password),
@@ -91,7 +87,6 @@ class EmployeeController extends Controller
          'role' => $roles,
     ]);
 
-    // ✅ LINK ACCOUNT
     $employee->update([
         'has_account' => true,
         'user_id' => $user->id,
@@ -99,4 +94,50 @@ class EmployeeController extends Controller
 
     return back()->with('status', 'Account created successfully');
 }
+
+public function bulkAssign(Request $request)
+{
+    $rolesData = $request->roles ?? [];
+
+    foreach ($rolesData as $employeeId => $roles) {
+
+        $employee = Employee::find($employeeId);
+        if (!$employee) continue;
+
+        $roles = array_values($roles);
+
+        $employee->update([
+            'position' => $roles,
+        ]);
+
+        if (!$employee->user_id && $employee->has_account) {
+
+            $user = User::where('first_name', $employee->first_name)
+                        ->where('last_name', $employee->last_name)
+                        ->first();
+
+            if ($user) {
+                $employee->update([
+                    'user_id' => $user->id,
+                ]);
+            }
+        }
+
+        if ($employee->user_id) {
+
+            $user = User::find($employee->user_id);
+
+            if ($user) {
+                $user->update([
+                    'role' => $roles,
+                    'first_name' => $employee->first_name,
+                    'last_name' => $employee->last_name,
+                ]);
+            }
+        }
+    }
+
+    return back()->with('status', 'Role assignments synced successfully!');
+}
+
 }
