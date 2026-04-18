@@ -7,6 +7,8 @@ use App\Models\User;
 use App\Models\Course;
 use App\Models\YearLevel;
 use App\Models\Section;
+use App\Models\SchoolYear;
+use App\Models\Semester;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Employee;
@@ -15,6 +17,8 @@ class CollegeUserController extends Controller
 {
     public function index()
     {
+        $activeSY = SchoolYear::where('is_active', true)->first();
+        $activeSem = Semester::where('is_active', true)->first();
         $collegeId = Auth::user()->college_id;
         $users = User::where('college_id', $collegeId)
                      ->whereIn('role', ['treasurer', 'student_coordinator', 'adviser', 'assessor'])
@@ -26,6 +30,8 @@ class CollegeUserController extends Controller
             'years' => YearLevel::where('college_id', $collegeId)->get(),
             'sections' => Section::where('college_id', $collegeId)->get(),
             'employees' => Employee::where('college_id', Auth::user()->college_id)->get(),
+                'activeSY' => $activeSY,
+            'activeSem' => $activeSem,
         ]);
     }
 

@@ -26,4 +26,14 @@ public function user()
 {
     return $this->belongsTo(User::class, 'user_id');
 }
+
+public function assignments()
+{
+    return $this->hasMany(EmployeeAssignment::class);
+}
+
+public function currentAssignment()
+{
+    return $this->hasOne(EmployeeAssignment::class)->latestOfMany();
+}
 }

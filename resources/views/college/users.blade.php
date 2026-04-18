@@ -207,9 +207,20 @@
 
     <div class="bg-white p-6 rounded shadow">
 
-    <h2 class="text-xl font-bold mb-4">
-        ROLE ASSIGNMENT (AY 2025-2026 | 1st Sem)
-    </h2>
+       @php
+            $activeSY = \App\Models\SchoolYear::where('is_active', true)->first();
+            $activeSem = \App\Models\Semester::where('is_active', true)->first();
+
+            $syLabel = $activeSY
+                ? $activeSY->sy_start->format('Y') . '-' . $activeSY->sy_end->format('Y')
+                : 'No Active SY';
+
+            $semLabel = $activeSem->name ?? 'No Active Semester';
+        @endphp
+
+        <h2 class="text-xl font-bold mb-4">
+            ROLE ASSIGNMENT (AY {{ $syLabel }} | {{ $semLabel }})
+        </h2>
 
     <form method="POST" action="{{ route('college.roles.bulkAssign') }}">
         @csrf
@@ -240,7 +251,7 @@
                             </td>
 
                             @php
-                                $roles = $employee->position ?? [];
+                                $roles =$employee->currentAssignment?->positions ?? []
                             @endphp
 
                             @foreach(['adviser','student_coordinator','assessor','treasurer'] as $role)
