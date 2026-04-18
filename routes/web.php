@@ -347,6 +347,26 @@ Route::middleware(['auth', 'role:treasurer,college,student_coordinator,adviser,a
     Route::get('/college/history/fees', [CollegeHistoryController::class, 'getFeesByOrg']);
        Route::get('/college/history/report', [CollegeHistoryController::class, 'generateReport'])
     ->name('college.history.report');
+
+    Route::post('/college/students/{id}/update-field', [
+        AdviserStudentUploadController::class,
+        'updateField'
+    ])->name('college.students.update-field');
+
+    Route::get('/college/students/promotion/preview',
+        [AdviserStudentUploadController::class, 'promotionPreview']
+    )->name('college.students.promotion.preview');
+
+    Route::post('/college/students/promotion/execute',
+        [AdviserStudentUploadController::class, 'promotionExecute']
+    )->name('college.students.promotion.execute');
+
+    Route::post('/college/students/{id}/promote-pay', 
+        [AdviserStudentUploadController::class, 'promoteAndPay']
+    )->name('college.students.promote.pay');
+
+    Route::post('/college/students/bulk-promote-pay', [AdviserStudentUploadController::class, 'bulkPromoteAndPay'])
+    ->name('college.students.bulk.promote-pay');
 });
 
     Route::middleware(['auth','role:assessor,student_coordinator'])->group(function(){
