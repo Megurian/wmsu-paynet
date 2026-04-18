@@ -244,27 +244,97 @@
                 </thead>
 
                 <tbody>
-                    @foreach($employees as $employee)
-                        <tr class="border-b">
-                            <td class="px-3 py-2 font-medium">
-                                {{ $employee->first_name }} {{ $employee->last_name }}
-                            </td>
+                    @foreach($accountEmployees as $employee)
+                    <tr class="border-b">
 
-                            @php
-                                $roles =$employee->currentAssignment?->positions ?? []
-                            @endphp
+                        <td class="px-3 py-2 font-medium">
+                            {{ $employee->first_name }} {{ $employee->last_name }}
+                        </td>
 
-                            @foreach(['adviser','student_coordinator','assessor','treasurer'] as $role)
-                                <td class="text-center">
-                                    <input type="checkbox"
-                                           name="roles[{{ $employee->id }}][]"
-                                           value="{{ $role }}"
-                                           {{ in_array($role, $roles) ? 'checked' : '' }}>
-                                </td>
-                            @endforeach
-                        </tr>
+                        @php
+                            $roles = $employee->currentAssignment?->positions ?? [];
+                            $isLockedAdviser = in_array('adviser', $roles);
+                            $assignedCourseId = $employee->currentAssignment?->course_id;
+                        @endphp
+                        <td class="text-center">
+                            @if($isLockedAdviser)
+
+                                <div class="flex flex-col items-center gap-1">
+
+                                    <span class="text-xs text-gray-500 font-semibold">
+                                        ✔ Adviser (Locked)
+                                    </span>
+
+                                    <input type="hidden"
+                                        name="roles[{{ $employee->id }}][]"
+                                        value="adviser">
+
+                                    <select class="border p-1 text-xs w-full bg-gray-100 text-gray-500"
+                                            disabled>
+                                        @foreach($courses as $course)
+                                            <option value="{{ $course->id }}"
+                                                {{ $assignedCourseId == $course->id ? 'selected' : '' }}>
+                                                {{ $course->name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+
+                                </div>
+
+                            @else
+
+                                <div class="flex flex-col items-center gap-1">
+
+                                    <label class="text-xs">
+                                        <input type="checkbox"
+                                            class="adviser-checkbox"
+                                            data-employee="{{ $employee->id }}"
+                                            name="roles[{{ $employee->id }}][]"
+                                            value="adviser"
+                                            {{ in_array('adviser', $roles) ? 'checked' : '' }}>
+                                        Adviser
+                                    </label>
+
+                                    <div class="hidden w-full" id="course-box-{{ $employee->id }}">
+
+                                        <select name="course_id[{{ $employee->id }}]"
+                                                class="border p-1 text-xs w-full">
+                                            <option value="">Select Course</option>
+                                            @foreach($courses as $course)
+                                                <option value="{{ $course->id }}">
+                                                    {{ $course->name }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+
+                                    </div>
+
+                                </div>
+
+                            @endif
+                        </td>
+                        <td class="text-center">
+                            <input type="checkbox"
+                                name="roles[{{ $employee->id }}][]"
+                                value="student_coordinator"
+                                {{ in_array('student_coordinator', $roles) ? 'checked' : '' }}>
+                        </td>
+                        <td class="text-center">
+                            <input type="checkbox"
+                                name="roles[{{ $employee->id }}][]"
+                                value="assessor"
+                                {{ in_array('assessor', $roles) ? 'checked' : '' }}>
+                        </td>
+                        <td class="text-center">
+                            <input type="checkbox"
+                                name="roles[{{ $employee->id }}][]"
+                                value="treasurer"
+                                {{ in_array('treasurer', $roles) ? 'checked' : '' }}>
+                        </td>
+
+                    </tr>
                     @endforeach
-                </tbody>
+                    </tbody>
             </table>
         </div>
 
@@ -334,12 +404,35 @@
 
     }
 
-    function openCreateAccountModal(id, name) {
+    function openCreateAccountModal(id, name, email) {
         document.getElementById('createAccountModal').classList.remove('hidden');
 
         document.getElementById('accountEmployeeName').innerText = name;
 
         document.getElementById('createAccountForm').action = `/employees/${id}/create-account`;
+
+        document.querySelector('#createAccountModal input[name="email"]').value = email ?? '';
     }
+
+    document.addEventListener('DOMContentLoaded', function () {
+
+        document.querySelectorAll('.adviser-checkbox').forEach(cb => {
+            cb.addEventListener('change', function () {
+
+                const empId = this.dataset.employee;
+                const box = document.getElementById('course-box-' + empId);
+
+                if (this.checked) {
+                    box.classList.remove('hidden');
+                } else {
+                    box.classList.add('hidden');
+
+                    const select = box.querySelector('select');
+                    if (select) select.value = '';
+                }
+            });
+        });
+
+    });
 </script>
 @endsection

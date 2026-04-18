@@ -22,7 +22,7 @@
                     <th class="p-2 text-left">Name</th>
                     <th class="p-2 text-left">Department</th>
                     <th class="p-2 text-left">Position</th>
-                    <th class="p-2 text-left">Account</th>
+                    <th class="p-2 text-left">Email</th>
                     <th class="p-2 text-left">Actions</th>
                 </tr>
             </thead>
@@ -36,21 +36,42 @@
 
                     <td class="p-2">{{ $employee->department ?? '-' }}</td>
                     <td class="p-2">
-                       @php
-                            $roles = $user->role ?? [];
+                        @php
+                            $roles = $employee->user?->role ?? $employee->position ?? [];
+
                             if (!is_array($roles)) {
-                                $roles = [$roles]; // fallback for old data
+                                $roles = [$roles];
                             }
                         @endphp
 
-                        {{ implode(', ', $roles ?? []) }}
+                        {{ implode(', ', $roles) }}
                     </td>
 
-                    <td class="p-2">
+                   <td class="p-2">
                         @if($employee->has_account)
-                            <span class="text-green-600">Has Account</span>
+                            <div class="flex flex-col">
+                                
+                                <span class="text-gray-800 font-medium">
+                                    {{ $employee->email ?? $employee->user?->email ?? 'No Email' }}
+                                </span>
+
+                                <span class="text-xs text-green-600 font-semibold">
+                                    ● Active Account
+                                </span>
+
+                            </div>
                         @else
-                            <span class="text-gray-400">No Account</span>
+                            <div class="flex flex-col">
+                                
+                                <span class="text-gray-800 font-medium">
+                                    {{ $employee->email ?? $employee->user?->email ?? 'No Email' }}
+                                </span>
+
+                                <span class="text-xs text-gray-400">
+                                    ● No Active Account
+                                </span>
+
+                            </div>
                         @endif
                     </td>
 
@@ -64,8 +85,12 @@
 
                         <!-- CREATE ACCOUNT -->
                         @if(!$employee->has_account)
-                            <button
-                                onclick="openCreateAccountModal({{ $employee->id }}, '{{ $employee->first_name }} {{ $employee->last_name }}')"
+                           <button
+                                onclick="openCreateAccountModal(
+                                    {{ $employee->id }},
+                                    '{{ $employee->first_name }} {{ $employee->last_name }}',
+                                    '{{ $employee->email }}'
+                                )"
                                 class="text-green-600 hover:underline">
                                 Create Account
                             </button>
@@ -115,6 +140,7 @@
             <input name="first_name" placeholder="First Name" class="border p-2 w-full mb-2">
             <input name="last_name" placeholder="Last Name" class="border p-2 w-full mb-2">
             <input name="middle_name" placeholder="Middle Name" class="border p-2 w-full mb-2">
+            <input name="email" type="email" placeholder="Email" class="border p-2 w-full mb-2">
 
             <!-- DEPARTMENT DROPDOWN -->
             <label class="text-sm text-gray-600">Department</label>
@@ -176,6 +202,11 @@
                 <option value="other">Other</option>
             </select>
 
+            <input name="email"
+       id="accountEmail"
+       placeholder="Email"
+       class="border p-2 w-full mb-2">
+
 
             <div class="flex justify-end gap-2">
                 <button type="button"
@@ -202,10 +233,11 @@
         <form method="POST" id="createAccountForm">
             @csrf
 
-             <!-- ✅ POSITION MOVED HERE -->
+            <!-- POSITION -->
             <label class="text-sm text-gray-600">Position</label>
 
-            <div class="space-y-1 mb-4">
+            <div class="space-y-1 mb-2">
+
                 <label>
                     <input type="checkbox" name="position[]" value="assessor">
                     Assessor
@@ -216,8 +248,9 @@
                     Student Coordinator
                 </label>
 
+                <!-- ADVISER -->
                 <label>
-                    <input type="checkbox" name="position[]" value="adviser">
+                    <input type="checkbox" name="position[]" value="adviser" id="adviserCheckbox">
                     Adviser
                 </label>
 
@@ -225,10 +258,28 @@
                     <input type="checkbox" name="position[]" value="treasurer">
                     Treasurer
                 </label>
+
+            </div>
+
+            <!-- COURSE DROPDOWN (ONLY FOR ADVISER) -->
+            <div id="courseDropdown" class="hidden mb-4">
+                <label class="text-sm text-gray-600">
+                    Assign Course (Required for Adviser)
+                </label>
+
+                <select name="course_id" id="courseSelect" class="border p-2 w-full">
+                    <option value="">Select Course</option>
+                    @foreach($courses as $course)
+                        <option value="{{ $course->id }}">{{ $course->name }}</option>
+                    @endforeach
+                </select>
+
+                @error('course_id')
+                    <p class="text-red-600 text-sm mt-1">{{ $message }}</p>
+                @enderror
             </div>
 
             <input name="email" placeholder="Email" class="border p-2 w-full mb-2">
-
             <input name="password" type="password" placeholder="Password" class="border p-2 w-full mb-4">
 
             <div class="flex justify-end gap-2">
@@ -259,5 +310,35 @@ function toggleOtherDepartment(select) {
         input.value = '';
         input.setAttribute('name', 'other_department');
     }
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+
+    const adviserCheckbox = document.getElementById('adviserCheckbox');
+    const courseDropdown = document.getElementById('courseDropdown');
+    const courseSelect = document.getElementById('courseSelect');
+
+    function toggleCourseField() {
+        if (adviserCheckbox.checked) {
+            courseDropdown.classList.remove('hidden');
+        } else {
+            courseDropdown.classList.add('hidden');
+            courseSelect.value = '';
+        }
+    }
+
+    adviserCheckbox.addEventListener('change', toggleCourseField);
+
+});
+
+function openCreateAccountModal(id, name, email) {
+    document.getElementById('createAccountModal').classList.remove('hidden');
+
+    document.getElementById('accountEmployeeName').innerText = name;
+
+    document.getElementById('createAccountForm').action =
+        `/employees/${id}/create-account`;
+
+    document.getElementById('accountEmail').value = email ?? '';
 }
 </script>

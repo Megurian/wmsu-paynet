@@ -15,6 +15,7 @@ class Employee extends Model
         'department',
         'position',
         'has_account',
+         'email',
          'user_id',
     ];
 

@@ -18,6 +18,7 @@ class EmployeeController extends Controller
             'first_name' => 'required',
             'last_name' => 'required',
             'department' => 'nullable|string',
+            'email' => 'nullable|email|unique:employees,email',
             'position' => 'nullable|array',
             'position.*' => 'in:assessor,student_coordinator,adviser,treasurer',
         ]);
@@ -33,6 +34,7 @@ class EmployeeController extends Controller
             'first_name' => $request->first_name,
             'last_name' => $request->last_name,
             'middle_name' => $request->middle_name,
+             'email' => $request->email, 
             'department' => $department,
             'position' => $request->position ?? [],
             'has_account' => false,
@@ -62,14 +64,20 @@ public function createAccount(Request $request, Employee $employee)
         'password' => 'required|min:6',
         'position' => 'required|array',
         'position.*' => 'in:assessor,student_coordinator,adviser,treasurer',
+        'course_id' => 'nullable|exists:courses,id',
     ]);
 
     $roles = $request->position;
 
+    if (in_array('adviser', $roles) && !$request->course_id) {
+        return back()->withErrors([
+            'course_id' => 'Course is required when assigning Adviser role.'
+        ]);
+    }
+
     $activeSY = SchoolYear::where('is_active', true)->first();
     $activeSem = Semester::where('is_active', true)->first();
 
-    // 🔥 SAVE ROLE PER SCHOOL YEAR + SEM
     EmployeeAssignment::updateOrCreate(
         [
             'employee_id' => $employee->id,
@@ -78,20 +86,9 @@ public function createAccount(Request $request, Employee $employee)
         ],
         [
             'positions' => $roles,
+            'course_id' => in_array('adviser', $roles) ? $request->course_id : null,
         ]
     );
-
-    // priority logic (unchanged)
-    $priority = ['adviser', 'assessor', 'treasurer', 'student_coordinator'];
-
-    $primaryRole = 'student_coordinator';
-
-    foreach ($priority as $role) {
-        if (in_array($role, $roles)) {
-            $primaryRole = $role;
-            break;
-        }
-    }
 
     $user = User::create([
         'email' => $request->email,
@@ -100,11 +97,13 @@ public function createAccount(Request $request, Employee $employee)
         'last_name' => $employee->last_name,
         'college_id' => auth()->user()->college_id,
         'role' => $roles,
+        'course_id' => in_array('adviser', $roles) ? $request->course_id : null,
     ]);
 
     $employee->update([
         'has_account' => true,
         'user_id' => $user->id,
+        'email' => $employee->email ?? $request->email, 
     ]);
 
     return back()->with('status', 'Account created successfully');
@@ -113,6 +112,7 @@ public function createAccount(Request $request, Employee $employee)
 public function bulkAssign(Request $request)
 {
     $rolesData = $request->roles ?? [];
+    $courseData = $request->course_id ?? [];
 
     $activeSY = SchoolYear::where('is_active', true)->first();
     $activeSem = Semester::where('is_active', true)->first();
@@ -124,6 +124,21 @@ public function bulkAssign(Request $request)
 
         $roles = array_values($roles);
 
+        $existing = $employee->currentAssignment?->positions ?? [];
+        $existingCourse = $employee->currentAssignment?->course_id;
+
+        if (in_array('adviser', $existing) && !in_array('adviser', $roles)) {
+            $roles[] = 'adviser';
+        }
+
+        $roles = array_values(array_unique($roles));
+
+        $courseId = $courseData[$employeeId] ?? $existingCourse;
+
+        if (!in_array('adviser', $roles)) {
+            $courseId = null;
+        }
+
         EmployeeAssignment::updateOrCreate(
             [
                 'employee_id' => $employee->id,
@@ -132,16 +147,17 @@ public function bulkAssign(Request $request)
             ],
             [
                 'positions' => $roles,
+                'course_id' => $courseId,
             ]
         );
 
-        // sync user
         if ($employee->user_id) {
             $user = User::find($employee->user_id);
 
             if ($user) {
                 $user->update([
                     'role' => $roles,
+                    'course_id' => $courseId,
                 ]);
             }
         }

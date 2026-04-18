@@ -15,26 +15,46 @@ use App\Models\Employee;
 
 class CollegeUserController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $activeSY = SchoolYear::where('is_active', true)->first();
         $activeSem = Semester::where('is_active', true)->first();
+
         $collegeId = Auth::user()->college_id;
-        $users = User::where('college_id', $collegeId)
-                     ->whereIn('role', ['treasurer', 'student_coordinator', 'adviser', 'assessor'])
-                     ->get();
+
+    
+        $allEmployees = Employee::with(['user', 'currentAssignment'])
+            ->where('college_id', $collegeId)
+            ->get();
+
+        $accountEmployees = Employee::with(['user', 'currentAssignment'])
+            ->where('college_id', $collegeId)
+            ->where('has_account', true)
+            ->whereNotNull('user_id')
+            ->get()
+            ->filter(function ($employee) {
+                $roles = $employee->currentAssignment?->positions
+                    ?? ($employee->user?->role ?? []);
+
+                return !empty($roles);
+            });
 
         return view('college.users', [
-            'users' => $users,
+            'users' => User::where('college_id', $collegeId)
+                ->whereIn('role', ['treasurer', 'student_coordinator', 'adviser', 'assessor'])
+                ->get(),
+
             'courses' => Course::where('college_id', $collegeId)->get(),
             'years' => YearLevel::where('college_id', $collegeId)->get(),
             'sections' => Section::where('college_id', $collegeId)->get(),
-            'employees' => Employee::where('college_id', Auth::user()->college_id)->get(),
-                'activeSY' => $activeSY,
+
+            'employees' => $allEmployees,
+            'accountEmployees' => $accountEmployees,
+
+            'activeSY' => $activeSY,
             'activeSem' => $activeSem,
         ]);
     }
-
     public function create()
     {
         

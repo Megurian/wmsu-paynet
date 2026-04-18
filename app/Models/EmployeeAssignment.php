@@ -11,6 +11,7 @@ class EmployeeAssignment extends Model
         'school_year_id',
         'semester_id',
         'positions',
+        'course_id',
     ];
 
     protected $casts = [
