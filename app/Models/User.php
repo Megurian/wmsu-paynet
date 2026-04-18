@@ -46,14 +46,12 @@ class User extends Authenticatable
      *
      * @return array<string, string>
      */
-    protected function casts(): array
-    {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-            'role' => 'array',
-        ];
-    }
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+        'password' => 'hashed',
+        'role' => 'array',
+    ];
+
     public function getFullNameAttribute(): string
     {
         return trim(
@@ -71,46 +69,46 @@ class User extends Authenticatable
         return $this->belongsTo(Organization::class, 'organization_id');
     }
 
-   public function hasRole($role)
-{
-    return in_array($role, $this->role ?? []);
-}
+    public function hasRole($role)
+    {
+        return in_array($role, (array) $this->role);
+    }
 
-public function isAssessor(): bool
-{
-    return in_array('assessor', $this->role ?? []);
-}
+    public function isAssessor(): bool
+    {
+        return in_array('assessor', $this->role ?? []);
+    }
 
-public function isStudentCoordinator(): bool
-{
-    return in_array('student_coordinator', $this->role ?? []);
-}
+    public function isStudentCoordinator(): bool
+    {
+        return in_array('student_coordinator', $this->role ?? []);
+    }
 
-public function isCollege(): bool
-{
-    return in_array('college', $this->role ?? []);
-}
+    public function isCollege(): bool
+    {
+        return in_array('college', $this->role ?? []);
+    }
     public function course()
     {
         return $this->belongsTo(Course::class);
     }
 
-// public function getRoleAttribute($value)
-// {
-//     $decoded = json_decode($value, true);
+    // public function getRoleAttribute($value)
+    // {
+    //     $decoded = json_decode($value, true);
 
-//     return is_array($decoded) ? $decoded : [$value];
-// }
+    //     return is_array($decoded) ? $decoded : [$value];
+    // }
 
-public function getRoleLabelAttribute(): string
-{
-    return collect($this->role ?? [])
-        ->map(fn($r) => ucwords(str_replace('_', ' ', $r)))
-        ->join(', ');
-}
+    public function getRoleLabelAttribute(): string
+    {
+        return collect($this->role ?? [])
+            ->map(fn($r) => ucwords(str_replace('_', ' ', $r)))
+            ->join(', ');
+    }
 
-public function employee()
-{
-    return $this->belongsTo(Employee::class);
-}
+    public function employee()
+    {
+        return $this->belongsTo(Employee::class);
+    }
 }

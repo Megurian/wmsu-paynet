@@ -21,7 +21,7 @@ class RoleMiddleware
             return redirect()->route('login');
         }
 
-        $userRoles = auth()->user()->role ?? [];
+        $userRoles = (array) auth()->user()->role;
 
         foreach ($roles as $role) {
             if (in_array($role, $userRoles)) {

@@ -337,7 +337,7 @@
             @if(in_array('adviser', $roles))
                 <a href="{{ route('college.students.my-upload') }}" class="block px-4 py-2 rounded-md transition
                     {{ request()->routeIs('college.students.my-upload') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-                    <span>Students Upload</span>
+                    <span>My Students</span>
                 </a>
             @endif
 
