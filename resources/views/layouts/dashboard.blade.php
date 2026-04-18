@@ -58,286 +58,324 @@
                     <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"></path>
                 </svg>
             </button>
-        @php
-            $user = Auth::user();
+            @php
+                $user = Auth::user();
 
-            $roles = $user->role ?? [];
+                $roles = $user->role ?? [];
+                if (!is_array($roles)) {
+                    $roles = [$roles];
+                }
+            @endphp
 
-            if (!is_array($roles)) {
-                $roles = [$roles];
-            }
-        @endphp
+            <div class="flex flex-col items-center py-6 border-b border-red-700">
 
-        <div class="flex flex-col items-center py-6 border-b border-red-700">
+                <!-- LOGO -->
+                <div class="h-20 w-20 bg-white rounded-full flex items-center justify-center shadow overflow-hidden">
 
-            {{-- Logo --}}
-            <div class="h-20 w-20 bg-white rounded-full flex items-center justify-center shadow overflow-hidden">
-                @if(in_array('college', $user->role ?? []) && $currentCollege?->logo)
-                    <img src="{{ asset('storage/' . $currentCollege->logo) }}"
-                        alt="College Logo"
-                        class="h-full w-full object-cover">
-                @elseif(in_array($user->role, ['university_org', 'college_org']) && $organization?->logo)
-                    <img src="{{ asset('storage/' . $organization->logo) }}"
-                        alt="Organization Logo"
-                        class="h-full w-full object-cover">
-                @else
-                    <span class="text-red-800 font-bold text-sm text-center">
-                        No<br>Logo
-                    </span>
-                @endif
-            </div>
+                    @if(array_intersect($roles, ['college', 'student_coordinator', 'adviser', 'assessor', 'treasurer']) && $currentCollege?->logo)
 
-             @if(array_intersect($roles, ['college', 'student_coordinator', 'adviser', 'assessor']) && $currentCollege)
-                <h2 class="mt-3 text-lg font-bold text-center break-words max-w-[12rem]">
-                    {{ $currentCollege->name }}
-                </h2>
+                        <img src="{{ asset('storage/' . $currentCollege->logo) }}"
+                            class="h-full w-full object-cover"
+                            alt="College Logo">
 
-                <p class="text-sm opacity-90 mt-3 font-bold text-center">
-                    @if(in_array('college', $roles))
-                        College Dean
+                    @elseif(array_intersect($roles, ['university_org', 'college_org']) && $organization?->logo)
 
-                    @elseif(in_array('student_coordinator', $roles))
-                        Student Coordinator
+                        <img src="{{ asset('storage/' . $organization->logo) }}"
+                            class="h-full w-full object-cover"
+                            alt="Organization Logo">
 
-                    @elseif(in_array('adviser', $roles))
-                        Adviser
-                        <span class="inline-block bg-blue-100 text-blue-800 text-xs font-semibold px-3 py-1 rounded-full">
-                            {{ Auth::user()->course?->name ?? 'No course assigned' }}
+                    @else
+                        <span class="text-red-800 font-bold text-sm text-center">
+                            No<br>Logo
                         </span>
+                    @endif
+                </div>
 
-                    @elseif(in_array('assessor', $roles))
-                        Assessor
+                @if($currentCollege && array_intersect($roles, ['college','student_coordinator','adviser','assessor','treasurer']))
+                    
+                    <h2 class="mt-3 text-lg font-bold text-center break-words max-w-[12rem]">
+                        {{ $currentCollege->name }}
+                    </h2>
+
+                    @php
+                    $rolePriority = [
+                        'student_coordinator',
+                        'assessor',
+                        'treasurer',
+                        'adviser',
+                        'college',
+                    ];
+
+                    $primaryRole = null;
+
+                    foreach ($rolePriority as $role) {
+                        if (in_array($role, $roles)) {
+                            $primaryRole = $role;
+                            break;
+                        }
+                    }
+                @endphp
+
+                <div class="mt-2 text-sm opacity-90 font-semibold text-center">
+
+                    @if($primaryRole === 'student_coordinator')
+                        <div>Student Coordinator</div>
+
+                    @elseif($primaryRole === 'assessor')
+                        <div>Assessor</div>
+
+                    @elseif($primaryRole === 'treasurer')
+                        <div>Treasurer</div>
+
+                    @elseif($primaryRole === 'adviser')
+                        <div class="flex flex-col items-center gap-1">
+                            <span>Adviser</span>
+
+                            <span class="inline-block bg-blue-100 text-blue-800 text-xs font-semibold px-3 py-1 rounded-full">
+                                {{ Auth::user()->course?->name ?? 'No course assigned' }}
+                            </span>
+                        </div>
+
+                    @elseif($primaryRole === 'college')
+                        <div>College Dean</div>
+
                     @endif
 
-                </p>
+                </div>
 
-            @elseif($user->role === 'osa')
-                <h2 class="mt-3 text-lg font-bold text-center max-w-[12rem]">
-                    Office of the Student Affairs
-                </h2>
+                @elseif(in_array('osa', $roles))
 
-            @elseif(in_array($user->role, ['university_org', 'college_org']) && $organization)
-                <h2 class="mt-3 text-lg font-bold text-center break-words max-w-[12rem]">
-                    {{ $organization->name }}
-                </h2>
-                <p class="text-xs opacity-80 text-center">
-                    {{ $user->role === 'university_org' ? 'University Organization' : 'College Organization' }}
-                </p>
+                    <h2 class="mt-3 text-md font-bold text-center">
+                        Office of the Student Affairs
+                    </h2>
 
-            @else
-                <h2 class="mt-3 text-lg font-bold text-center">
-                    WMSU PayNet
-                </h2>
-                <p class="text-xs opacity-80 text-center">{{ strtoupper(implode(', ', $roles)) }} Panel Panel</p>
+                @elseif(array_intersect($roles, ['university_org', 'college_org']) && $organization)
+
+                    <h2 class="mt-3 text-lg font-bold text-center break-words max-w-[12rem]">
+                        {{ $organization->name }}
+                    </h2>
+
+                    <p class="text-xs opacity-80 text-center">
+                        {{ in_array('university_org', $roles) ? 'University Organization' : 'College Organization' }}
+                    </p>
+
+                @else
+
+                    <h2 class="mt-3 text-lg font-bold text-center">
+                        WMSU PayNet
+                    </h2>
+
+                    <p class="text-xs opacity-80 text-center">
+                        {{ strtoupper(implode(', ', $roles)) }}
+                    </p>
+
+                @endif
+
+            </div>
+
+           <!-- NAVIGATION -->
+            <nav class="flex-1 px-2 py-4 space-y-2">
+            @php
+                $user = Auth::user();
+
+                $roles = $user->role ?? [];
+
+                if (!is_array($roles)) {
+                    $roles = [$roles];
+                }
+            @endphp
+
+            @if(in_array('osa', $roles))
+                <a href="{{ route('osa.dashboard') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('osa.dashboard') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span>Dashboard</span>
+                </a>
+
+                <a href="{{ route('osa.college') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('osa.college') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span>College</span>
+                </a>
+
+                <a href="{{ route('osa.fees') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('osa.fees') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span>Fees</span>
+                </a>
+
+                <a href="{{ route('osa.remittance') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('osa.remittance') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span>Remittance</span>
+                </a>
+
+                <a href="{{ route('osa.reports') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('osa.reports') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span>Reports</span>
+                </a>
+
+                <a href="{{ route('osa.organizations') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('osa.organizations') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span>Organizations</span>
+                </a>
+
+                <a href="{{ route('osa.setup') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('osa.setup') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span>Academic Year Setup</span>
+                </a>
             @endif
 
-        </div>
+
+            @if(in_array('university_org', $roles))
+                <a href="{{ route('university_org.dashboard') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('university_org.dashboard') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span>Dashboard</span>
+                </a>
+
+                <a href="{{ route('university_org.fees') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('university_org.fees') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span>Fees</span>
+                </a>
+
+                <a href="{{ route('university_org.offices') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('university_org.offices') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span>Offices</span>
+                </a>
+
+                <a href="{{ route('university_org.documents.index') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('university_org.documents.*') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span>Documents</span>
+                </a>
+
+                <a href="{{ route('university_org.remittance') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('university_org.remittance') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span>Remittance</span>
+                </a>
+
+                <a href="{{ route('university_org.reports') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('university_org.reports') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span>Reports</span>
+                </a>
+            @endif
 
 
-            <!-- NAVIGATION -->
-           <!-- NAVIGATION -->
-<nav class="flex-1 px-2 py-4 space-y-2">
-@php
-    $user = Auth::user();
+            @if(in_array('college', $roles))
+                <a href="{{ route('college.dashboard') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('college.dashboard') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span>Dashboard</span>
+                </a>
 
-    $roles = $user->role ?? [];
+                <a href="{{ route('college.students') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('college.students') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span>Student Directory</span>
+                </a>
 
-    if (!is_array($roles)) {
-        $roles = [$roles];
-    }
-@endphp
+                <a href="{{ route('college.history') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('college.history') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span>History</span>
+                </a>
 
-@if(in_array('osa', $roles))
-    <a href="{{ route('osa.dashboard') }}" class="block px-4 py-2 rounded-md transition
-        {{ request()->routeIs('osa.dashboard') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-        <span>Dashboard</span>
-    </a>
+                <a href="{{ route('college.users.index') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('college.users.*') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span>College Management</span>
+                </a>
 
-    <a href="{{ route('osa.college') }}" class="block px-4 py-2 rounded-md transition
-        {{ request()->routeIs('osa.college') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-        <span>College</span>
-    </a>
+                <a href="{{ route('college.fees.approval') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('college.fees.approval') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span>Fees Approval</span>
+                </a>
 
-    <a href="{{ route('osa.fees') }}" class="block px-4 py-2 rounded-md transition
-        {{ request()->routeIs('osa.fees') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-        <span>Fees</span>
-    </a>
+                <a href="{{ route('college.local_organizations.approvals') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('college.local_organizations.approvals') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span>Organizations</span>
+                </a>
+            @endif
 
-    <a href="{{ route('osa.remittance') }}" class="block px-4 py-2 rounded-md transition
-        {{ request()->routeIs('osa.remittance') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-        <span>Remittance</span>
-    </a>
+            @if(!empty(array_intersect($roles, ['student_coordinator', 'adviser', 'assessor'])))
+                <a href="{{ route('college.dashboard') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('college.dashboard') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span>Dashboard</span>
+                </a>
 
-    <a href="{{ route('osa.reports') }}" class="block px-4 py-2 rounded-md transition
-        {{ request()->routeIs('osa.reports') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-        <span>Reports</span>
-    </a>
+                <a href="{{ route('college.students') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('college.students') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span>Student Directory</span>
+                </a>
 
-    <a href="{{ route('osa.organizations') }}" class="block px-4 py-2 rounded-md transition
-        {{ request()->routeIs('osa.organizations') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-        <span>Organizations</span>
-    </a>
-
-    <a href="{{ route('osa.setup') }}" class="block px-4 py-2 rounded-md transition
-        {{ request()->routeIs('osa.setup') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-        <span>Academic Year Setup</span>
-    </a>
-@endif
-
-
-@if(in_array('university_org', $roles))
-    <a href="{{ route('university_org.dashboard') }}" class="block px-4 py-2 rounded-md transition
-        {{ request()->routeIs('university_org.dashboard') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-        <span>Dashboard</span>
-    </a>
-
-    <a href="{{ route('university_org.fees') }}" class="block px-4 py-2 rounded-md transition
-        {{ request()->routeIs('university_org.fees') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-        <span>Fees</span>
-    </a>
-
-    <a href="{{ route('university_org.offices') }}" class="block px-4 py-2 rounded-md transition
-        {{ request()->routeIs('university_org.offices') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-        <span>Offices</span>
-    </a>
-
-    <a href="{{ route('university_org.documents.index') }}" class="block px-4 py-2 rounded-md transition
-        {{ request()->routeIs('university_org.documents.*') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-        <span>Documents</span>
-    </a>
-
-    <a href="{{ route('university_org.remittance') }}" class="block px-4 py-2 rounded-md transition
-        {{ request()->routeIs('university_org.remittance') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-        <span>Remittance</span>
-    </a>
-
-    <a href="{{ route('university_org.reports') }}" class="block px-4 py-2 rounded-md transition
-        {{ request()->routeIs('university_org.reports') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-        <span>Reports</span>
-    </a>
-@endif
+                <a href="{{ route('college.history') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('college.history') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span>History</span>
+                </a>
+            @endif
 
 
-@if(in_array('college', $roles))
-    <a href="{{ route('college.dashboard') }}" class="block px-4 py-2 rounded-md transition
-        {{ request()->routeIs('college.dashboard') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-        <span>Dashboard</span>
-    </a>
+            @if(in_array('college_org', $roles))
+                <a href="{{ route('college_org.dashboard') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('college_org.dashboard') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span>Dashboard</span>
+                </a>
 
-    <a href="{{ route('college.students') }}" class="block px-4 py-2 rounded-md transition
-        {{ request()->routeIs('college.students') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-        <span>Student Directory</span>
-    </a>
+                <a href="{{ route('college_org.fees') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('college_org.fees') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span>Fees</span>
+                </a>
 
-    <a href="{{ route('college.history') }}" class="block px-4 py-2 rounded-md transition
-        {{ request()->routeIs('college.history') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-        <span>History</span>
-    </a>
+                <a href="{{ route('college_org.documents.index') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('college_org.documents.*') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span>Documents</span>
+                </a>
 
-    <a href="{{ route('college.users.index') }}" class="block px-4 py-2 rounded-md transition
-        {{ request()->routeIs('college.users.*') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-        <span>College Management</span>
-    </a>
+                <a href="{{ route('college_org.payment') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('college_org.payment') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span>Payment</span>
+                </a>
 
-    <a href="{{ route('college.fees.approval') }}" class="block px-4 py-2 rounded-md transition
-        {{ request()->routeIs('college.fees.approval') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-        <span>Fees Approval</span>
-    </a>
-
-    <a href="{{ route('college.local_organizations.approvals') }}" class="block px-4 py-2 rounded-md transition
-        {{ request()->routeIs('college.local_organizations.approvals') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-        <span>Organizations</span>
-    </a>
-@endif
-
-@if(!empty(array_intersect($roles, ['student_coordinator', 'adviser', 'assessor'])))
-    <a href="{{ route('college.dashboard') }}" class="block px-4 py-2 rounded-md transition
-        {{ request()->routeIs('college.dashboard') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-        <span>Dashboard</span>
-    </a>
-
-    <a href="{{ route('college.students') }}" class="block px-4 py-2 rounded-md transition
-        {{ request()->routeIs('college.students') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-        <span>Student Directory</span>
-    </a>
-
-    <a href="{{ route('college.history') }}" class="block px-4 py-2 rounded-md transition
-        {{ request()->routeIs('college.history') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-        <span>History</span>
-    </a>
-@endif
+                <a href="{{ route('college_org.records') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('college_org.records') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span>Records</span>
+                </a>
+            @endif
 
 
-@if(in_array('college_org', $roles))
-    <a href="{{ route('college_org.dashboard') }}" class="block px-4 py-2 rounded-md transition
-        {{ request()->routeIs('college_org.dashboard') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-        <span>Dashboard</span>
-    </a>
-
-    <a href="{{ route('college_org.fees') }}" class="block px-4 py-2 rounded-md transition
-        {{ request()->routeIs('college_org.fees') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-        <span>Fees</span>
-    </a>
-
-    <a href="{{ route('college_org.documents.index') }}" class="block px-4 py-2 rounded-md transition
-        {{ request()->routeIs('college_org.documents.*') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-        <span>Documents</span>
-    </a>
-
-    <a href="{{ route('college_org.payment') }}" class="block px-4 py-2 rounded-md transition
-        {{ request()->routeIs('college_org.payment') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-        <span>Payment</span>
-    </a>
-
-    <a href="{{ route('college_org.records') }}" class="block px-4 py-2 rounded-md transition
-        {{ request()->routeIs('college_org.records') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-        <span>Records</span>
-    </a>
-@endif
+            @if(in_array('adviser', $roles))
+                <a href="{{ route('college.students.my-upload') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('college.students.my-upload') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span>Students Upload</span>
+                </a>
+            @endif
 
 
-@if(in_array('adviser', $roles))
-    <a href="{{ route('college.students.my-upload') }}" class="block px-4 py-2 rounded-md transition
-        {{ request()->routeIs('college.students.my-upload') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-        <span>Students Upload</span>
-    </a>
-@endif
+            @if(in_array('treasurer', $roles))
+                <a href="{{ route('treasurer.cashiering') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('treasurer.cashiering') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span>Payments</span>
+                </a>
+            @endif
 
 
-@if(in_array('treasurer', $roles))
-    <a href="{{ route('treasurer.cashiering') }}" class="block px-4 py-2 rounded-md transition
-        {{ request()->routeIs('treasurer.cashiering') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-        <span>Payments</span>
-    </a>
-@endif
+            @if(in_array('student_coordinator', $roles) || in_array('assessor', $roles))
+                <a href="{{ route('college.students.validate') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('college.students.validate') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span>Enrollment Validation</span>
+                </a>
+            @endif
 
 
-@if(in_array('student_coordinator', $roles) || in_array('assessor', $roles))
-    <a href="{{ route('college.students.validate') }}" class="block px-4 py-2 rounded-md transition
-        {{ request()->routeIs('college.students.validate') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-        <span>Enrollment Validation</span>
-    </a>
-@endif
+            @if(in_array('student_coordinator', $roles))
+                <a href="{{ route('college.promissory_notes.index') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('college.promissory_notes.*') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span>Promissory Notes</span>
+                </a>
 
+                <a href="{{ route('college.fees') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('college.fees') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span>Fees</span>
+                </a>
 
-@if(in_array('student_coordinator', $roles))
-    <a href="{{ route('college.promissory_notes.index') }}" class="block px-4 py-2 rounded-md transition
-        {{ request()->routeIs('college.promissory_notes.*') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-        <span>Promissory Notes</span>
-    </a>
+                <a href="{{ route('college.local_organizations') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('college.local_organizations') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span>College Organizations</span>
+                </a>
+            @endif
 
-    <a href="{{ route('college.fees') }}" class="block px-4 py-2 rounded-md transition
-        {{ request()->routeIs('college.fees') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-        <span>Fees</span>
-    </a>
-
-    <a href="{{ route('college.local_organizations') }}" class="block px-4 py-2 rounded-md transition
-        {{ request()->routeIs('college.local_organizations') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-        <span>College Organizations</span>
-    </a>
-@endif
-
-</nav>
+            </nav>
         </aside>
 
         <!-- MAIN AREA -->

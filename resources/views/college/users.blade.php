@@ -202,151 +202,206 @@
     </div>
 @endif
 
-<!-- Account Management Tab -->
 @if($activeTab === 'accounts')
 
-    <div class="bg-white p-6 rounded shadow">
+@php
+    $activeSY = \App\Models\SchoolYear::where('is_active', true)->first();
+    $activeSem = \App\Models\Semester::where('is_active', true)->first();
 
-       @php
-            $activeSY = \App\Models\SchoolYear::where('is_active', true)->first();
-            $activeSem = \App\Models\Semester::where('is_active', true)->first();
+    $syLabel = $activeSY
+        ? $activeSY->sy_start->format('Y') . '-' . $activeSY->sy_end->format('Y')
+        : 'No Active SY';
 
-            $syLabel = $activeSY
-                ? $activeSY->sy_start->format('Y') . '-' . $activeSY->sy_end->format('Y')
-                : 'No Active SY';
+    $semLabel = $activeSem->name ?? 'No Active Semester';
+@endphp
 
-            $semLabel = $activeSem->name ?? 'No Active Semester';
-        @endphp
+<div class="bg-white rounded-xl shadow-sm border p-6 space-y-6">
 
-        <h2 class="text-xl font-bold mb-4">
-            ROLE ASSIGNMENT (AY {{ $syLabel }} | {{ $semLabel }})
+    <div class="flex justify-between items-center pt-2 pb-3">
+
+    <div class="text-sm text-gray-500">
+        Track all role changes per semester
+    </div>
+
+    <a href="{{ route('college.roles.history') }}"
+       class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm border">
+        Employee History
+    </a>
+
+</div>
+
+    <!-- HEADER -->
+    <div class="flex flex-col gap-1">
+        <h2 class="text-xl font-bold text-gray-800">
+            Role Assignment Panel
         </h2>
+
+        <p class="text-sm text-gray-500">
+            Academic Year: <span class="font-medium text-gray-700">{{ $syLabel }}</span>
+            • Semester: <span class="font-medium text-gray-700">{{ $semLabel }}</span>
+        </p>
+
+        <p class="text-xs text-gray-400">
+            Assign roles per employee. Changes will only apply after saving.
+        </p>
+    </div>
+
+    <!-- SEARCH PLACEHOLDER LNG -->
+    <div>
+        <input type="text"
+               placeholder="Search employee name or email..."
+               class="w-full border rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-red-200 focus:border-red-400">
+    </div>
 
     <form method="POST" action="{{ route('college.roles.bulkAssign') }}">
         @csrf
 
-        <div class="mb-4">
-            <input type="text"
-                   placeholder="Search Employee..."
-                   class="w-full border rounded px-3 py-2">
+         <!-- ACTION -->
+        <div class="flex justify-end pt-4 pb-3">
+            <button type="submit"
+                    class="bg-red-800 hover:bg-red-700 text-white px-6 py-2 rounded-lg text-sm shadow">
+                Save 
+            </button>
         </div>
+        <div class="overflow-x-auto rounded-lg border">
+            <table class="w-full text-sm">
 
-        <div class="overflow-x-auto">
-            <table class="w-full border text-sm">
-                <thead class="bg-gray-100">
+                <thead class="bg-gray-50 text-gray-600 text-xs uppercase">
                     <tr>
-                        <th class="border px-3 py-2 text-left">Employee</th>
-                        <th class="border px-3 py-2">Advisor</th>
-                        <th class="border px-3 py-2">Coordinator</th>
-                        <th class="border px-3 py-2">Assessor</th>
-                        <th class="border px-3 py-2">Treasurer</th>
+                        <th class="text-left px-4 py-3">Employee</th>
+                        <th class="text-center px-4 py-3">Adviser</th>
+                        <th class="text-center px-4 py-3">Coordinator</th>
+                        <th class="text-center px-4 py-3">Assessor</th>
+                        <th class="text-center px-4 py-3">Treasurer</th>
+                        <th class="text-center px-4 py-3">Status</th>
                     </tr>
                 </thead>
 
-                <tbody>
-                    @foreach($accountEmployees as $employee)
-                    <tr class="border-b">
+                <tbody class="divide-y">
 
-                        <td class="px-3 py-2 font-medium">
-                            {{ $employee->first_name }} {{ $employee->last_name }}
-                        </td>
+                @foreach($accountEmployees as $employee)
 
-                        @php
-                            $roles = $employee->currentAssignment?->positions ?? [];
-                            $isLockedAdviser = in_array('adviser', $roles);
-                            $assignedCourseId = $employee->currentAssignment?->course_id;
-                        @endphp
-                        <td class="text-center">
-                            @if($isLockedAdviser)
+                @php
+                    $roles = $employee->currentAssignment?->positions ?? [];
+                    $isLockedAdviser = in_array('adviser', $roles);
+                    $assignedCourseId = $employee->currentAssignment?->course_id;
+                @endphp
 
-                                <div class="flex flex-col items-center gap-1">
+                <tr class="hover:bg-gray-50 transition">
 
-                                    <span class="text-xs text-gray-500 font-semibold">
-                                        ✔ Adviser (Locked)
-                                    </span>
+                    <td class="px-4 py-3">
+                        <div class="flex flex-col">
+                            <span class="font-semibold text-gray-800">
+                                {{ $employee->first_name }} {{ $employee->last_name }}
+                            </span>
 
-                                    <input type="hidden"
-                                        name="roles[{{ $employee->id }}][]"
-                                        value="adviser">
+                            <span class="text-xs text-gray-500">
+                                @if(!$employee->is_active)
+                                    <span class="text-red-500 font-medium">Disabled Account</span>
+                                @else
+                                    {{ $employee->email ?? $employee->user?->email ?? 'No Email' }}
+                                @endif
+                            </span>
+                        </div>
+                    </td>
 
-                                    <select class="border p-1 text-xs w-full bg-gray-100 text-gray-500"
-                                            disabled>
+                    <td class="px-4 py-3 text-center">
+
+                        @if($isLockedAdviser)
+
+                            <div class="flex flex-col items-center gap-1">
+
+                                <span class="text-[11px] bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
+                                    Locked Adviser
+                                </span>
+
+                                <input type="hidden"
+                                       name="roles[{{ $employee->id }}][]"
+                                       value="adviser">
+
+                                <select disabled
+                                        class="text-xs border rounded px-2 py-1 bg-gray-100 text-gray-500 w-full">
+                                    @foreach($courses as $course)
+                                        <option {{ $assignedCourseId == $course->id ? 'selected' : '' }}>
+                                            {{ $course->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+
+                            </div>
+
+                        @else
+
+                            <div class="flex flex-col items-center gap-2">
+
+                                <label class="flex items-center gap-1 text-xs">
+                                    <input type="checkbox"
+                                           class="adviser-checkbox"
+                                           data-employee="{{ $employee->id }}"
+                                           name="roles[{{ $employee->id }}][]"
+                                           value="adviser"
+                                           {{ in_array('adviser', $roles) ? 'checked' : '' }}>
+                                    Adviser
+                                </label>
+
+                                <div class="hidden w-full" id="course-box-{{ $employee->id }}">
+                                    <select name="course_id[{{ $employee->id }}]"
+                                            class="text-xs border rounded px-2 py-1 w-full">
+                                        <option value="">Select Course</option>
                                         @foreach($courses as $course)
-                                            <option value="{{ $course->id }}"
-                                                {{ $assignedCourseId == $course->id ? 'selected' : '' }}>
+                                            <option value="{{ $course->id }}">
                                                 {{ $course->name }}
                                             </option>
                                         @endforeach
                                     </select>
-
                                 </div>
 
-                            @else
+                            </div>
 
-                                <div class="flex flex-col items-center gap-1">
+                        @endif
 
-                                    <label class="text-xs">
-                                        <input type="checkbox"
-                                            class="adviser-checkbox"
-                                            data-employee="{{ $employee->id }}"
-                                            name="roles[{{ $employee->id }}][]"
-                                            value="adviser"
-                                            {{ in_array('adviser', $roles) ? 'checked' : '' }}>
-                                        Adviser
-                                    </label>
+                    </td>
 
-                                    <div class="hidden w-full" id="course-box-{{ $employee->id }}">
+                    <td class="px-4 py-3 text-center">
+                        <input type="checkbox"
+                               name="roles[{{ $employee->id }}][]"
+                               value="student_coordinator"
+                               {{ in_array('student_coordinator', $roles) ? 'checked' : '' }}>
+                    </td>
 
-                                        <select name="course_id[{{ $employee->id }}]"
-                                                class="border p-1 text-xs w-full">
-                                            <option value="">Select Course</option>
-                                            @foreach($courses as $course)
-                                                <option value="{{ $course->id }}">
-                                                    {{ $course->name }}
-                                                </option>
-                                            @endforeach
-                                        </select>
+                    <td class="px-4 py-3 text-center">
+                        <input type="checkbox"
+                               name="roles[{{ $employee->id }}][]"
+                               value="assessor"
+                               {{ in_array('assessor', $roles) ? 'checked' : '' }}>
+                    </td>
 
-                                    </div>
+                    <td class="px-4 py-3 text-center">
+                        <input type="checkbox"
+                               name="roles[{{ $employee->id }}][]"
+                               value="treasurer"
+                               {{ in_array('treasurer', $roles) ? 'checked' : '' }}>
+                    </td>
 
-                                </div>
+                    <td class="px-4 py-3 text-center">
+                        @if(!$employee->is_active)
+                            <span class="text-xs bg-red-100 text-red-600 px-2 py-1 rounded-full">Disabled</span>
+                        @else
+                            <span class="text-xs bg-green-100 text-green-600 px-2 py-1 rounded-full">Active</span>
+                        @endif
+                    </td>
 
-                            @endif
-                        </td>
-                        <td class="text-center">
-                            <input type="checkbox"
-                                name="roles[{{ $employee->id }}][]"
-                                value="student_coordinator"
-                                {{ in_array('student_coordinator', $roles) ? 'checked' : '' }}>
-                        </td>
-                        <td class="text-center">
-                            <input type="checkbox"
-                                name="roles[{{ $employee->id }}][]"
-                                value="assessor"
-                                {{ in_array('assessor', $roles) ? 'checked' : '' }}>
-                        </td>
-                        <td class="text-center">
-                            <input type="checkbox"
-                                name="roles[{{ $employee->id }}][]"
-                                value="treasurer"
-                                {{ in_array('treasurer', $roles) ? 'checked' : '' }}>
-                        </td>
+                </tr>
 
-                    </tr>
-                    @endforeach
-                    </tbody>
+                @endforeach
+
+                </tbody>
             </table>
-        </div>
-
-        <div class="mt-4 flex justify-end">
-            <button type="submit"
-                    class="bg-red-800 text-white px-6 py-2 rounded hover:bg-red-700">
-                Save Assignments
-            </button>
         </div>
 
     </form>
 </div>
+
 @endif
 
 @if($activeTab === 'employees')

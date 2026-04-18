@@ -32,4 +32,9 @@ class EmployeeAssignment extends Model
     {
         return $this->belongsTo(Semester::class);
     }
+
+    public function course()
+    {
+        return $this->belongsTo(Course::class);
+    }
 }

@@ -383,12 +383,15 @@ Route::middleware(['auth', 'role:treasurer,college,student_coordinator,adviser,a
     ->name('college.students.bulk.promote-pay');
 
     Route::post('/employees', [EmployeeController::class, 'store'])->name('employees.store');
-Route::put('/employees/{employee}', [EmployeeController::class, 'update'])->name('employees.update');
-Route::delete('/employees/{employee}', [EmployeeController::class, 'destroy'])->name('employees.destroy');
-Route::post('/employees/{employee}/create-account', [EmployeeController::class, 'createAccount']);
-
-Route::post('/college/roles/bulk-assign', [EmployeeController::class, 'bulkAssign'])
+    Route::put('/employees/{employee}', [EmployeeController::class, 'update'])->name('employees.update');
+    Route::delete('/employees/{employee}', [EmployeeController::class, 'destroy'])->name('employees.destroy');
+    Route::post('/employees/{employee}/create-account', [EmployeeController::class, 'createAccount']);
+    Route::post('/college/roles/bulk-assign', [EmployeeController::class, 'bulkAssign'])
     ->name('college.roles.bulkAssign');
+    Route::post('/employees/{employee}/toggle', [EmployeeController::class, 'toggle'])
+    ->name('employees.toggle');
+    Route::get('/college/roles/history', [\App\Http\Controllers\CollegeUserController::class, 'roleHistory'])
+    ->name('college.roles.history');
 });
 
 

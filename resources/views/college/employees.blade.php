@@ -10,123 +10,126 @@
 
         <button onclick="document.getElementById('addEmployeeModal').classList.remove('hidden')"
             class="bg-red-800 text-white px-4 py-2 rounded">
-            + Add Employee
+             Add Employee
         </button>
     </div>
 
-    <!-- Table -->
-    <div class="overflow-x-auto">
-        <table class="w-full border text-sm">
-            <thead class="bg-gray-100">
-                <tr>
-                    <th class="p-2 text-left">Name</th>
-                    <th class="p-2 text-left">Department</th>
-                    <th class="p-2 text-left">Position</th>
-                    <th class="p-2 text-left">Email</th>
-                    <th class="p-2 text-left">Actions</th>
-                </tr>
-            </thead>
+        <div class="space-y-4">
 
-            <tbody>
-                @forelse($employees as $employee)
-                <tr class="border-t">
-                    <td class="p-2">
+        @forelse($employees as $employee)
+        <div class="bg-white border rounded-xl shadow-sm p-5 flex items-center justify-between hover:shadow-md transition
+            {{ !$employee->is_active ? 'opacity-60' : '' }}">
+
+            <div class="flex items-center gap-4 w-1/4">
+                <div class="h-12 w-12 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-bold">
+                    {{ strtoupper(substr($employee->first_name, 0, 1)) }}
+                </div>
+
+                <div>
+                    <div class="font-semibold text-gray-800">
                         {{ $employee->first_name }} {{ $employee->last_name }}
-                    </td>
+                    </div>
 
-                    <td class="p-2">{{ $employee->department ?? '-' }}</td>
-                    <td class="p-2">
-                        @php
-                            $roles = $employee->user?->role ?? $employee->position ?? [];
-
-                            if (!is_array($roles)) {
-                                $roles = [$roles];
-                            }
-                        @endphp
-
-                        {{ implode(', ', $roles) }}
-                    </td>
-
-                   <td class="p-2">
-                        @if($employee->has_account)
-                            <div class="flex flex-col">
-                                
-                                <span class="text-gray-800 font-medium">
-                                    {{ $employee->email ?? $employee->user?->email ?? 'No Email' }}
-                                </span>
-
-                                <span class="text-xs text-green-600 font-semibold">
-                                    ● Active Account
-                                </span>
-
-                            </div>
+                    <div class="text-sm {{ !$employee->is_active ? 'text-red-500' : 'text-gray-500' }}">
+                        @if(!$employee->is_active)
+                            Disabled Account
                         @else
-                            <div class="flex flex-col">
-                                
-                                <span class="text-gray-800 font-medium">
-                                    {{ $employee->email ?? $employee->user?->email ?? 'No Email' }}
-                                </span>
-
-                                <span class="text-xs text-gray-400">
-                                    ● No Active Account
-                                </span>
-
-                            </div>
+                            {{ $employee->email ?? $employee->user?->email ?? 'No Email' }}
                         @endif
-                    </td>
+                    </div>
+                </div>
 
-                    <td class="p-2 space-x-2">
-                        <!-- VIEW / EDIT -->
+            </div>
+
+            <div class="w-2/4 text-left space-y-1">
+
+                @php
+                    $roleLabels = [
+                        'student_coordinator' => 'Student Coordinator',
+                        'adviser' => 'Adviser',
+                        'assessor' => 'Assessor',
+                        'treasurer' => 'Treasurer',
+                    ];
+
+                    $roles = $employee->user?->role ?? $employee->position ?? [];
+                    if (!is_array($roles)) $roles = [$roles];
+
+                    $isAdviser = in_array('adviser', $roles);
+
+                    $department = $employee->department ?? '-';
+
+                    $course = $employee->user?->course ?? null;
+                @endphp
+                
+                <div class="flex flex-wrap gap-1">
+                    @foreach($roles as $role)
+                        <span class="text-sm px-2 py-1 rounded-full bg-blue-100 text-blue-700">
+                            {{ $roleLabels[$role] ?? ucfirst($role) }}
+                        </span>
+                    @endforeach
+
+                   @if(in_array('adviser', $roles) && $employee->currentAssignment?->course)
+                        <div >
+                            <span class="text-sm px-2 py-1 bg-indigo-100 text-indigo-700 rounded-full">
+                                 {{ $employee->currentAssignment->course->name }}
+                            </span>
+                        </div>
+                    @endif
+                </div>
+
+                <div class="text-xs text-gray-500">
+                    Department of {{ $department }}
+                    
+                </div>
+
+            </div>
+
+            <div class="w-1/4 flex flex-col items-end gap-2">
+
+                <div class="text-right">
+                    @if(!$employee->is_active)
+                        <span class="text-xs text-red-500 font-semibold">Disabled Account</span>
+                    @elseif($employee->has_account)
+                        <span class="text-xs text-green-600 font-semibold">Active Account</span>
+                    @else
+                        <span class="text-xs text-gray-400">No Active Account</span>
+                    @endif
+                </div>
+
+                <div class="flex gap-2">
+
+                    <button
+                        onclick="openEditEmployeeModal({{ $employee->id }})"
+                        class="px-3 py-1 text-xs bg-blue-50 text-blue-600 rounded hover:bg-blue-100">
+                        Edit
+                    </button>
+
+                    @if(!$employee->has_account)
                         <button
-                            onclick="openEditEmployeeModal({{ $employee->id }})"
-                            class="text-blue-600 hover:underline">
-                            Edit
+                            onclick="openCreateAccountModal(
+                                {{ $employee->id }},
+                                '{{ $employee->first_name }} {{ $employee->last_name }}',
+                                '{{ $employee->email }}'
+                            )"
+                            class="px-3 py-1 text-xs bg-green-50 text-green-600 rounded hover:bg-green-100">
+                            Create
                         </button>
+                    @else
+                        <span class="text-xs text-gray-400">Created</span>
+                    @endif
 
-                        <!-- CREATE ACCOUNT -->
-                        @if(!$employee->has_account)
-                           <button
-                                onclick="openCreateAccountModal(
-                                    {{ $employee->id }},
-                                    '{{ $employee->first_name }} {{ $employee->last_name }}',
-                                    '{{ $employee->email }}'
-                                )"
-                                class="text-green-600 hover:underline">
-                                Create Account
-                            </button>
-                        @else
-                            <span class="text-gray-400 text-sm">Account Created</span>
-                        @endif
+                </div>
 
-                        <!-- DELETE -->
-                        <form action="{{ route('employees.destroy', $employee) }}" method="POST" class="inline">
-                            @csrf
-                            @method('DELETE')
+            </div>
 
-                            <button type="button"
-                                onclick="openConfirmModal({
-                                    title: 'Delete Employee',
-                                    message: 'Do you want to proceed?',
-                                    confirmText: 'Delete',
-                                    onConfirm: () => this.closest('form').submit()
-                                })"
-                                class="text-red-600 hover:underline">
-                                Delete
-                            </button>
-                        </form>
+        </div>
+        @empty
+            <div class="text-center text-gray-400 py-6">
+                No employees yet
+            </div>
+        @endforelse
 
-                    </td>
-                </tr>
-                @empty
-                    <tr>
-                        <td colspan="5" class="text-center p-4 text-gray-400">
-                            No employees yet
-                        </td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
-    </div>
+</div>
 </div>
 
 <div id="addEmployeeModal" class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center">

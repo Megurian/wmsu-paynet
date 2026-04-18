@@ -159,6 +159,71 @@ class CollegeUserController extends Controller
                         ->with('status', 'Course assigned to adviser successfully!');
     }
 
+    public function toggle(Employee $employee)
+{
+    $employee->update([
+        'is_active' => !$employee->is_active
+    ]);
 
+    return back()->with('status', 'Employee status updated!');
+}
+
+public function roleHistory(Request $request)
+{
+    $activeSY = SchoolYear::where('is_active', true)->first();
+    $activeSem = Semester::where('is_active', true)->first();
+
+    $query = \App\Models\EmployeeAssignment::with([
+        'employee',
+        'schoolYear',
+        'semester'
+    ]);
+
+    $schoolYearId = $request->school_year_id ?? $activeSY?->id;
+    $semesterName = $request->semester_id ?? $activeSem?->name;
+
+    if ($schoolYearId) {
+        $query->where('school_year_id', $schoolYearId);
+    }
+
+    if ($semesterName) {
+        $query->whereHas('semester', function ($q) use ($semesterName) {
+            $q->where('name', $semesterName);
+        });
+    }
+
+    $assignments = $query->get();
+
+    $history = $assignments->groupBy('employee_id')->map(function ($items) {
+        $first = $items->first();
+
+        return (object)[
+            'employee' => $first->employee,
+            'schoolYear' => $first->schoolYear,
+            'semester' => $first->semester,
+
+            'roles' => $items->pluck('positions')
+                ->flatten()
+                ->unique()
+                ->values()
+        ];
+    })->values();
+
+    $schoolYears = SchoolYear::orderByDesc('id')->get();
+
+    $semesters = collect([
+        (object)['id' => '1st Semester', 'name' => '1st Semester'],
+        (object)['id' => '2nd Semester', 'name' => '2nd Semester'],
+        (object)['id' => 'Summer', 'name' => 'Summer'],
+    ]);
+
+    return view('college.roles.history', compact(
+        'history',
+        'schoolYears',
+        'semesters',
+        'activeSY',
+        'activeSem'
+    ));
+}
    
 }

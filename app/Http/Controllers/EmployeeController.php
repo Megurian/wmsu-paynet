@@ -165,4 +165,15 @@ public function bulkAssign(Request $request)
 
     return back()->with('status', 'Role assignments synced successfully!');
 }
+
+public function toggle(Employee $employee)
+{
+    $employee->update([
+        'is_active' => !$employee->is_active
+    ]);
+
+    return back()->with('status', 'Employee status updated!');
+}
+
+
 }
