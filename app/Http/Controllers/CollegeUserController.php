@@ -28,16 +28,10 @@ class CollegeUserController extends Controller
             ->get();
 
         $accountEmployees = Employee::with(['user', 'currentAssignment'])
-            ->where('college_id', $collegeId)
-            ->where('has_account', true)
-            ->whereNotNull('user_id')
-            ->get()
-            ->filter(function ($employee) {
-                $roles = $employee->currentAssignment?->positions
-                    ?? ($employee->user?->role ?? []);
-
-                return !empty($roles);
-            });
+        ->where('college_id', $collegeId)
+        ->where('has_account', true)
+        ->whereNotNull('user_id')
+        ->get();
 
         return view('college.users', [
             'users' => User::where('college_id', $collegeId)

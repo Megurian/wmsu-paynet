@@ -4,10 +4,13 @@ namespace App\Providers;
 
 use App\Models\PromissoryNote;
 use App\Observers\PromissoryNoteObserver;
+use App\Observers\SchoolYearObserver;
+use App\Observers\SemesterObserver;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Auth;
 use App\Models\SchoolYear;
+use App\Models\Semester;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -30,6 +33,8 @@ class AppServiceProvider extends ServiceProvider
         }
 
         PromissoryNote::observe(PromissoryNoteObserver::class);
+        //SchoolYear::observe(SchoolYearObserver::class);
+        //Semester::observe(SemesterObserver::class);
 
         View::composer('*', function ($view) {
 

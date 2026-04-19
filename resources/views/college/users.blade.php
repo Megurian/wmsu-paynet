@@ -350,9 +350,10 @@ $semLabel = $activeSem->name ?? 'No Active Semester';
                                     Assigned Course
                                 </label>
                                 <br>
-                                <select class="mt-1 w-1/2 border rounded-md px-2 py-1 text-xs
-                                    {{ $isLockedAdviser ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : '' }}" {{ $isLockedAdviser ? 'disabled' : '' }}>
-
+                                <select name="course_id[{{ $employee->id }}]"
+                                    class="mt-1 w-1/2 border rounded-md px-2 py-1 text-xs
+                                    {{ $isLockedAdviser ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : '' }}"
+                                    {{ $isLockedAdviser ? 'disabled' : '' }}>
                                     <option value="">Select Course</option>
 
                                     @foreach($courses as $course)

@@ -140,17 +140,18 @@ public function bulkAssign(Request $request)
     $activeSY = SchoolYear::where('is_active', true)->first();
     $activeSem = Semester::where('is_active', true)->first();
 
-    foreach ($rolesData as $employeeId => $roles) {
+    $employeeIds = Employee::pluck('id')->toArray();
+
+    foreach ($employeeIds as $employeeId) {
 
         $employee = Employee::find($employeeId);
         if (!$employee) continue;
 
-        $roles = array_values($roles);
+        $roles = $rolesData[$employeeId] ?? [];
 
-        $existing = $employee->currentAssignment?->positions ?? [];
-        $existingCourse = $employee->currentAssignment?->course_id;
-
-        if (in_array('adviser', $existing) && !in_array('adviser', $roles)) {
+        $existingAssignment = $employee->currentAssignment;
+        $existingCourse = $existingAssignment?->course_id;
+        if ($existingAssignment && in_array('adviser', $existingAssignment->positions ?? []) && !in_array('adviser', $roles)) {
             $roles[] = 'adviser';
         }
 
