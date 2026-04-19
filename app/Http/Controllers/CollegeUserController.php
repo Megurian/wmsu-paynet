@@ -159,7 +159,7 @@ class CollegeUserController extends Controller
                         ->with('status', 'Course assigned to adviser successfully!');
     }
 
-    public function toggle(Employee $employee)
+public function toggle(Employee $employee)
 {
     $employee->update([
         'is_active' => !$employee->is_active

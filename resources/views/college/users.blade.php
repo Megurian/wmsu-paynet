@@ -384,11 +384,24 @@
                     </td>
 
                     <td class="px-4 py-3 text-center">
-                        @if(!$employee->is_active)
-                            <span class="text-xs bg-red-100 text-red-600 px-2 py-1 rounded-full">Disabled</span>
-                        @else
-                            <span class="text-xs bg-green-100 text-green-600 px-2 py-1 rounded-full">Active</span>
-                        @endif
+                        <form action="{{ route('employees.toggle', $employee->id) }}" method="POST">
+                            @csrf
+
+                            <button type="button"
+                                onclick="openConfirmModal({
+                                    title: '{{ $employee->is_active ? 'Disable' : 'Enable' }} Account',
+                                    message: 'Do you want to {{ $employee->is_active ? 'disable' : 'enable' }} this account?',
+                                    confirmText: 'Confirm',
+                                    onConfirm: () => this.closest('form').submit()
+                                })"
+                                class="px-3 py-1 text-xs rounded 
+                                    {{ $employee->is_active 
+                                        ? 'bg-red-600 hover:bg-red-700 text-white' 
+                                        : 'bg-green-600 hover:bg-green-700 text-white' }}">
+                                
+                                {{ $employee->is_active ? 'Disable' : 'Enable' }}
+                            </button>
+                        </form>
                     </td>
 
                 </tr>
