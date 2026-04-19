@@ -17,8 +17,9 @@ class EmployeeController extends Controller
         $request->validate([
             'first_name' => 'required',
             'last_name' => 'required',
+            'suffix' => 'nullable|string|max:10',
             'department' => 'nullable|string',
-            'email' => 'nullable|email|unique:employees,email',
+            'email' => 'required|email|unique:employees,email',
             'position' => 'nullable|array',
             'position.*' => 'in:assessor,student_coordinator,adviser,treasurer',
         ]);
@@ -31,9 +32,10 @@ class EmployeeController extends Controller
 
         Employee::create([
             'college_id' => Auth::user()->college_id,
-            'first_name' => $request->first_name,
-            'last_name' => $request->last_name,
-            'middle_name' => $request->middle_name,
+           'first_name' => strtoupper($request->first_name),
+            'last_name' => strtoupper($request->last_name),
+            'middle_name' => strtoupper($request->middle_name),
+            'suffix' => $request->suffix,
              'email' => $request->email, 
             'department' => $department,
             'position' => $request->position ?? [],
@@ -48,7 +50,8 @@ class EmployeeController extends Controller
         $request->validate([
             'first_name' => 'required',
             'last_name' => 'required',
-            'email' => 'nullable|email',
+            'suffix' => 'nullable|string|max:10',
+            'email' => 'required|email',
             'department' => 'nullable|string',
         ]);
 
@@ -62,6 +65,7 @@ class EmployeeController extends Controller
             'first_name' => strtoupper($request->first_name),
             'last_name' => strtoupper($request->last_name),
             'middle_name' => strtoupper($request->middle_name),
+            'suffix' => $request->suffix,
             'email' => $request->email,
             'department' => $department,
         ]);

@@ -25,9 +25,7 @@
                 </div>
 
                 <div>
-                    <div class="font-semibold text-gray-800">
-                        {{ $employee->first_name }} {{ $employee->last_name }}
-                    </div>
+                    {{ $employee->first_name }} {{ $employee->middle_name ? $employee->middle_name . ' ' : '' }} {{ $employee->last_name }} {{ $employee->suffix ? ', ' . $employee->suffix : '' }}
 
                     <div class="text-sm {{ !$employee->is_active ? 'text-red-500' : 'text-gray-500' }}">
                         @if(!$employee->is_active)
@@ -76,11 +74,13 @@
                     @endif
                 </div>
 
-                <div class="text-xs text-gray-500">
-                    Department of {{ $department }}
-                    
+                <div class="text-sm text-gray-500">
+                    @if($department === 'faculty_staff')
+                        Faculty Staff
+                    @else
+                        Department of {{ $department }}
+                    @endif
                 </div>
-
             </div>
 
             <div class="w-1/4 flex flex-col items-end gap-2">
@@ -123,9 +123,7 @@
                         </button>
                     @else
                         <span class="text-xs text-gray-400">Created</span>
-                    @endif
-
-                    
+                    @endif     
 
                 </div>
 
@@ -141,188 +139,388 @@
 </div>
 </div>
 
-<div id="addEmployeeModal" class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center">
-    <div class="bg-white p-6 rounded w-full max-w-md">
+<div id="addEmployeeModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+    <div class="bg-white w-full max-w-lg rounded-2xl shadow-xl overflow-hidden">
 
-        <h2 class="text-lg font-bold mb-4">Add Employee</h2>
+        <!-- HEADER -->
+        <div class="px-6 py-4 border-b bg-gray-50">
+            <h2 class="text-xl font-bold text-gray-800">Add New Employee</h2>
+            <p class="text-sm text-gray-500">
+                Fill in the required details to register a new staff member.
+            </p>
+        </div>
 
-        <form method="POST" action="{{ route('employees.store') }}">
+        <!-- FORM -->
+        <form method="POST" action="{{ route('employees.store') }}" class="p-6 space-y-5">
             @csrf
 
-            <input name="first_name" placeholder="First Name" class="border p-2 w-full mb-2">
-            <input name="last_name" placeholder="Last Name" class="border p-2 w-full mb-2">
-            <input name="middle_name" placeholder="Middle Name" class="border p-2 w-full mb-2">
-            <input name="email" type="email" placeholder="Email" class="border p-2 w-full mb-2">
+            <!-- NAME GRID -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
 
-            <!-- DEPARTMENT DROPDOWN -->
-            <label class="text-sm text-gray-600">Department</label>
-            <select name="department" id="departmentSelect"
-                class="border p-2 w-full mb-2"
-                onchange="toggleOtherDepartment(this)">
-                
-                <option value="">Select Department</option>
+                <div>
+                    <label class="text-sm font-medium text-gray-700">First Name</label>
+                    <input name="first_name" required
+                        placeholder="e.g. Juan"
+                        class="mt-1 border rounded-lg p-2 w-full focus:ring-2 focus:ring-red-200 focus:border-red-400">
+                </div>
 
-                @foreach($courses as $course)
-                    <option value="{{ $course->name }}">
-                        {{ $course->name }}
-                    </option>
-                @endforeach
+                <div>
+                    <label class="text-sm font-medium text-gray-700">Last Name</label>
+                    <input name="last_name" required
+                        placeholder="e.g. Dela Cruz"
+                        class="mt-1 border rounded-lg p-2 w-full focus:ring-2 focus:ring-red-200 focus:border-red-400">
+                </div>
 
-                <option value="other">Other</option>
-            </select>
+            </div>
 
-            <!-- IF OTHER -->
-            <input type="text"
-                name="other_department"
-                id="otherDepartmentInput"
-                placeholder="Enter Department"
-                class="border p-2 w-full mb-2 hidden">
+            <!-- MIDDLE NAME /SUffix-->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                    <label class="text-sm font-medium text-gray-700">Middle Name (Optional)</label>
+                    <input name="middle_name"
+                        placeholder="Optional"
+                        class="mt-1 border rounded-lg p-2 w-full focus:ring-2 focus:ring-red-200 focus:border-red-400">
+                </div>
+                <div>
+                <label class="text-sm font-medium text-gray-700">Suffix (Optional)</label>
+                <select name="suffix"
+                     class="mt-1 border rounded-lg p-2 w-full focus:ring-2 focus:ring-red-200 focus:border-red-400">
 
-            <div class="flex justify-end gap-2">
+                    <option value="">Suffix</option>
+                    <option value="Jr.">Jr.</option>
+                    <option value="Sr.">Sr.</option>
+                    <option value="II">II</option>
+                    <option value="III">III</option>
+                    <option value="IV">IV</option>
+                </select>
+                </div>
+            </div>
+
+            <!-- EMAIL -->
+            <div>
+                <label class="text-sm font-medium text-gray-700">Email Address</label>
+                <input name="email" type="email" required
+                    placeholder="employee@school.edu"
+                    class="mt-1 border rounded-lg p-2 w-full focus:ring-2 focus:ring-red-200 focus:border-red-400">
+
+                <p class="text-xs text-gray-400 mt-1">
+                    This email will be used for login and notifications.
+                </p>
+            </div>
+
+            <!-- DEPARTMENT -->
+            <div>
+                <label class="text-sm font-medium text-gray-700">Department</label>
+
+                <select name="department" id="departmentSelect"
+                    class="mt-1 border rounded-lg p-2 w-full focus:ring-2 focus:ring-red-200 focus:border-red-400"
+                    onchange="toggleOtherDepartment(this)">
+
+                    <option value="">Select Department</option>
+                    <option value="faculty_staff">Faculty Staff</option>
+
+                    @foreach($courses as $course)
+                        <option value="{{ $course->name }}">{{ $course->name }}</option>
+                    @endforeach
+
+                    <option value="other">Other</option>
+                </select>
+
+                <p class="text-xs text-gray-400 mt-1">
+                    Select the department or course the employee belongs to.
+                </p>
+            </div>
+
+            <!-- OTHER DEPARTMENT -->
+            <div>
+                <input type="text"
+                    name="other_department"
+                    id="otherDepartmentInput"
+                    placeholder="Enter custom department"
+                    class="border rounded-lg p-2 w-full hidden focus:ring-2 focus:ring-red-200 focus:border-red-400">
+            </div>
+
+            <!-- ACTIONS -->
+            <div class="flex justify-end gap-2 pt-2 border-t">
+
                 <button type="button"
                     onclick="document.getElementById('addEmployeeModal').classList.add('hidden')"
-                    class="bg-gray-300 px-3 py-2 rounded">
+                    class="px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700">
                     Cancel
                 </button>
 
-                <button class="bg-red-800 text-white px-3 py-2 rounded">
-                    Save
+                <button class="px-5 py-2 rounded-lg bg-red-800 hover:bg-red-700 text-white font-medium shadow">
+                    Save Employee
                 </button>
+
             </div>
 
         </form>
+
     </div>
 </div>
 
-<div id="editEmployeeModal" class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center">
-    <div class="bg-white p-6 rounded w-full max-w-md">
+<div id="editEmployeeModal"
+    class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
 
-        <h2 class="text-lg font-bold mb-4">Edit Employee</h2>
+    <div class="bg-white w-full max-w-lg rounded-2xl shadow-xl overflow-hidden">
 
-        <form id="editEmployeeForm" method="POST">
+        <!-- HEADER -->
+        <div class="px-6 py-4 border-b bg-gray-50">
+            <h2 class="text-xl font-bold text-gray-800">Edit Employee</h2>
+            <p class="text-sm text-gray-500">
+                Update employee information and department details.
+            </p>
+        </div>
+
+        <!-- FORM -->
+        <form id="editEmployeeForm" method="POST" class="p-6 space-y-5">
             @csrf
             @method('PUT')
 
-            <input name="first_name" id="edit_first_name" placeholder="First Name" class="border p-2 w-full mb-2">
-            <input name="last_name" id="edit_last_name" placeholder="Last Name" class="border p-2 w-full mb-2">
-            <input name="middle_name" id="edit_middle_name" placeholder="Middle Name" class="border p-2 w-full mb-2">
-            <label class="text-sm text-gray-600">Department</label>
-            <select name="department" id="edit_department"
-                class="border p-2 w-full mb-2"
-                onchange="toggleEditOtherDepartment(this)">
-                
-                <option value="">Select Department</option>
+            <!-- NAME GRID -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
 
-                @foreach($courses as $course)
-                    <option value="{{ $course->name }}">{{ $course->name }}</option>
-                @endforeach
+                <div>
+                    <label class="text-sm font-medium text-gray-700">First Name</label>
+                    <input name="first_name" id="edit_first_name"
+                        class="mt-1 border rounded-lg p-2 w-full focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
+                        placeholder="First name">
+                </div>
 
-                <option value="other">Other</option>
-            </select>
+                <div>
+                    <label class="text-sm font-medium text-gray-700">Last Name</label>
+                    <input name="last_name" id="edit_last_name"
+                        class="mt-1 border rounded-lg p-2 w-full focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
+                        placeholder="Last name">
+                </div>
 
-            <input type="text"
-                name="other_department"
-                id="edit_other_department"
-                placeholder="Enter Department"
-                class="border p-2 w-full mb-2 hidden">
+            </div>
 
-            <input name="email"
-                id="edit_email"
-                placeholder="Email"
-                class="border p-2 w-full mb-2">
+            <!-- MIDDLE + SUFFIX -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
 
-            <div class="flex justify-end gap-2">
+                <div>
+                    <label class="text-sm font-medium text-gray-700">Middle Name</label>
+                    <input name="middle_name" id="edit_middle_name"
+                        class="mt-1 border rounded-lg p-2 w-full focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
+                        placeholder="Optional">
+                </div>
+
+                <div>
+                    <label class="text-sm font-medium text-gray-700">Suffix</label>
+                    <select name="suffix" id="edit_suffix"
+                        class="mt-1 border rounded-lg p-2 w-full focus:ring-2 focus:ring-blue-200 focus:border-blue-400">
+
+                        <option value="">None</option>
+                        <option value="Jr.">Jr.</option>
+                        <option value="Sr.">Sr.</option>
+                        <option value="II">II</option>
+                        <option value="III">III</option>
+                        <option value="IV">IV</option>
+
+                    </select>
+                </div>
+
+            </div>
+
+            <!-- EMAIL -->
+            <div>
+                <label class="text-sm font-medium text-gray-700">Email Address</label>
+                <input name="email" id="edit_email" type="email"
+                    class="mt-1 border rounded-lg p-2 w-full focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
+                    placeholder="employee@school.edu">
+
+                <p class="text-xs text-gray-400 mt-1">
+                    This email is used for login and notifications.
+                </p>
+            </div>
+
+            <!-- DEPARTMENT -->
+            <div>
+                <label class="text-sm font-medium text-gray-700">Department</label>
+
+                <select name="department" id="edit_department"
+                    class="mt-1 border rounded-lg p-2 w-full focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
+                    onchange="toggleEditOtherDepartment(this)">
+
+                    <option value="">Select Department</option>
+                    <option value="faculty_staff">Faculty Staff</option>
+
+                    @foreach($courses as $course)
+                        <option value="{{ $course->name }}">{{ $course->name }}</option>
+                    @endforeach
+
+                    <option value="other">Other</option>
+
+                </select>
+
+                <p class="text-xs text-gray-400 mt-1">
+                    Update the employee’s assigned department or course.
+                </p>
+            </div>
+
+            <!-- OTHER DEPARTMENT -->
+            <div>
+                <input type="text"
+                    name="other_department"
+                    id="edit_other_department"
+                    placeholder="Enter custom department"
+                    class="border rounded-lg p-2 w-full hidden focus:ring-2 focus:ring-blue-200 focus:border-blue-400">
+            </div>
+
+            <!-- ACTIONS -->
+            <div class="flex justify-end gap-2 pt-2 border-t">
+
                 <button type="button"
                     onclick="document.getElementById('editEmployeeModal').classList.add('hidden')"
-                    class="bg-gray-300 px-3 py-2 rounded">
+                    class="px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700">
                     Cancel
                 </button>
 
-                <button class="bg-red-800 text-white px-3 py-2 rounded">
-                    Update
+                <button class="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium shadow">
+                    Update Employee
                 </button>
+
             </div>
 
         </form>
+
     </div>
 </div>
 
-<div id="createAccountModal" class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center">
-    <div class="bg-white p-6 rounded w-full max-w-md">
+<div id="createAccountModal"
+    class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
 
-        <h2 class="text-lg font-bold mb-2">Create Account</h2>
-        <p class="text-sm text-gray-600 mb-4" id="accountEmployeeName"></p>
+    <div class="bg-white w-full max-w-4xl rounded-2xl shadow-xl overflow-hidden">
 
-        <form method="POST" id="createAccountForm">
+        <!-- HEADER -->
+        <div class="px-6 py-5 border-b bg-gray-50">
+            <h2 class="text-xl font-bold text-gray-800">Create Employee Account</h2>
+            <p class="text-sm text-gray-500">
+                Set login credentials and assign roles for system access.
+            </p>
+        </div>
+
+        <form method="POST" id="createAccountForm" class="p-6 space-y-6">
             @csrf
 
-            <!-- POSITION -->
-            <label class="text-sm text-gray-600">Position</label>
-
-            <div class="space-y-1 mb-2">
-
-                <label>
-                    <input type="checkbox" name="position[]" value="assessor">
-                    Assessor
-                </label>
-
-                <label>
-                    <input type="checkbox" name="position[]" value="student_coordinator">
-                    Student Coordinator
-                </label>
-
-                <!-- ADVISER -->
-                <label>
-                    <input type="checkbox" name="position[]" value="adviser" id="adviserCheckbox">
-                    Adviser
-                </label>
-
-                <label>
-                    <input type="checkbox" name="position[]" value="treasurer">
-                    Treasurer
-                </label>
-
+            <!-- EMPLOYEE INFO -->
+            <div class="bg-gray-50 border rounded-xl p-4">
+                <p class="text-sm text-gray-500">Creating account for:</p>
+                <p class="font-semibold text-gray-800" id="accountEmployeeName"></p>
             </div>
 
-            <!-- COURSE DROPDOWN (ONLY FOR ADVISER) -->
-            <div id="courseDropdown" class="hidden mb-4">
-                <label class="text-sm text-gray-600">
-                    Assign Course (Required for Adviser)
-                </label>
+            <!-- GRID LAYOUT -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-                <select name="course_id" id="courseSelect" class="border p-2 w-full">
-                    <option value="">Select Course</option>
-                    @foreach($courses as $course)
-                        <option value="{{ $course->id }}">{{ $course->name }}</option>
-                    @endforeach
-                </select>
+                <!-- LEFT SIDE -->
+                <div class="space-y-5">
 
-                @error('course_id')
-                    <p class="text-red-600 text-sm mt-1">{{ $message }}</p>
-                @enderror
+                    <!-- EMAIL -->
+                    <div>
+                        <label class="text-sm font-medium text-gray-700">Email Address</label>
+                        <input id="accountEmail" name="email" type="email" required
+                            placeholder="employee@school.edu"
+                            class="mt-1 w-full border rounded-lg p-2 focus:ring-2 focus:ring-green-200 focus:border-green-400">
+
+                        <p class="text-xs text-gray-400 mt-1">
+                            This will be used for login and notifications.
+                        </p>
+                    </div>
+
+                    <!-- PASSWORD -->
+                    <div>
+                        <label class="text-sm font-medium text-gray-700">Password</label>
+                        <input name="password" type="password" required
+                            placeholder="Enter secure password"
+                            class="mt-1 w-full border rounded-lg p-2 focus:ring-2 focus:ring-green-200 focus:border-green-400">
+
+                        <p class="text-xs text-gray-400 mt-1">
+                            Must be at least 6 characters.
+                        </p>
+                    </div>
+
+                </div>
+
+                <!-- RIGHT SIDE -->
+                <div class="space-y-5">
+
+                    <!-- ROLES -->
+                    <div>
+                        <label class="text-sm font-medium text-gray-700">Assign Roles</label>
+                        <p class="text-xs text-gray-400 mb-2">
+                            Select one or more roles for this employee.
+                        </p>
+
+                        <div class="grid grid-cols-2 gap-2">
+
+                            <label class="flex items-center gap-2 border rounded-lg p-2 hover:bg-gray-50">
+                                <input type="checkbox" name="position[]" value="assessor">
+                                <span class="text-sm">Assessor</span>
+                            </label>
+
+                            <label class="flex items-center gap-2 border rounded-lg p-2 hover:bg-gray-50">
+                                <input type="checkbox" name="position[]" value="student_coordinator">
+                                <span class="text-sm">Student Coordinator</span>
+                            </label>
+
+                            <label class="flex items-center gap-2 border rounded-lg p-2 hover:bg-gray-50">
+                                <input type="checkbox" name="position[]" value="adviser" id="adviserCheckbox">
+                                <span class="text-sm">Adviser</span>
+                            </label>
+
+                            <label class="flex items-center gap-2 border rounded-lg p-2 hover:bg-gray-50">
+                                <input type="checkbox" name="position[]" value="treasurer">
+                                <span class="text-sm">Treasurer</span>
+                            </label>
+
+                        </div>
+                    </div>
+
+                    <!-- COURSE ASSIGNMENT -->
+                    <div id="courseDropdown" class="hidden">
+                        <label class="text-sm font-medium text-gray-700">
+                            Course Assignment
+                        </label>
+
+                        <p class="text-xs text-gray-400 mb-2">
+                            Required only if role includes Adviser.
+                        </p>
+
+                        <select name="course_id" id="courseSelect"
+                            class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-green-200 focus:border-green-400">
+                            <option value="">Select Course</option>
+                            @foreach($courses as $course)
+                                <option value="{{ $course->id }}">{{ $course->name }}</option>
+                            @endforeach
+                        </select>
+
+                        @error('course_id')
+                            <p class="text-red-600 text-xs mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                </div>
             </div>
 
-           <input
-                id="accountEmail"
-                name="email"
-                type="email"
-                placeholder="Email"
-                class="border p-2 w-full mb-2"
-            />
-            <input name="password" type="password" placeholder="Password" class="border p-2 w-full mb-4">
+            <!-- ACTIONS -->
+            <div class="flex justify-end gap-2 pt-4 border-t">
 
-            <div class="flex justify-end gap-2">
                 <button type="button"
                     onclick="document.getElementById('createAccountModal').classList.add('hidden')"
-                    class="bg-gray-300 px-3 py-2 rounded">
+                    class="px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700">
                     Cancel
                 </button>
 
-                <button class="bg-green-600 text-white px-3 py-2 rounded">
-                    Create
+                <button class="px-6 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white font-medium shadow">
+                    Create Account
                 </button>
+
             </div>
+
         </form>
+
     </div>
 </div>
 
