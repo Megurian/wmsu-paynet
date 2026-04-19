@@ -573,6 +573,39 @@ document.addEventListener('DOMContentLoaded', function () {
 
 });
 
+document.addEventListener('DOMContentLoaded', function () {
+
+    document.querySelectorAll('form').forEach(form => {
+        form.addEventListener('keydown', function (e) {
+
+            if (e.key === 'Enter') {
+
+                const tag = e.target.tagName.toLowerCase();
+                const type = e.target.type;
+
+                if (tag === 'textarea') return;
+
+                e.preventDefault();
+
+                const focusable = Array.from(
+                    form.querySelectorAll('input, select, textarea, button')
+                ).filter(el =>
+                    !el.disabled &&
+                    el.type !== 'hidden' &&
+                    el.offsetParent !== null
+                );
+
+                const index = focusable.indexOf(e.target);
+
+                if (index > -1 && index < focusable.length - 1) {
+                    focusable[index + 1].focus();
+                }
+            }
+
+        });
+    });
+
+});
 
 
 </script>

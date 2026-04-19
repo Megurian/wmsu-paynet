@@ -263,7 +263,6 @@ $semLabel = $activeSem->name ?? 'No Active Semester';
 
                     <tr class="hover:bg-gray-50">
 
-                        <!-- EMPLOYEE INFO -->
                         <td class="px-4 py-4">
                             <div class="flex flex-col">
                                 <span class="font-semibold text-gray-800">
