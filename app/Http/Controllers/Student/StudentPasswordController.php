@@ -62,8 +62,7 @@ class StudentPasswordController extends Controller
         );
 
         return $status === Password::PASSWORD_RESET
-            ? redirect()->route('student.login')->with('status', __($status))
+            ? redirect()->route('login')->with('status', __($status))
             : back()->withInput($request->only('email'))
-                ->withErrors(['email' => __($status)]);
-    }
+                ->withErrors(['email' => __($status)]);    }
 }

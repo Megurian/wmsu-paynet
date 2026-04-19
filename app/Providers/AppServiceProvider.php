@@ -4,8 +4,7 @@ namespace App\Providers;
 
 use App\Models\PromissoryNote;
 use App\Observers\PromissoryNoteObserver;
-use App\Observers\SchoolYearObserver;
-use App\Observers\SemesterObserver;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Auth;
@@ -27,6 +26,10 @@ class AppServiceProvider extends ServiceProvider
      */
    public function boot(): void
     {
+        if ($this->app->environment('production')) {
+            URL::forceScheme('https');
+        }
+
         $reminderDays = (int) config('app.promissory_note_reminder_days_before_due', 7);
         if ($reminderDays <= 0) {
             throw new \RuntimeException('PROMISSORY_NOTE_REMINDER_DAYS_BEFORE_DUE must be a positive integer.');

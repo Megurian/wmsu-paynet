@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Models\Student;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Password;
 use Illuminate\View\View;
 
 class AuthenticatedSessionController extends Controller
@@ -24,27 +26,36 @@ class AuthenticatedSessionController extends Controller
      */
     public function store(LoginRequest $request): RedirectResponse
     {
+        $student = Student::where('email', $request->email)->first();
+
+        if ($student && empty($student->password)) {
+            Password::broker('students')->sendResetLink([
+                'email' => $request->email,
+            ]);
+
+            return back()->with('status', 'If this email is registered for a student account, a password reset link has been sent.');
+        }
+
         $request->authenticate();
 
         $request->session()->regenerate();
 
-        // return redirect()->intended(route('dashboard', absolute: false));
-        $user = auth()->user();
+        if (Auth::guard('web')->check()) {
+            $user = Auth::guard('web')->user();
 
-        if ($user->hasRole('osa')) {
-            return redirect()->route('osa.dashboard');
+            return match ($user->role) {
+                'osa' => redirect()->route('osa.dashboard'),
+                'university_org' => redirect()->route('university_org.dashboard'),
+                'college_org' => redirect()->route('college_org.dashboard'),
+                default => redirect()->route('college.dashboard'),
+            };
         }
 
-        if ($user->hasRole('university_org')) {
-            return redirect()->route('university_org.dashboard');
+        if (auth('student')->check()) {
+            return redirect()->route('student.dashboard');
         }
 
-        if ($user->hasRole('college_org')) {
-            return redirect()->route('college_org.dashboard');
-        }
-
-        // default (college / dean)
-        return redirect()->route('college.dashboard');
+        abort(403);
     }
 
     /**
