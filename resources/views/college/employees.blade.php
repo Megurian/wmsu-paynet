@@ -1,4 +1,3 @@
-
 <div class="bg-white p-6 rounded shadow space-y-6">
 
     <!-- Header -->
@@ -99,18 +98,26 @@
                 <div class="flex gap-2">
 
                     <button
-                        onclick="openEditEmployeeModal({{ $employee->id }})"
+                        onclick="openEditEmployeeModal({{ json_encode([
+                            'id' => $employee->id,
+                            'first_name' => $employee->first_name,
+                            'last_name' => $employee->last_name,
+                            'middle_name' => $employee->middle_name,
+                            'department' => $employee->department,
+                            'email' => $employee->email ?? $employee->user?->email
+                        ]) }})"
                         class="px-3 py-1 text-xs bg-blue-50 text-blue-600 rounded hover:bg-blue-100">
                         Edit
                     </button>
 
                     @if(!$employee->has_account)
                         <button
-                            onclick="openCreateAccountModal(
-                                {{ $employee->id }},
-                                '{{ $employee->first_name }} {{ $employee->last_name }}',
-                                '{{ $employee->email }}'
-                            )"
+                            onclick='openCreateAccountModal(
+                                @json($employee->id),
+                                @json($employee->first_name . " " . $employee->last_name),
+                                @json($employee->email),
+                                @json($employee->department)
+                            )'
                             class="px-3 py-1 text-xs bg-green-50 text-green-600 rounded hover:bg-green-100">
                             Create
                         </button>
@@ -194,22 +201,33 @@
             @csrf
             @method('PUT')
 
-            <input name="first_name" id="edit_first_name" class="border p-2 w-full mb-2">
-            <input name="last_name" id="edit_last_name" class="border p-2 w-full mb-2">
-            <input name="middle_name" id="edit_middle_name" class="border p-2 w-full mb-2">
+            <input name="first_name" id="edit_first_name" placeholder="First Name" class="border p-2 w-full mb-2">
+            <input name="last_name" id="edit_last_name" placeholder="Last Name" class="border p-2 w-full mb-2">
+            <input name="middle_name" id="edit_middle_name" placeholder="Middle Name" class="border p-2 w-full mb-2">
+            <label class="text-sm text-gray-600">Department</label>
+            <select name="department" id="edit_department"
+                class="border p-2 w-full mb-2"
+                onchange="toggleEditOtherDepartment(this)">
+                
+                <option value="">Select Department</option>
 
-            <select name="department" id="edit_department" class="border p-2 w-full mb-2">
                 @foreach($courses as $course)
                     <option value="{{ $course->name }}">{{ $course->name }}</option>
                 @endforeach
+
                 <option value="other">Other</option>
             </select>
 
-            <input name="email"
-       id="accountEmail"
-       placeholder="Email"
-       class="border p-2 w-full mb-2">
+            <input type="text"
+                name="other_department"
+                id="edit_other_department"
+                placeholder="Enter Department"
+                class="border p-2 w-full mb-2 hidden">
 
+            <input name="email"
+                id="edit_email"
+                placeholder="Email"
+                class="border p-2 w-full mb-2">
 
             <div class="flex justify-end gap-2">
                 <button type="button"
@@ -282,7 +300,13 @@
                 @enderror
             </div>
 
-            <input name="email" placeholder="Email" class="border p-2 w-full mb-2">
+           <input
+                id="accountEmail"
+                name="email"
+                type="email"
+                placeholder="Email"
+                class="border p-2 w-full mb-2"
+            />
             <input name="password" type="password" placeholder="Password" class="border p-2 w-full mb-4">
 
             <div class="flex justify-end gap-2">
@@ -301,6 +325,12 @@
     </div>
 </div>
 
+
+<script>
+    const courseMap = @json(
+        $courses->pluck('id', 'name')
+    );
+</script>
 <script>
 function toggleOtherDepartment(select) {
     const input = document.getElementById('otherDepartmentInput');
@@ -324,6 +354,16 @@ document.addEventListener('DOMContentLoaded', function () {
     function toggleCourseField() {
         if (adviserCheckbox.checked) {
             courseDropdown.classList.remove('hidden');
+
+            const modal = document.getElementById('createAccountModal');
+            const department = modal.dataset.department;
+
+            if (courseMap[department]) {
+                courseSelect.value = courseMap[department];
+            } else {
+                courseSelect.value = '';
+            }
+
         } else {
             courseDropdown.classList.add('hidden');
             courseSelect.value = '';
@@ -334,14 +374,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
 });
 
-function openCreateAccountModal(id, name, email) {
-    document.getElementById('createAccountModal').classList.remove('hidden');
 
-    document.getElementById('accountEmployeeName').innerText = name;
 
-    document.getElementById('createAccountForm').action =
-        `/employees/${id}/create-account`;
-
-    document.getElementById('accountEmail').value = email ?? '';
-}
 </script>

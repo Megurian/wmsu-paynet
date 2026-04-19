@@ -45,9 +45,28 @@ class EmployeeController extends Controller
 
     public function update(Request $request, Employee $employee)
     {
-        $employee->update($request->all());
+        $request->validate([
+            'first_name' => 'required',
+            'last_name' => 'required',
+            'email' => 'nullable|email',
+            'department' => 'nullable|string',
+        ]);
 
-        return redirect()->back()->with('status', 'Employee updated!');
+        $department = $request->department;
+
+        if ($request->department === 'other') {
+            $department = $request->other_department;
+        }
+
+        $employee->update([
+            'first_name' => strtoupper($request->first_name),
+            'last_name' => strtoupper($request->last_name),
+            'middle_name' => strtoupper($request->middle_name),
+            'email' => $request->email,
+            'department' => $department,
+        ]);
+
+        return back()->with('status', 'Employee updated successfully!');
     }
 
     public function destroy(Employee $employee)

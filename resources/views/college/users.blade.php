@@ -459,15 +459,20 @@
 
     }
 
-    function openCreateAccountModal(id, name, email) {
-        document.getElementById('createAccountModal').classList.remove('hidden');
+    function openCreateAccountModal(id, name, email, department) {
+            const modal = document.getElementById('createAccountModal');
 
-        document.getElementById('accountEmployeeName').innerText = name;
+            modal.classList.remove('hidden');
 
-        document.getElementById('createAccountForm').action = `/employees/${id}/create-account`;
+            document.getElementById('accountEmployeeName').innerText = name;
 
-        document.querySelector('#createAccountModal input[name="email"]').value = email ?? '';
-    }
+            document.getElementById('createAccountForm').action =
+                `/employees/${id}/create-account`;
+
+            document.getElementById('accountEmail').value = email ?? '';
+
+            modal.dataset.department = department || '';
+        }
 
     document.addEventListener('DOMContentLoaded', function () {
 
@@ -489,5 +494,58 @@
         });
 
     });
+
+function openEditEmployeeModal(employee) {
+    console.log(employee); // debug
+
+    document.getElementById('editEmployeeModal').classList.remove('hidden');
+
+    // FIX: ensure ID exists
+    if (!employee.id) {
+        console.error('Employee ID missing!', employee);
+        return;
+    }
+
+    document.getElementById('editEmployeeForm').action = `/employees/${employee.id}`;
+
+    document.getElementById('edit_first_name').value = employee.first_name || '';
+    document.getElementById('edit_last_name').value = employee.last_name || '';
+    document.getElementById('edit_middle_name').value = employee.middle_name || '';
+    document.getElementById('edit_email').value = employee.email || '';
+
+    const deptSelect = document.getElementById('edit_department');
+    const otherInput = document.getElementById('edit_other_department');
+
+    let found = false;
+
+    for (let option of deptSelect.options) {
+        if (option.value === employee.department) {
+            found = true;
+            break;
+        }
+    }
+
+    if (found) {
+        deptSelect.value = employee.department;
+        otherInput.classList.add('hidden');
+        otherInput.value = '';
+    } else {
+        deptSelect.value = 'other';
+        otherInput.classList.remove('hidden');
+        otherInput.value = employee.department || '';
+    }
+}
+function toggleEditOtherDepartment(select) {
+    const input = document.getElementById('edit_other_department');
+
+    if (select.value === 'other') {
+        input.classList.remove('hidden');
+        input.setAttribute('name', 'department');
+    } else {
+        input.classList.add('hidden');
+        input.value = '';
+        input.setAttribute('name', 'other_department');
+    }
+}
 </script>
 @endsection
