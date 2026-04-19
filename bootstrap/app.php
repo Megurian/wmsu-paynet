@@ -22,6 +22,12 @@ return Application::configure(basePath: dirname(__DIR__))
             'student' => \App\Http\Middleware\AuthenticateStudent::class,
             'guest.student' => \App\Http\Middleware\GuestStudent::class,
         ]);
+
+        $middleware->append([
+            \App\Http\Middleware\TrustProxies::class,
+            \App\Http\Middleware\ForceHttps::class,
+            \App\Http\Middleware\SecureHeaders::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->dontReportDuplicates();
