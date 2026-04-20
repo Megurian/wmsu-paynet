@@ -460,7 +460,10 @@ Route::middleware(['auth','role:student_coordinator'])->group(function(){
         ->name('college.local_organizations.store');
 
         Route::get('college/local_organizations/{org}', [LocalOrgsController::class, 'show'])->name('college.local_organizations.show');
-Route::delete('/college/local_organizations/{org}/cancel', [LocalOrgsController::class, 'cancelSubmission'])->name('college.local_organizations.cancel_submission');
+
+        Route::post('college/local_organizations/{org}/assign', [LocalOrgsController::class, 'assignOfficer'])
+        ->name('college.local_organizations.assign');
+    Route::delete('/college/local_organizations/{org}/cancel', [LocalOrgsController::class, 'cancelSubmission'])->name('college.local_organizations.cancel_submission');
 });
 
 

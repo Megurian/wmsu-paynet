@@ -45,8 +45,8 @@
                     @elseif($org->status === 'rejected') bg-red-100 text-red-700
                     @endif">
                     @if($org->status === 'pending') Pending Approval
-                    @elseif($org->status === 'approved' && $org->approved_at) 
-                    <span >
+                    @elseif($org->status === 'approved' && $org->approved_at)
+                    <span>
                         Approved on {{ \Carbon\Carbon::parse($org->approved_at)->format('M d, Y') }}
                     </span>
                     @elseif($org->status === 'rejected') Rejected
@@ -84,29 +84,50 @@
         </div>
     </div>
 
-    <div x-data="{ open: true }" class="bg-white shadow-md rounded-xl w-full">
-        <button @click="open = !open" class="w-full flex justify-between items-center px-6 py-4 font-medium text-gray-800 hover:bg-gray-100 rounded-t-xl focus:outline-none">
-            <span>User Accounts ({{ $users->count() }})</span>
-            <svg :class="{ 'rotate-180': open }" class="w-5 h-5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-            </svg>
-        </button>
-        <div x-show="open" class="px-6 pb-4 space-y-2">
-            @if($users->count())
-            @foreach($users as $user)
-            <div class="p-4 border border-gray-200 rounded-lg">
-                <div class="flex justify-between items-center">
-                    <span class="font-medium">{{ $user->first_name }} {{ $user->last_name }} {{ $user->suffix }}</span>
-                    <span class="text-sm text-gray-500">{{ $user->email }}</span>
+    <div x-data="{ open: true, showModal: false }" class="bg-white shadow-md rounded-xl w-full mt-4">
+        <div class="flex justify-between items-center px-6 py-4 border-b">
+            <h3 class="font-medium text-gray-800">Organization Officers ({{ $users->count() }})</h3>
+            <button @click="showModal = true" class="px-3 py-1 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition">
+                + Assign Officer
+            </button>
+        </div>
+
+        <div x-show="open" class="px-6 py-4 space-y-2">
+            @forelse($users as $user)
+            <div class="p-4 border border-gray-100 rounded-lg flex justify-between items-center bg-gray-50">
+                <div>
+                    <p class="font-bold text-gray-800">{{ $user->first_name }} {{ $user->last_name }}</p>
+                    <p class="text-xs text-gray-500">{{ $user->email }}</p>
                 </div>
-                <div class="mt-1 text-gray-600 text-sm">
-                    {{ ucwords(str_replace('_', ' ', $user->role)) }}<br>
-                </div>
+                <span class="px-2 py-1 text-xs bg-green-100 text-green-700 rounded-full">Active Officer</span>
             </div>
-            @endforeach
-            @else
-            <p class="text-gray-400">No users found for this organization.</p>
-            @endif
+            @empty
+            <p class="text-gray-400 text-center py-4">No officers assigned yet.</p>
+            @endforelse
+        </div>
+
+        <div x-show="showModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 px-4" x-cloak>
+            <div class="bg-white rounded-xl shadow-lg max-w-md w-full p-6">
+                <h2 class="text-xl font-bold mb-4">Assign New Officer</h2>
+                <form action="{{ route('college.local_organizations.assign', $org->id) }}" method="POST">
+                    @csrf
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Select Student</label>
+                        <select name="student_id" class="w-full border-gray-300 rounded-lg focus:ring-indigo-500 shadow-sm" required>
+                            <option value="">Select an enrolled student...</option>
+                            @foreach($eligibleStudents as $student)
+                            <option value="{{ $student->id }}">{{ $student->last_name }}, {{ $student->first_name }} ({{ $student->email }})</option>
+                            @endforeach
+                        </select>
+                        <p class="mt-2 text-xs text-gray-500">Only students from your college are listed here.</p>
+                    </div>
+
+                    <div class="flex justify-end space-x-3 mt-6">
+                        <button type="button" @click="showModal = false" class="px-4 py-2 text-gray-600 hover:text-gray-800">Cancel</button>
+                        <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium">Confirm Assignment</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 

@@ -87,9 +87,44 @@ class LocalOrgsController extends Controller
             ->where('status', 'approved')
             ->get();
 
+        // Get current officers from the pivot/record table
         $users = User::where('organization_id', $org->id)->get();
 
-        return view('college.local_organizations.show', compact('org', 'fees', 'users'));
+        // Pull students from the same college for the "Assign" modal
+        // Meg's logic: Must be a 'student' role
+        $eligibleStudents = User::where('role', 'student')
+            ->where('college_id', Auth::user()->college_id)
+            ->get();
+
+        return view('college.local_organizations.show', compact('org', 'fees', 'users', 'eligibleStudents'));
+    }
+
+    public function assignOfficer(Request $request, Organization $org)
+    {
+        $request->validate([
+            'student_id' => 'required|exists:users,id',
+        ]);
+
+        $student = User::findOrFail($request->student_id);
+        
+        // 1. Update Student's Org ID and Role
+        $student->update([
+            'organization_id' => $org->id,
+            'role' => 'college_org' // Now they have officer permissions
+        ]);
+
+        // 2. Create Audit Record (Pivot)
+        $activeSem = \App\Models\Semester::where('is_active', true)->first();
+        DB::table('organization_officers')->insert([
+            'user_id' => $student->id,
+            'organization_id' => $org->id,
+            'semester_id' => $activeSem->id,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return redirect()->back()->with('success', 'Officer assigned successfully.');
     }
 
     public function cancelSubmission(Organization $org)
