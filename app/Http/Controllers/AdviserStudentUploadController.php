@@ -388,14 +388,25 @@ public function updateField(Request $request, $id)
 
     $student = Student::findOrFail($id);
 
-    $enrollment = StudentEnrollment::where('student_id', $student->id)
-        ->latest('id')
-        ->first();
+    $activeSY = SchoolYear::where('is_active', true)->first();
+    $activeSem = Semester::where('is_active', true)->first();
 
-    if (!$enrollment) {
+    if (! $activeSY || ! $activeSem) {
         return response()->json([
             'success' => false,
-            'message' => 'Enrollment not found'
+            'message' => 'Active school year or semester not found',
+        ], 422);
+    }
+
+    $enrollment = StudentEnrollment::where('student_id', $student->id)
+        ->where('school_year_id', $activeSY->id)
+        ->where('semester_id', $activeSem->id)
+        ->first();
+
+    if (! $enrollment) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Current term enrollment not found'
         ], 404);
     }
 
