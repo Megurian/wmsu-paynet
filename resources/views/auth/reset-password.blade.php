@@ -1,39 +1,79 @@
-<x-guest-layout>
-    <form method="POST" action="{{ route('password.store') }}">
+@extends('layouts.auth')
+
+@section('title', $title ?? 'Reset Password')
+
+@section('content')
+    @php
+        $formAction = $action ?? route('password.store');
+        $backUrl = $backUrl ?? route('login');
+        $backText = $backText ?? 'Back to login';
+        $heading = $title ?? 'Reset Password';
+        $description = $description ?? 'Create a new password for your account.';
+    @endphp
+
+    <h2 class="text-2xl font-bold text-center text-gray-800 mb-2">
+        {{ $heading }}
+    </h2>
+
+    <p class="text-sm text-gray-600 text-center mb-6">
+        {{ $description }}
+    </p>
+
+    <form method="POST" action="{{ $formAction }}" class="space-y-4">
         @csrf
 
-        <!-- Password Reset Token -->
         <input type="hidden" name="token" value="{{ $request->route('token') }}">
 
-        <!-- Email Address -->
         <div>
-            <x-input-label for="email" :value="__('Email')" />
-            <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email', $request->email)" required autofocus autocomplete="username" />
-            <x-input-error :messages="$errors->get('email')" class="mt-2" />
+            <label class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+            <input
+                type="email"
+                name="email"
+                value="{{ old('email', $request->email) }}"
+                required
+                autofocus
+                autocomplete="username"
+                class="w-full rounded-md border-gray-300 focus:border-red-600 focus:ring-red-600"
+            >
+            @error('email')
+                <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
+            @enderror
         </div>
 
-        <!-- Password -->
-        <div class="mt-4">
-            <x-input-label for="password" :value="__('Password')" />
-            <x-text-input id="password" class="block mt-1 w-full" type="password" name="password" required autocomplete="new-password" />
-            <x-input-error :messages="$errors->get('password')" class="mt-2" />
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+            <input
+                type="password"
+                name="password"
+                required
+                autocomplete="new-password"
+                class="w-full rounded-md border-gray-300 focus:border-red-600 focus:ring-red-600"
+            >
+            @error('password')
+                <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
+            @enderror
         </div>
 
-        <!-- Confirm Password -->
-        <div class="mt-4">
-            <x-input-label for="password_confirmation" :value="__('Confirm Password')" />
-
-            <x-text-input id="password_confirmation" class="block mt-1 w-full"
-                                type="password"
-                                name="password_confirmation" required autocomplete="new-password" />
-
-            <x-input-error :messages="$errors->get('password_confirmation')" class="mt-2" />
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
+            <input
+                type="password"
+                name="password_confirmation"
+                required
+                autocomplete="new-password"
+                class="w-full rounded-md border-gray-300 focus:border-red-600 focus:ring-red-600"
+            >
+            @error('password_confirmation')
+                <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
+            @enderror
         </div>
 
-        <div class="flex items-center justify-end mt-4">
-            <x-primary-button>
-                {{ __('Reset Password') }}
-            </x-primary-button>
-        </div>
+        <button type="submit" class="w-full bg-red-700 hover:bg-red-800 text-white py-2.5 rounded-md font-medium transition">
+            Reset Password
+        </button>
+
+        <a href="{{ $backUrl }}" class="block text-center text-sm text-gray-600 hover:text-red-700 transition">
+            {{ $backText }}
+        </a>
     </form>
-</x-guest-layout>
+@endsection
