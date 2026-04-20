@@ -595,6 +595,7 @@ function addItem(type, value = null) {
     const emailInput = document.getElementById('admin_email_input');
     const emailFeedback = document.getElementById('emailFeedback');
     const openPreviewBtn = document.getElementById('openPreviewBtn');
+    const nextBtn1 = document.getElementById('nextStepBtn1');
 
     const spinnerHTML = '<span class="inline-block w-4 h-4 border-2 border-gray-300 border-t-red-700 rounded-full animate-spin mr-2 align-middle"></span>';
 
@@ -633,12 +634,12 @@ function addItem(type, value = null) {
     }
 
     function toggleCreateDisabled() {
-        const nextBtn1 = document.getElementById('nextStepBtn1');
-        const shouldDisable = (codeAvailable === false || emailAvailable === false || codePending || emailPending || passwordMismatch);
+        const step1Disabled = codeAvailable === false || codePending;
+        const finalDisabled = codeAvailable === false || emailAvailable === false || codePending || emailPending || passwordMismatch;
 
         // Open Preview / Create button
         if (openPreviewBtn) {
-            if (shouldDisable) {
+            if (finalDisabled) {
                 openPreviewBtn.disabled = true;
                 openPreviewBtn.classList.add('opacity-60', 'cursor-not-allowed');
             } else {
@@ -649,7 +650,7 @@ function addItem(type, value = null) {
 
         // Next button on step 1
         if (nextBtn1) {
-            if (shouldDisable) {
+            if (step1Disabled) {
                 nextBtn1.disabled = true;
                 nextBtn1.classList.add('opacity-60', 'cursor-not-allowed');
             } else {
@@ -658,6 +659,9 @@ function addItem(type, value = null) {
             }
         }
     }
+
+    // Initialize button state on first render.
+    toggleCreateDisabled();
 
     if (codeInput) {
         codeInput.addEventListener('input', (e) => {

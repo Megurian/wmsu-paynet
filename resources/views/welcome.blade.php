@@ -1,6 +1,6 @@
 @extends('layouts.landing')
 
-@section('title', 'Welcome')
+@section('title', 'Welcome to WMSU PayNet')
 
 @section('content')
     <div class="text-center lg:text-left">
