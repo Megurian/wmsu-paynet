@@ -72,7 +72,12 @@
                 <!-- LOGO -->
                 <div class="h-20 w-20 bg-white rounded-full flex items-center justify-center shadow overflow-hidden">
 
-                    @if(array_intersect($roles, ['college', 'student_coordinator', 'adviser', 'assessor', 'treasurer']) && $currentCollege?->logo)
+                    @if(in_array('osa', $roles))
+                        <img src="{{ asset('images/osa-logo.png') }}"
+                            class="h-full w-full object-cover"
+                            alt="OSA Logo">
+
+                    @elseif(array_intersect($roles, ['college', 'student_coordinator', 'adviser', 'assessor', 'treasurer']) && $currentCollege?->logo)
 
                         <img src="{{ asset('storage/' . $currentCollege->logo) }}"
                             class="h-full w-full object-cover"
@@ -219,6 +224,11 @@
                 <a href="{{ route('osa.setup') }}" class="block px-4 py-2 rounded-md transition
                     {{ request()->routeIs('osa.setup') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
                     <span>Academic Year Setup</span>
+                </a>
+
+                <a href="{{ route('osa.system-maintenance') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('osa.system-maintenance') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span>System Maintenance</span>
                 </a>
             @endif
 
