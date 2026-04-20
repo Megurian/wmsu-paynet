@@ -15,7 +15,10 @@ class UniversityOrgRemittanceController extends Controller
 {
     public function index()
     {
-        $motherOrg = Auth::user()->organization;
+        $motherOrg = Auth::user();
+        abort_unless($motherOrg, 403);
+        $motherOrg = $motherOrg->organization;
+        abort_unless($motherOrg, 404);
 
         $activeSY = SchoolYear::where('is_active', 1)->first();
         $activeSem = $activeSY?->semesters()->where('is_active', 1)->first();
@@ -68,9 +71,11 @@ class UniversityOrgRemittanceController extends Controller
             }
 
             // Pick the fee with the highest current expected remittance (based on collected amount)
-            $defaultFeeId = collect($feeDetails)
+            $defaultFee = collect($feeDetails)
                 ->sortByDesc(fn($f) => $f['totalCollected'] * ($f['fee']->remittance_percent / 100))
-                ->first()['fee']->id ?? null;
+                ->first();
+
+            $defaultFeeId = $defaultFee ? $defaultFee['fee']->id : null;
 
             $remittanceData[] = [
                 'organization' => $child,
@@ -106,15 +111,29 @@ class UniversityOrgRemittanceController extends Controller
 
     public function confirm(Request $request)
     {
+        $user = Auth::user();
+        abort_unless($user, 403);
+
         $request->validate([
             'from_organization_id' => 'required|exists:organizations,id',
+            'fee_id' => 'required|exists:fees,id',
             'amount' => 'required|numeric|min:0.01',
         ]);
 
-        $motherOrg = Auth::user()->organization;
+        $motherOrg = $user->organization;
+        abort_unless($motherOrg, 404);
+
         $childOrg = Organization::findOrFail($request->from_organization_id);
+        if ($childOrg->mother_organization_id !== $motherOrg->id) {
+            return back()->with('error', 'Invalid child organization for this mother organization.');
+        }
 
         $fees = Fee::where('organization_id', $motherOrg->id)->get();
+
+        if (! $fees->contains('id', $request->fee_id)) {
+            return back()->with('error', 'Selected fee is not valid for this mother organization.');
+        }
+
         $expected = 0;
 
         foreach ($fees as $fee) {

@@ -31,6 +31,9 @@ class UniversityOrgOfficesController extends Controller
 
     public function store(Request $request)
     {
+        $user = $request->user();
+        abort_unless($user, 403);
+
         $validated = $request->validate([
             'role' => 'required|string',
             'college_code' => 'required|string|exists:colleges,college_code',

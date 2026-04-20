@@ -9,9 +9,12 @@ use Illuminate\Support\Facades\Auth;
 class CollegeOrgApprovalController extends Controller
 {
     public function index(Request $request)
-{
-    $tab = $request->get('tab', 'pending');
-    $collegeId = Auth::user()->college_id;
+    {
+        $user = Auth::user();
+        abort_unless($user, 403);
+
+        $tab = $request->get('tab', 'pending');
+        $collegeId = $user->college_id;
 
     $pendingCount = Organization::where('college_id', $collegeId)
         ->whereNull('mother_organization_id')
@@ -42,18 +45,26 @@ class CollegeOrgApprovalController extends Controller
 
     public function approve(Organization $organization)
     {
-        if ($organization->status === 'pending' && is_null($organization->mother_organization_id)) {
-            $organization->update(['status' => 'approved']);
-            $organization->approved_at = now(); 
-            $organization->save();
+        $user = Auth::user();
+        abort_unless($user, 403);
+
+        if ($organization->college_id === $user->college_id && $organization->status === 'pending' && is_null($organization->mother_organization_id)) {
+            $organization->update([
+                'status' => 'approved',
+                'approved_at' => now(),
+            ]);
             return back()->with('success', 'Organization approved.');
         }
+
         return back()->with('error', 'Only pending student-coordinator organizations can be approved.');
     }
 
     public function reject(Organization $organization)
     {
-        if ($organization->status === 'pending' && is_null($organization->mother_organization_id)) {
+        $user = Auth::user();
+        abort_unless($user, 403);
+
+        if ($organization->college_id === $user->college_id && $organization->status === 'pending' && is_null($organization->mother_organization_id)) {
             $organization->update(['status' => 'rejected']);
             return back()->with('success', 'Organization rejected.');
         }

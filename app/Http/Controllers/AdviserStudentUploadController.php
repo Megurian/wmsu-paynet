@@ -234,6 +234,13 @@ public function reAddOldStudent(Request $request, $studentId)
 
     $activeSY = SchoolYear::where('is_active', true)->first();
     $activeSem = Semester::where('is_active', true)->first();
+
+    if (! $activeSY || ! $activeSem) {
+        return back()->withErrors([
+            'academic_period' => 'No active school year or semester. Contact OSA for confirmation before re-adding students.'
+        ]);
+    }
+
     $previousEnrollment = $this->getPreviousTermEnrollment($studentId, $activeSY, $activeSem);
 
     $prev = StudentEnrollment::where('student_id', $studentId)
@@ -293,6 +300,12 @@ public function reAddBulk(Request $request)
 
     $activeSY = SchoolYear::where('is_active', true)->first();
     $activeSem = Semester::where('is_active', true)->first();
+
+    if (! $activeSY || ! $activeSem) {
+        return back()->withErrors([
+            'academic_period' => 'No active school year or semester. Contact OSA for confirmation before re-adding students.'
+        ]);
+    }
 
     foreach ($request->students as $studentId) {
         $previousEnrollment = $this->getPreviousTermEnrollment($studentId, $activeSY, $activeSem);

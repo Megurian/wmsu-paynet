@@ -16,7 +16,10 @@ class LocalOrgsController extends Controller
 {
     public function index()
     {
-        $collegeId = Auth::user()->college_id;
+        $user = Auth::user();
+        abort_unless($user, 403);
+
+        $collegeId = $user->college_id;
 
         $orgs = Organization::with('users')
             ->where('college_id', $collegeId)
@@ -27,11 +30,15 @@ class LocalOrgsController extends Controller
 
     public function create()
     {
+        abort_unless(Auth::user(), 403);
         return view('college.local_organizations.create');
     }
 
     public function store(Request $request)
     {
+        $user = Auth::user();
+        abort_unless($user, 403);
+
         $request->validate([
             'name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
@@ -44,7 +51,7 @@ class LocalOrgsController extends Controller
             'admin_password' => 'required|string|min:8|confirmed',
         ]);
 
-        DB::transaction(function () use ($request) {
+        DB::transaction(function () use ($request, $user) {
             $logoPath = $request->hasFile('logo')
                 ? $request->file('logo')->store('org_logos', 'public')
                 : null;
@@ -56,12 +63,12 @@ class LocalOrgsController extends Controller
                 'name' => $request->name,
                 'org_code' => $request->org_code,
                 'role' => 'college_org',
-                'college_id' => Auth::user()->college_id,
+                'college_id' => $user->college_id,
                 'mother_organization_id' => null,
                 'status' => 'pending',
                 'logo' => $logoPath,
                 'created_school_year_id' => $activeSY?->id,
-                    'created_semester_id' => $activeSem?->id,
+                'created_semester_id' => $activeSem?->id,
             ]);
 
             User::create([
@@ -72,7 +79,7 @@ class LocalOrgsController extends Controller
                 'email' => $request->admin_email,
                 'password' => Hash::make($request->admin_password),
                 'role' => 'college_org',
-                'college_id' => Auth::user()->college_id,
+                'college_id' => $user->college_id,
                 'organization_id' => $org->id,
             ]);
         });
@@ -83,6 +90,10 @@ class LocalOrgsController extends Controller
 
     public function show(Organization $org)
     {
+        $user = Auth::user();
+        abort_unless($user, 403);
+        abort_unless($org->college_id === $user->college_id, 403);
+
         $fees = Fee::where('organization_id', $org->id)
             ->where('status', 'approved')
             ->get();
@@ -94,6 +105,10 @@ class LocalOrgsController extends Controller
 
     public function cancelSubmission(Organization $org)
     {
+        $user = Auth::user();
+        abort_unless($user, 403);
+        abort_unless($org->college_id === $user->college_id, 403);
+
         if ($org->status === 'pending') {
             $org->delete();
             return redirect()->route('college.local_organizations')->with('status', 'Submission canceled successfully.');
@@ -104,6 +119,10 @@ class LocalOrgsController extends Controller
 
     public function records(Organization $org)
     {
+        $user = Auth::user();
+        abort_unless($user, 403);
+        abort_unless($org->college_id === $user->college_id, 403);
+
         $payments = Payment::with([
             'student',
             'enrollment.course',

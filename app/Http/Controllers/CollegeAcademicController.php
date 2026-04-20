@@ -12,7 +12,10 @@ class CollegeAcademicController extends Controller
 {
     public function index()
     {
-        $collegeId = Auth::user()->college_id;
+        $user = Auth::user();
+        abort_unless($user, 403);
+
+        $collegeId = $user->college_id;
 
         return view('college.academics', [
             'courses' => Course::where('college_id', $collegeId)->get(),
@@ -23,27 +26,49 @@ class CollegeAcademicController extends Controller
 
     public function storeCourse(Request $request)
     {
+        $user = Auth::user();
+        abort_unless($user, 403);
+
+        $request->validate([
+            'name' => 'required|string|max:255',
+        ]);
+
         Course::create([
-            'college_id' => Auth::user()->college_id,
+            'college_id' => $user->college_id,
             'name' => $request->name,
         ]);
-       return back()->with('status', 'Course added successfully.');
+
+        return back()->with('status', 'Course added successfully.');
     }
 
     public function storeYear(Request $request)
     {
+        $user = Auth::user();
+        abort_unless($user, 403);
+
+        $request->validate([
+            'name' => 'required|string|max:255',
+        ]);
+
         YearLevel::create([
-            'college_id' => Auth::user()->college_id,
+            'college_id' => $user->college_id,
             'name' => $request->name,
         ]);
 
-       return back()->with('status', 'Year Level added successfully.');
+        return back()->with('status', 'Year Level added successfully.');
     }
 
     public function storeSection(Request $request)
     {
+        $user = Auth::user();
+        abort_unless($user, 403);
+
+        $request->validate([
+            'name' => 'required|string|max:255',
+        ]);
+
         Section::create([
-            'college_id' => Auth::user()->college_id,
+            'college_id' => $user->college_id,
             'name' => $request->name,
         ]);
 
@@ -52,18 +77,27 @@ class CollegeAcademicController extends Controller
 
     public function destroyCourse($id)
     {
+        $user = Auth::user();
+        abort_unless($user, 403);
+
         Course::findOrFail($id)->delete();
-       return back()->with('status', 'Course removed successfully.');
+        return back()->with('status', 'Course removed successfully.');
     }
 
     public function destroyYear($id)
     {
+        $user = Auth::user();
+        abort_unless($user, 403);
+
         YearLevel::findOrFail($id)->delete();
         return back()->with('status', 'Year Level removed successfully.');
     }
 
     public function destroySection($id)
     {
+        $user = Auth::user();
+        abort_unless($user, 403);
+
         Section::findOrFail($id)->delete();
         return back()->with('status', 'Section removed successfully.');
     }

@@ -16,15 +16,15 @@ class DocumentController extends Controller
     public function index($role)
     {
         $user = Auth::user();
-        
-        // Get the organization based on user role
-        if ($role === 'university_org' || $role === 'college_org') {
-            $organization = Organization::where('id', $user->organization_id)
-                ->where('role', $role)
-                ->firstOrFail();
-        } else {
+        abort_unless($user, 403);
+
+        if (! in_array($role, ['university_org', 'college_org'], true) || ! $user->organization_id) {
             abort(403, 'Unauthorized access');
         }
+
+        $organization = Organization::where('id', $user->organization_id)
+            ->where('role', $role)
+            ->firstOrFail();
 
         $documents = $organization->documents()->with('uploadedBy')->latest()->get();
 
@@ -41,15 +41,15 @@ class DocumentController extends Controller
     public function store(Request $request, $role)
     {
         $user = Auth::user();
+        abort_unless($user, 403);
 
-        // Get the organization
-        if ($role === 'university_org' || $role === 'college_org') {
-            $organization = Organization::where('id', $user->organization_id)
-                ->where('role', $role)
-                ->firstOrFail();
-        } else {
+        if (! in_array($role, ['university_org', 'college_org'], true) || ! $user->organization_id) {
             abort(403, 'Unauthorized access');
         }
+
+        $organization = Organization::where('id', $user->organization_id)
+            ->where('role', $role)
+            ->firstOrFail();
 
         // Validate the request
         $validated = $request->validate([
@@ -96,8 +96,8 @@ class DocumentController extends Controller
     public function preview(Document $document)
     {
         $user = Auth::user();
+        abort_unless($user, 403);
 
-        // Check authorization
         if ($document->organization_id !== $user->organization_id) {
             abort(403, 'Unauthorized access');
         }
@@ -140,8 +140,8 @@ class DocumentController extends Controller
     public function destroy(Document $document)
     {
         $user = Auth::user();
+        abort_unless($user, 403);
 
-        // Check authorization
         if ($document->organization_id !== $user->organization_id) {
             abort(403, 'Unauthorized access');
         }

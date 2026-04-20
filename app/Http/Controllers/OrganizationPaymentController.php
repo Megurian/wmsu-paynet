@@ -28,6 +28,10 @@ class OrganizationPaymentController extends Controller
         }
 
         $user = Auth::user();
+        if (! $user || ! $user->organization) {
+            return response()->json([]);
+        }
+
         $collegeId = $user->organization->college_id ?? null;
         if (!$collegeId) {
             return response()->json([]);
@@ -93,10 +97,12 @@ class OrganizationPaymentController extends Controller
             return response()->json(['message' => 'Student not enrolled.'], 404);
         }
 
-        $userOrg = Auth::user()->organization;
-        if (!$userOrg) {
+        $user = Auth::user();
+        if (! $user || ! $user->organization) {
             return response()->json(['message' => 'Organization not found.'], 422);
         }
+
+        $userOrg = $user->organization;
 
         $activePromissoryNote = PromissoryNote::where('student_id', $student->id)
             ->whereIn('status', [
@@ -184,7 +190,12 @@ class OrganizationPaymentController extends Controller
      */
     public function getPromissoryNotes($studentId)
     {
-        $organization = Auth::user()->organization;
+        $user = Auth::user();
+        if (! $user || ! $user->organization) {
+            return response()->json(null);
+        }
+
+        $organization = $user->organization;
         $activeSY = SchoolYear::where('is_active', true)->first();
         $activeSem = Semester::where('is_active', true)->first();
 
@@ -272,6 +283,11 @@ class OrganizationPaymentController extends Controller
      */
     private function collectCashPayment(Request $request)
     {
+        $user = Auth::user();
+        if (! $user) {
+            return response()->json(['message' => 'Unauthorized.'], 403);
+        }
+
         $request->validate([
             'student_id' => 'required|exists:students,id',
             'fee_ids' => 'required|array|min:1',
@@ -280,7 +296,6 @@ class OrganizationPaymentController extends Controller
         ]);
 
         // Authenticate organization and get active periods
-        $user = Auth::user();
         $organization = $user->organization;
 
         if (!$organization) {
@@ -437,12 +452,16 @@ class OrganizationPaymentController extends Controller
      */
     private function collectPromissoryPayment(Request $request)
     {
+        $user = Auth::user();
+        if (! $user) {
+            return response()->json(['message' => 'Unauthorized.'], 403);
+        }
+
         $rules = (new CollectPromissoryPaymentRequest())->rules();
         $messages = (new CollectPromissoryPaymentRequest())->messages();
         $request->validate($rules, $messages);
 
         try {
-            $user = Auth::user();
             $organization = $user->organization;
 
             if (!$organization) {
@@ -460,7 +479,7 @@ class OrganizationPaymentController extends Controller
             }
 
             // Verify enrollment belongs to this organization's college
-            if ($promissoryNote->enrollment->college_id !== $organization->college_id) {
+            if (! $promissoryNote->enrollment || $promissoryNote->enrollment->college_id !== $organization->college_id) {
                 return response()->json([
                     'message' => 'Promissory note does not belong to this college.'
                 ], 403);
@@ -531,24 +550,43 @@ class OrganizationPaymentController extends Controller
     public function records(Request $request)
     {
         $user = Auth::user();
+        abort_unless($user, 403);
+
         $organization = $user->organization;
+        abort_unless($organization, 404);
+
         $collegeId = $organization->college_id;
 
-        $activeSYId = SchoolYear::where('is_active', true)->value('id');
-        $activeSemId = Semester::where('is_active', true)->value('id');
+        $activeSY = SchoolYear::where('is_active', true)->first() ?? SchoolYear::orderByDesc('sy_start')->first();
+        $activeSYId = $activeSY?->id;
+
+        $activeSem = $activeSY
+            ? $activeSY->semesters()->where('is_active', true)->first() ?? $activeSY->semesters()->orderBy('id')->first()
+            : Semester::orderByDesc('id')->first();
+        $activeSemId = $activeSem?->id;
 
         $schoolYearId = $request->input('school_year_id', $activeSYId);
         $semesterId = $request->input('semester_id', $activeSemId);
 
         $students = Student::whereHas('enrollments', function ($q) use ($collegeId, $schoolYearId, $semesterId) {
             $q->where('college_id', $collegeId)
-                ->where('school_year_id', $schoolYearId)
-                ->where('semester_id', $semesterId)
                 ->whereIn('status', ['FOR_PAYMENT_VALIDATION', 'ENROLLED']);
+
+            if ($schoolYearId) {
+                $q->where('school_year_id', $schoolYearId);
+            }
+
+            if ($semesterId) {
+                $q->where('semester_id', $semesterId);
+            }
         })->with(['enrollments' => function ($q) use ($schoolYearId, $semesterId) {
-            $q->where('school_year_id', $schoolYearId)
-                ->where('semester_id', $semesterId)
-                ->whereIn('status', ['FOR_PAYMENT_VALIDATION', 'ENROLLED']);
+            if ($schoolYearId) {
+                $q->where('school_year_id', $schoolYearId);
+            }
+            if ($semesterId) {
+                $q->where('semester_id', $semesterId);
+            }
+            $q->whereIn('status', ['FOR_PAYMENT_VALIDATION', 'ENROLLED']);
         }, 'enrollments.course', 'enrollments.yearLevel', 'enrollments.section'])
             ->get();
 
@@ -654,17 +692,23 @@ class OrganizationPaymentController extends Controller
         }
 
         $fees = Fee::where('status', 'approved')
-            ->whereIn('organization_id', $organizationIds)
-            ->where(function ($q) use ($schoolYearId, $semesterId) {
+            ->whereIn('organization_id', $organizationIds);
+
+        if ($schoolYearId !== null) {
+            $fees->where(function ($q) use ($schoolYearId) {
                 $q->whereNull('created_school_year_id')
                     ->orWhere('created_school_year_id', '<=', $schoolYearId);
-            })
-            ->where(function ($q) use ($schoolYearId, $semesterId) {
+            });
+        }
+
+        if ($semesterId !== null) {
+            $fees->where(function ($q) use ($semesterId) {
                 $q->whereNull('created_semester_id')
                     ->orWhere('created_semester_id', '<=', $semesterId);
-            })
-            ->orderBy('created_at', 'desc')
-            ->get();
+            });
+        }
+
+        $fees = $fees->orderBy('created_at', 'desc')->get();
         $courses = \App\Models\Course::where('college_id', $collegeId)->get();
         $yearLevels = \App\Models\YearLevel::where('college_id', $collegeId)->get();
         $sections = \App\Models\Section::where('college_id', $collegeId)->get();
@@ -690,7 +734,11 @@ class OrganizationPaymentController extends Controller
 
     public function generateReport(Request $request)
     {
-        $organization = Auth::user()->organization;
+        $user = Auth::user();
+        abort_unless($user, 403);
+
+        $organization = $user->organization;
+        abort_unless($organization, 404);
 
         $activeSYId = SchoolYear::where('is_active', true)->value('id');
         $activeSemId = Semester::where('is_active', true)->value('id');

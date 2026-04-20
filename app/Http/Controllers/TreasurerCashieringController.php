@@ -21,9 +21,12 @@ use Illuminate\Support\Facades\Log;
 class TreasurerCashieringController extends Controller
 {
     public function index() {
+        $user = Auth::user();
+        abort_unless($user, 403);
+
         $fees = Fee::where('status', 'approved')
             ->where('fee_scope', 'college')
-            ->where('college_id', Auth::user()->college_id)
+            ->where('college_id', $user->college_id)
             ->get();
 
         return view('college.cashiering', compact('fees'));
@@ -31,8 +34,11 @@ class TreasurerCashieringController extends Controller
 
     public function searchAdvisedStudents(Request $request)
     {
+        $user = Auth::user();
+        abort_unless($user, 403);
+
         $query = $request->query('q');
-        $collegeId = Auth::user()->college_id;
+        $collegeId = $user->college_id;
         $activeSY = SchoolYear::where('is_active', true)->first();
         $activeSem = Semester::where('is_active', true)->first();
 
@@ -59,7 +65,10 @@ class TreasurerCashieringController extends Controller
 
     public function getStudentDetails($studentId)
     {
-        $collegeId = Auth::user()->college_id;
+        $user = Auth::user();
+        abort_unless($user, 403);
+
+        $collegeId = $user->college_id;
         $activeSY = SchoolYear::where('is_active', true)->first();
         $activeSem = Semester::where('is_active', true)->first();
 
@@ -122,9 +131,9 @@ class TreasurerCashieringController extends Controller
                 'first_name' => $student->first_name,
                 'last_name' => $student->last_name,
                 'email' => $student->email,
-                'course' => $enrollment?->course->name ?? null,
-                'year_level' => $enrollment?->yearLevel->name ?? null,
-                'section' => $enrollment?->section->name ?? null,
+                'course' => optional($enrollment->course)->name,
+                'year_level' => optional($enrollment->yearLevel)->name,
+                'section' => optional($enrollment->section)->name,
             ],
             'fees' => $fees,
             'paid_fee_ids' => $paidFeeIds
@@ -139,7 +148,10 @@ class TreasurerCashieringController extends Controller
      */
     public function getPromissoryNotes($studentId)
     {
-        $collegeId = Auth::user()->college_id;
+        $user = Auth::user();
+        abort_unless($user, 403);
+
+        $collegeId = $user->college_id;
         $activeSY = SchoolYear::where('is_active', true)->first();
         $activeSem = Semester::where('is_active', true)->first();
 
@@ -156,6 +168,10 @@ class TreasurerCashieringController extends Controller
             ->first();
 
         if (!$enrollment || $enrollment->college_id !== $collegeId) {
+            return response()->json(null);
+        }
+
+        if (! $promissoryNote->enrollment || $promissoryNote->enrollment->college_id !== $collegeId) {
             return response()->json(null);
         }
 
@@ -249,6 +265,9 @@ class TreasurerCashieringController extends Controller
      */
     private function collectCashPayment(Request $request)
     {
+        $user = Auth::user();
+        abort_unless($user, 403);
+
         $request->validate([
             'student_id' => 'required|exists:students,id',
             'fee_ids' => 'required|array|min:1',
@@ -256,7 +275,6 @@ class TreasurerCashieringController extends Controller
             'cash_received' => 'required|numeric|min:0',
         ]);
 
-        $user = Auth::user();
         $collegeId = $user->college_id;
 
         if (!$collegeId) {
@@ -345,7 +363,7 @@ class TreasurerCashieringController extends Controller
         }
 
         $college = College::find($collegeId);
-        $collegeCode = ($college?->college_code ?? 'UNK') . '-TRES';
+        $collegeCode = optional($college)->college_code ? optional($college)->college_code . '-TRES' : 'UNK-TRES';
         $dateStr = now()->format('Ymd');
 
         $countToday = Payment::whereHas('enrollment', function ($q) use ($collegeId) {
@@ -398,12 +416,14 @@ class TreasurerCashieringController extends Controller
      */
     private function collectPromissoryPayment(Request $request)
     {
+        $user = Auth::user();
+        abort_unless($user, 403);
+
         $rules = (new CollectPromissoryPaymentRequest())->rules();
         $messages = (new CollectPromissoryPaymentRequest())->messages();
         $request->validate($rules, $messages);
 
         try {
-            $user = Auth::user();
             $collegeId = $user->college_id;
 
             if (!$collegeId) {
@@ -421,7 +441,7 @@ class TreasurerCashieringController extends Controller
             }
 
             // Verify enrollment belongs to this college
-            if ($promissoryNote->enrollment->college_id !== $collegeId) {
+            if (! $promissoryNote->enrollment || $promissoryNote->enrollment->college_id !== $collegeId) {
                 return response()->json([
                     'message' => 'Promissory note does not belong to this college.'
                 ], 403);

@@ -54,6 +54,12 @@ class OSACollegeController extends Controller
             'admin_suffix' => 'nullable|string|max:255',
             'admin_email' => 'required|email|unique:users,email',
             'admin_password' => 'required|string|min:8|confirmed',
+            'courses' => 'nullable|array',
+            'courses.*' => 'nullable|string|max:255',
+            'years' => 'nullable|array',
+            'years.*' => 'nullable|string|max:255',
+            'sections' => 'nullable|array',
+            'sections.*' => 'nullable|string|max:255',
         ]);
 
         try {

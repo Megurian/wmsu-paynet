@@ -137,6 +137,12 @@ class OSAFeesController extends Controller
         $activeSY = SchoolYear::where('is_active', true)->first();
         $activeSem = Semester::where('is_active', true)->first();
 
+        if (! $activeSY || ! $activeSem) {
+            return back()->withErrors([
+                'academic_period' => 'No active school year or semester. Contact OSA for confirmation before submitting a fee.'
+            ])->withInput();
+        }
+
         $data = [
             'organization_id' => $request->organization_id,
             'user_id' => Auth::id(),

@@ -137,6 +137,10 @@ class OSARemittanceController extends Controller
             ->where('status', 'approved')
             ->first();
 
+        if (! $fee) {
+            return back()->withErrors(['fee' => 'No approved OSA fee is configured for remittance.']);
+        }
+
         $remittance = Remittance::create([
             'from_organization_id' => $request->organization_id,
             'to_organization_id' => $osaOrg->id,
