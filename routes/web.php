@@ -464,7 +464,12 @@ Route::middleware(['auth','role:student_coordinator'])->group(function(){
     Route::post('/college/local_organizations', [LocalOrgsController::class, 'store'])
         ->name('college.local_organizations.store');
 
-        Route::get('college/local_organizations/{org}', [LocalOrgsController::class, 'show'])->name('college.local_organizations.show');
+    Route::post('/college/local_organizations/check-code', [LocalOrgsController::class, 'checkCode'])
+        ->name('college.local_organizations.checkCode');
+    Route::post('/college/local_organizations/check-email', [LocalOrgsController::class, 'checkEmail'])
+        ->name('college.local_organizations.checkEmail');
+
+    Route::get('college/local_organizations/{org}', [LocalOrgsController::class, 'show'])->name('college.local_organizations.show');
 Route::delete('/college/local_organizations/{org}/cancel', [LocalOrgsController::class, 'cancelSubmission'])->name('college.local_organizations.cancel_submission');
 });
 

@@ -34,6 +34,20 @@ class LocalOrgsController extends Controller
         return view('college.local_organizations.create');
     }
 
+    public function checkCode(Request $request)
+    {
+        $code = strtoupper(trim($request->input('org_code', '')));
+        $available = !Organization::whereRaw('upper(org_code) = ?', [$code])->exists();
+        return response()->json(['available' => $available]);
+    }
+
+    public function checkEmail(Request $request)
+    {
+        $email = trim($request->input('admin_email', ''));
+        $available = !User::where('email', $email)->exists();
+        return response()->json(['available' => $available]);
+    }
+
     public function store(Request $request)
     {
         $user = Auth::user();
