@@ -7,10 +7,17 @@
             <p class="text-sm text-gray-500">Master list of employees (Dean/Admin)</p>
         </div>
 
-        <button onclick="document.getElementById('addEmployeeModal').classList.remove('hidden')"
-            class="bg-red-800 text-white px-4 py-2 rounded">
-             Add Employee
-        </button>
+        <div class="flex gap-2">
+            <button onclick="document.getElementById('importEmployeeModal').classList.remove('hidden')"
+                class="bg-gray-700 text-white px-4 py-2 rounded">
+                Import
+            </button>
+
+            <button onclick="document.getElementById('addEmployeeModal').classList.remove('hidden')"
+                class="bg-red-800 text-white px-4 py-2 rounded">
+                Add Employee
+            </button>
+        </div>
     </div>
 
         <div class="space-y-4">
@@ -389,12 +396,115 @@
     </div>
 </div>
 
+<div id="importEmployeeModal"
+    class="hidden fixed inset-0 bg-black/60 flex items-center justify-center p-6 z-50">
+
+    <div class="bg-white w-full max-w-5xl rounded-2xl shadow-2xl overflow-hidden
+                max-h-[98vh] flex flex-col">
+
+        <div class="px-8 py-6 border-b bg-gradient-to-r from-gray-50 to-white">
+            <h2 class="text-2xl font-bold text-gray-800">Import Employees</h2>
+            <p class="text-sm text-gray-500 mt-1">
+                Upload a filled Excel file to bulk add employees into the system.
+            </p>
+        </div>
+
+        <div class="flex-1 overflow-y-auto">
+
+            <div class="grid grid-cols-1 md:grid-cols-2">
+
+                <div class="p-8 border-r bg-gray-50 space-y-6">
+
+                    <div>
+                        <h3 class="text-sm font-semibold text-gray-700 mb-2"> Instructions</h3>
+                        <ul class="text-sm text-gray-600 space-y-2 list-disc pl-5">
+                            <li>Download the official template first</li>
+                            <li>Do NOT change column headers</li>
+                            <li>Email must be unique per employee</li>
+                            <li>Department can be faculty, course, or custom</li>
+                        </ul>
+                    </div>
+
+                    <div>
+                        <h3 class="text-sm font-semibold text-gray-700 mb-2"> Notes</h3>
+                        <div class="text-sm text-gray-600 space-y-2">
+                            <p>• Duplicate emails will be updated</p>
+                            <p>• Missing fields will be skipped</p>
+                            <p>• Names are auto-converted to UPPERCASE</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-white border rounded-xl p-4">
+                        <p class="text-xs text-gray-500">Template Format:</p>
+                        <p class="text-xs font-mono text-gray-700 mt-1 break-words">
+                            first_name | middle_name | last_name | suffix | email | department
+                        </p>
+                    </div>
+
+                </div>
+
+                <div class="p-8 space-y-6">
+
+                    <div class="space-y-2">
+                        <h3 class="text-sm font-semibold text-gray-700"> Download Template</h3>
+
+                        <a href="{{ route('employees.template') }}"
+                            class="flex items-center justify-center gap-2 w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-medium shadow">
+                             Download Excel Template
+                        </a>
+
+                        <p class="text-xs text-gray-500 text-center">
+                            Always use the latest template version
+                        </p>
+                    </div>
+
+                    <div class="space-y-3">
+                        <h3 class="text-sm font-semibold text-gray-700">Upload File</h3>
+
+                        <form method="POST" action="{{ route('employees.import') }}" enctype="multipart/form-data"
+                            class="space-y-4">
+                            @csrf
+
+                            <label class="flex flex-col items-center justify-center w-full border-2 border-dashed border-gray-300 rounded-xl p-6 cursor-pointer hover:border-gray-400 transition">
+                                <span class="text-sm text-gray-600">Click to upload Excel file</span>
+                                <span class="text-xs text-gray-400 mt-1">.xlsx or .csv only</span>
+
+                                <input type="file" name="file" id="employeeFileInput" required class="hidden">
+
+                                <p id="filePreview" class="text-sm text-green-600 mt-3 font-medium"></p>
+
+                            </label>
+
+                            <button
+                                class="w-full bg-red-800 hover:bg-red-700 text-white py-3 rounded-xl font-medium shadow">
+                                Import Employees
+                            </button>
+
+                        </form>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="flex justify-end px-8 py-4 border-t bg-gray-50">
+            <button
+                onclick="document.getElementById('importEmployeeModal').classList.add('hidden')"
+                class="px-5 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg text-gray-700">
+                Close
+            </button>
+        </div>
+
+    </div>
+</div>
+
 <div id="createAccountModal"
     class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
 
     <div class="bg-white w-full max-w-4xl rounded-2xl shadow-xl overflow-hidden">
 
-        <!-- HEADER -->
         <div class="px-6 py-5 border-b bg-gray-50">
             <h2 class="text-xl font-bold text-gray-800">Create Employee Account</h2>
             <p class="text-sm text-gray-500">
@@ -607,5 +717,21 @@ document.addEventListener('DOMContentLoaded', function () {
 
 });
 
+document.addEventListener('DOMContentLoaded', function () {
+
+    const fileInput = document.getElementById('employeeFileInput');
+    const filePreview = document.getElementById('filePreview');
+
+    fileInput.addEventListener('change', function () {
+
+        if (fileInput.files.length > 0) {
+            filePreview.textContent = "Selected file: " + fileInput.files[0].name;
+        } else {
+            filePreview.textContent = "";
+        }
+
+    });
+
+});
 
 </script>

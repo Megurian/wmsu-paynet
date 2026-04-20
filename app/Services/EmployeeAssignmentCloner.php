@@ -10,14 +10,12 @@ class EmployeeAssignmentCloner
 {
     public function cloneFromPrevious(SchoolYear $newSY, ?Semester $newSem = null): void
     {
-        // Get previous active or last school year
         $previousSY = SchoolYear::where('id', '!=', $newSY->id)
             ->orderByDesc('sy_start')
             ->first();
 
         if (!$previousSY) return;
 
-        // Get last semester of previous SY
         $previousSem = $previousSY->semesters()
             ->orderByDesc('starts_at')
             ->first();

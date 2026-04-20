@@ -9,6 +9,10 @@ use App\Models\EmployeeAssignment;
 use App\Models\SchoolYear;
 use App\Models\Semester;
 use Illuminate\Support\Facades\Auth;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\EmployeeTemplateExport;
+use App\Imports\EmployeesImport;
+use App\Imports\EmployeesImportPreview;
 
 class EmployeeController extends Controller
 {
@@ -199,5 +203,26 @@ public function toggle(Employee $employee)
     return back()->with('status', 'Employee status updated!');
 }
 
+
+public function downloadTemplate()
+{
+    return Excel::download(new EmployeeTemplateExport, 'employee_template.xlsx');
+}
+
+public function import(Request $request)
+{
+    $request->validate([
+        'file' => 'required|mimes:xlsx,csv'
+    ]);
+
+    $import = new EmployeesImport();
+    Excel::import($import, $request->file('file'));
+
+    $result = $import->getResult();
+
+    return back()->with('status',
+        "Employees Import: {$result['created']} created, {$result['updated']} updated, {$result['skipped']} skipped"
+    );
+}
 
 }

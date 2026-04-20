@@ -390,8 +390,13 @@ Route::middleware(['auth', 'role:treasurer,college,student_coordinator,adviser,a
     ->name('college.roles.bulkAssign');
     Route::post('/employees/{employee}/toggle', [EmployeeController::class, 'toggle'])
     ->name('employees.toggle');
-    Route::get('/college/roles/history', [\App\Http\Controllers\CollegeUserController::class, 'roleHistory'])
+    Route::get('/college/roles/history', [CollegeUserController::class, 'roleHistory'])
     ->name('college.roles.history');
+    Route::get('/employees/template', [EmployeeController::class, 'downloadTemplate'])
+    ->name('employees.template');
+    Route::get('/employees/template', [EmployeeController::class, 'downloadTemplate'])->name('employees.template');
+    Route::post('/employees/import', [EmployeeController::class, 'import'])->name('employees.import');
+    Route::post('/employees/preview', [EmployeeController::class, 'previewImport'])->name('employees.preview');
 });
 
 
