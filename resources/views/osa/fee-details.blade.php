@@ -81,7 +81,7 @@
 
         <div>
             <h3 class="font-medium">Submitted By</h3>
-            <p class="text-gray-700">{{ $fee->user?->name ?? '—' }} — {{ $fee->created_at->format('Y-m-d') }}</p>
+            <p class="text-gray-700">{{ $fee->user?->full_name ?? $fee->user?->name ?? '—' }} — {{ $fee->created_at->format('Y-m-d') }}</p>
         </div>
 
         <div id="appeals" class="mt-6">
@@ -94,7 +94,7 @@
                         <div class="p-4 border rounded">
                             <div class="flex justify-between items-start">
                                 <div>
-                                    <div class="text-sm text-gray-600">Submitted by {{ $appeal->user?->name ?? '—' }} on {{ $appeal->created_at->format('Y-m-d') }}</div>
+                                    <div class="text-sm text-gray-600">Submitted by {{ $appeal->user?->full_name ?? $appeal->user?->name ?? '—' }} on {{ $appeal->created_at->format('Y-m-d') }}</div>
                                     <div class="mt-2">{{ $appeal->reason }}</div>
 
                                     @if($appeal->supporting_files && count($appeal->supporting_files) > 0)

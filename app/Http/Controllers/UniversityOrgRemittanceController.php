@@ -13,18 +13,28 @@ use Illuminate\Support\Facades\Auth;
 
 class UniversityOrgRemittanceController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $motherOrg = Auth::user();
         abort_unless($motherOrg, 403);
         $motherOrg = $motherOrg->organization;
         abort_unless($motherOrg, 404);
 
-        $activeSY = SchoolYear::where('is_active', 1)->first();
-        $activeSem = $activeSY?->semesters()->where('is_active', 1)->first();
+        $schoolYears = SchoolYear::with('semesters')->orderByDesc('sy_start')->get();
+        $activeSY = $schoolYears->firstWhere('is_active', true) ?? $schoolYears->first();
+
+        $selectedSchoolYear = $schoolYears->firstWhere('id', $request->query('school_year_id')) ?? $activeSY;
+        $selectedSemester = null;
+
+        if ($request->filled('semester_id')) {
+            $selectedSemester = $selectedSchoolYear?->semesters->firstWhere('id', $request->query('semester_id'));
+        }
+
+        $selectedSemester = $selectedSemester
+            ?? $selectedSchoolYear?->semesters->firstWhere('is_active', true)
+            ?? $selectedSchoolYear?->semesters->first();
 
         $childOrgs = $motherOrg->childOrganizations;
-
         $remittanceData = [];
 
         foreach ($childOrgs as $child) {
@@ -35,19 +45,33 @@ class UniversityOrgRemittanceController extends Controller
             $feeDetails = [];
 
             foreach ($fees as $fee) {
-                $totalCollected = Payment::join('fee_payment', 'payments.id', '=', 'fee_payment.payment_id')
+                $query = Payment::join('fee_payment', 'payments.id', '=', 'fee_payment.payment_id')
                     ->where('payments.organization_id', $child->id)
-                    ->where('payments.school_year_id', $activeSY?->id)
-                    ->where('payments.semester_id', $activeSem?->id)
-                    ->where('fee_payment.fee_id', $fee->id)
-                    ->sum('fee_payment.amount_paid');
+                    ->where('fee_payment.fee_id', $fee->id);
+
+                if ($selectedSchoolYear) {
+                    $query->where('payments.school_year_id', $selectedSchoolYear->id);
+                }
+
+                if ($selectedSemester) {
+                    $query->where('payments.semester_id', $selectedSemester->id);
+                }
+
+                $totalCollected = $query->sum('fee_payment.amount_paid');
 
                 $studentsPaid = Payment::join('fee_payment', 'payments.id', '=', 'fee_payment.payment_id')
                     ->where('payments.organization_id', $child->id)
-                    ->where('payments.school_year_id', $activeSY?->id)
-                    ->where('payments.semester_id', $activeSem?->id)
-                    ->where('fee_payment.fee_id', $fee->id)
-                    ->count();
+                    ->where('fee_payment.fee_id', $fee->id);
+
+                if ($selectedSchoolYear) {
+                    $studentsPaid->where('payments.school_year_id', $selectedSchoolYear->id);
+                }
+
+                if ($selectedSemester) {
+                    $studentsPaid->where('payments.semester_id', $selectedSemester->id);
+                }
+
+                $studentsPaid = $studentsPaid->count();
 
                 $feeDetails[] = [
                     'fee' => $fee,
@@ -59,7 +83,10 @@ class UniversityOrgRemittanceController extends Controller
                 $expectedPerChild += $totalCollected * ($fee->remittance_percent / 100);
             }
 
-            $remitted = Remittance::where('from_organization_id', $child->id)->sum('amount');
+            $remitted = Remittance::where('from_organization_id', $child->id)
+                ->when($selectedSchoolYear, fn($query) => $query->where('school_year_id', $selectedSchoolYear->id))
+                ->when($selectedSemester, fn($query) => $query->where('semester_id', $selectedSemester->id))
+                ->sum('amount');
 
             $remaining = max(0, $expectedPerChild - $remitted);
 
@@ -70,7 +97,6 @@ class UniversityOrgRemittanceController extends Controller
                 $status = 'Partial';
             }
 
-            // Pick the fee with the highest current expected remittance (based on collected amount)
             $defaultFee = collect($feeDetails)
                 ->sortByDesc(fn($f) => $f['totalCollected'] * ($f['fee']->remittance_percent / 100))
                 ->first();
@@ -96,14 +122,19 @@ class UniversityOrgRemittanceController extends Controller
 
         $history = Remittance::with(['fromOrganization', 'confirmer'])
             ->where('to_organization_id', $motherOrg->id)
+            ->when($selectedSchoolYear, fn($query) => $query->where('school_year_id', $selectedSchoolYear->id))
+            ->when($selectedSemester, fn($query) => $query->where('semester_id', $selectedSemester->id))
             ->latest()
             ->get();
 
         return view('university_org.remittance', compact(
+            'schoolYears',
+            'selectedSchoolYear',
+            'selectedSemester',
             'remittanceData',
             'totalCollected',
             'totalRemitted',
-              'totalExpected',
+            'totalExpected',
             'remaining',
             'history'
         ));
@@ -118,6 +149,8 @@ class UniversityOrgRemittanceController extends Controller
             'from_organization_id' => 'required|exists:organizations,id',
             'fee_id' => 'required|exists:fees,id',
             'amount' => 'required|numeric|min:0.01',
+            'school_year_id' => 'required|exists:school_years,id',
+            'semester_id' => 'required|exists:semesters,id',
         ]);
 
         $motherOrg = $user->organization;
@@ -127,6 +160,11 @@ class UniversityOrgRemittanceController extends Controller
         if ($childOrg->mother_organization_id !== $motherOrg->id) {
             return back()->with('error', 'Invalid child organization for this mother organization.');
         }
+
+        $schoolYear = SchoolYear::findOrFail($request->school_year_id);
+        $semester = Semester::where('id', $request->semester_id)
+            ->where('school_year_id', $schoolYear->id)
+            ->firstOrFail();
 
         $fees = Fee::where('organization_id', $motherOrg->id)->get();
 
@@ -139,28 +177,31 @@ class UniversityOrgRemittanceController extends Controller
         foreach ($fees as $fee) {
             $totalCollectedForFee = Payment::join('fee_payment', 'payments.id', '=', 'fee_payment.payment_id')
                 ->where('payments.organization_id', $childOrg->id)
+                ->where('payments.school_year_id', $schoolYear->id)
+                ->where('payments.semester_id', $semester->id)
                 ->where('fee_payment.fee_id', $fee->id)
                 ->sum('fee_payment.amount_paid');
 
             $expected += $totalCollectedForFee * ($fee->remittance_percent / 100);
         }
 
-        $totalRemitted = Remittance::where('from_organization_id', $childOrg->id)->sum('amount');
+        $totalRemitted = Remittance::where('from_organization_id', $childOrg->id)
+            ->where('school_year_id', $schoolYear->id)
+            ->where('semester_id', $semester->id)
+            ->sum('amount');
+
         $remaining = max(0, $expected - $totalRemitted);
 
         if ($request->amount > $remaining) {
             return back()->with('error', 'Amount cannot exceed remaining balance of ₱' . number_format($remaining, 2));
         }
 
-        $activeSY = SchoolYear::where('is_active', 1)->first();
-        $activeSem = $activeSY?->semesters()->where('is_active', 1)->first();
-
         Remittance::create([
             'from_organization_id' => $childOrg->id,
             'to_organization_id' => $motherOrg->id,
             'fee_id' => $request->fee_id,
-            'school_year_id' => $activeSY?->id,
-            'semester_id' => $activeSem?->id,
+            'school_year_id' => $schoolYear->id,
+            'semester_id' => $semester->id,
             'amount' => $request->amount,
             'confirmed_by' => Auth::id(),
             'status' => 'confirmed'
