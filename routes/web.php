@@ -6,6 +6,7 @@ use App\Http\Controllers\OSACollegeController;
 use App\Http\Controllers\OSADashController;
 use App\Http\Controllers\OSARemittanceController;
 use App\Http\Controllers\OSAOrganizationsController;
+use App\Http\Controllers\OSASystemMaintenanceController;
 use App\Http\Controllers\CollegeAcademicController;
 use App\Http\Controllers\CollegeStudentController;
 use App\Http\Controllers\CollegeDashboardController;
@@ -31,6 +32,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use App\Http\Controllers\OSAReportsController;
 use App\Http\Controllers\UniversityOrgDashboardController;
+use App\Http\Controllers\EmployeeController;
+use App\Http\Controllers\CollegeOrgDashboardController;
 
 Route::get('/test-route', function () {
     return 'Laravel route works!';
@@ -43,17 +46,30 @@ Route::get('/', function () {
 
 
 Route::middleware('auth')->get('/dashboard', function () {
-    $role = Auth::user()->role;
+    $user = Auth::user();
 
-    return match($role) {
-        'osa' => redirect()->route('osa.dashboard'),
-        'university_org' => redirect()->route('university_org.dashboard'),
-        'college_org' => redirect()->route('college_org.dashboard'),
-        'college' => redirect()->route('college.dashboard'),
-        'treasurer' => redirect()->route('treasurer.cashiering'),
-        default => abort(403), 
-    };
-})->name('dashboard');
+    if ($user->hasRole('osa')) {
+        return redirect()->route('osa.dashboard');
+    }
+
+    if ($user->hasRole('university_org')) {
+        return redirect()->route('university_org.dashboard');
+    }
+
+    if ($user->hasRole('college_org')) {
+        return redirect()->route('college_org.dashboard');
+    }
+
+    if ($user->hasRole('treasurer')) {
+        return redirect()->route('treasurer.cashiering');
+    }
+
+    if ($user->hasRole('college')) {
+        return redirect()->route('college.dashboard');
+    }
+
+    abort(403);
+});
 
 Route::middleware(['auth', 'role:osa'])->group(function () {
     Route::get('/osa/setup', [OSASetupController::class, 'edit'])->name('osa.setup');
@@ -62,6 +78,15 @@ Route::middleware(['auth', 'role:osa'])->group(function () {
     Route::post('/osa/setup/{id}/add-semester', [OSASetupController::class, 'addSemester'])->name('osa.setup.addSemester');
     Route::post('/osa/setup/{schoolYear}/start-semester/{semester}', [OSASetupController::class, 'startSemester'])->name('osa.setup.start-semester');
     Route::post('/osa/setup/{schoolYear}/end-semester', [OSASetupController::class, 'endSemester'])->name('osa.setup.end-semester');
+
+    Route::get('/osa/system-maintenance', [OSASystemMaintenanceController::class, 'index'])
+        ->name('osa.system-maintenance');
+
+    Route::post('/osa/system-maintenance/email-settings', [OSASystemMaintenanceController::class, 'saveEmailSettings'])
+        ->name('osa.system-maintenance.email-settings');
+
+    Route::post('/osa/system-maintenance/execute-command', [OSASystemMaintenanceController::class, 'executeConsoleCommand'])
+        ->name('osa.system-maintenance.execute-command');
 });
 
 Route::middleware(['auth', 'role:osa', CheckActiveSchoolYear::class])->group(function () {
@@ -174,9 +199,8 @@ Route::middleware(['auth', 'role:university_org'])->group(function () {
 });
 
 Route::middleware(['auth', 'role:college_org'])->group(function () {
-    Route::get('/college_org/dashboard', function () {
-        return view('college_org.dashboard');
-    })->name('college_org.dashboard');
+    Route::get('/college_org/dashboard', [CollegeOrgDashboardController::class, 'dashboard'])
+    ->name('college_org.dashboard');
 
     
 
@@ -250,7 +274,7 @@ Route::middleware(['auth','role:college'])->group(function () {
         ->name('college.fees.reject');
 });
 
-Route::middleware(['auth', 'role:treasurer,college,student_coordinator,adviser,assessor'])->group(function () {
+Route::middleware(['auth', 'role:treasurer,college,student_coordinator,adviser,assessor,college_org'])->group(function () {
     // Route::get('/college/dashboard', function () {
     //     return view('college.dashboard');
     // })->name('college.dashboard');
@@ -347,7 +371,46 @@ Route::middleware(['auth', 'role:treasurer,college,student_coordinator,adviser,a
     Route::get('/college/history/fees', [CollegeHistoryController::class, 'getFeesByOrg']);
        Route::get('/college/history/report', [CollegeHistoryController::class, 'generateReport'])
     ->name('college.history.report');
+
+    Route::post('/college/students/{id}/update-field', [
+        AdviserStudentUploadController::class,
+        'updateField'
+    ])->name('college.students.update-field');
+
+    Route::get('/college/students/promotion/preview',
+        [AdviserStudentUploadController::class, 'promotionPreview']
+    )->name('college.students.promotion.preview');
+
+    Route::post('/college/students/promotion/execute',
+        [AdviserStudentUploadController::class, 'promotionExecute']
+    )->name('college.students.promotion.execute');
+
+    Route::post('/college/students/{id}/promote-pay', 
+        [AdviserStudentUploadController::class, 'promoteAndPay']
+    )->name('college.students.promote.pay');
+
+    Route::post('/college/students/bulk-promote-pay', [AdviserStudentUploadController::class, 'bulkPromoteAndPay'])
+    ->name('college.students.bulk.promote-pay');
+
+    Route::post('/employees', [EmployeeController::class, 'store'])->name('employees.store');
+    Route::put('/employees/{employee}', [EmployeeController::class, 'update'])->name('employees.update');
+    Route::delete('/employees/{employee}', [EmployeeController::class, 'destroy'])->name('employees.destroy');
+    Route::post('/employees/{employee}/create-account', [EmployeeController::class, 'createAccount']);
+    Route::post('/college/roles/bulk-assign', [EmployeeController::class, 'bulkAssign'])
+    ->name('college.roles.bulkAssign');
+    Route::post('/employees/{employee}/toggle', [EmployeeController::class, 'toggle'])
+    ->name('employees.toggle');
+    Route::get('/college/roles/history', [CollegeUserController::class, 'roleHistory'])
+    ->name('college.roles.history');
+    Route::get('/employees/template', [EmployeeController::class, 'downloadTemplate'])
+    ->name('employees.template');
+    Route::get('/employees/template', [EmployeeController::class, 'downloadTemplate'])->name('employees.template');
+    Route::post('/employees/import', [EmployeeController::class, 'import'])->name('employees.import');
+    Route::post('/employees/preview', [EmployeeController::class, 'previewImport'])->name('employees.preview');
+     Route::post('college/local_organizations/{org}/assign', [LocalOrgsController::class, 'assignOfficer'])
+        ->name('college.local_organizations.assign');
 });
+
 
     Route::middleware(['auth','role:assessor,student_coordinator'])->group(function(){
     Route::get('students/validate', [ValidateStudentsController::class, 'index'])->name('college.students.validate');
@@ -408,7 +471,12 @@ Route::middleware(['auth','role:student_coordinator'])->group(function(){
     Route::post('/college/local_organizations', [LocalOrgsController::class, 'store'])
         ->name('college.local_organizations.store');
 
-        Route::get('college/local_organizations/{org}', [LocalOrgsController::class, 'show'])->name('college.local_organizations.show');
+    Route::post('/college/local_organizations/check-code', [LocalOrgsController::class, 'checkCode'])
+        ->name('college.local_organizations.checkCode');
+    Route::post('/college/local_organizations/check-email', [LocalOrgsController::class, 'checkEmail'])
+        ->name('college.local_organizations.checkEmail');
+
+    Route::get('college/local_organizations/{org}', [LocalOrgsController::class, 'show'])->name('college.local_organizations.show');
 Route::delete('/college/local_organizations/{org}/cancel', [LocalOrgsController::class, 'cancelSubmission'])->name('college.local_organizations.cancel_submission');
 });
 

@@ -35,11 +35,11 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('fees', function (Blueprint $table) {
-            // Drop supporting document foreign key
-            $table->dropForeign(['supporting_document_id']);
-            $table->dropColumn(['supporting_document_id']);
-            
-            // Re-add legacy columns
+            if (Schema::hasColumn('fees', 'supporting_document_id')) {
+                $table->dropForeign(['supporting_document_id']);
+                $table->dropColumn('supporting_document_id');
+            }
+
             $table->string('accreditation_file')->nullable()->after('requirement_level');
             $table->string('resolution_file')->nullable()->after('accreditation_file');
         });

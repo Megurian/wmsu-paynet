@@ -129,10 +129,10 @@
         </div>
     </div>
 
-    <div x-show="openFilter" x-transition.opacity class="fixed inset-0 bg-black/30 z-40" @click="openFilter = false">
+    <div x-cloak x-show="openFilter" x-transition.opacity class="fixed inset-0 bg-black/30 z-40" @click="openFilter = false" style="display: none;">
     </div>
 
-    <div x-show="openFilter" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="translate-x-full" x-transition:enter-end="translate-x-0" x-transition:leave="transition ease-in duration-200" x-transition:leave-start="translate-x-0" x-transition:leave-end="translate-x-full" class="fixed right-0 top-0 h-full w-80 bg-white shadow-xl z-50 overflow-y-auto">
+    <div x-cloak x-show="openFilter" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="translate-x-full" x-transition:enter-end="translate-x-0" x-transition:leave="transition ease-in duration-200" x-transition:leave-start="translate-x-0" x-transition:leave-end="translate-x-full" class="fixed right-0 top-0 h-full w-80 bg-white shadow-xl z-50 overflow-y-auto" style="display: none;">
 
         <div class="p-6 border-b border-gray-200 flex justify-between items-center">
             <h2 class="text-lg font-semibold text-gray-800">Filters</h2>
@@ -312,11 +312,11 @@
         <div x-data="{ open:false }" x-on:open-report-modal.window="open=true">
 
             <!-- Overlay -->
-            <div x-show="open" x-transition.opacity class="fixed inset-0 bg-black/40 z-50" @click="open=false">
+            <div x-cloak x-show="open" x-transition.opacity class="fixed inset-0 bg-black/40 z-50" @click="open=false" style="display: none;">
             </div>
 
             <!-- Modal -->
-            <div x-show="open" x-transition class="fixed inset-0 flex items-center justify-center z-50">
+            <div x-cloak x-show="open" x-transition class="fixed inset-0 flex items-center justify-center z-50" style="display: none;">
 
                 <div class="bg-white w-96 rounded-xl shadow-xl p-6 space-y-5">
                     <div>

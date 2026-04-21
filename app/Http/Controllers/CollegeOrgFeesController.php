@@ -15,7 +15,10 @@ class CollegeOrgFeesController extends Controller
 {
     public function index(Request $request)
     {
-        $organization = Auth::user()->organization;
+        $user = Auth::user();
+        abort_unless($user, 403);
+
+        $organization = $user->organization;
         if (!$organization) {
             return redirect()->route('dashboard')->with('error', 'Organization not found.');
         }
@@ -67,7 +70,10 @@ class CollegeOrgFeesController extends Controller
 
     public function create()
     {
-        $organization = Auth::user()->organization;
+        $user = Auth::user();
+        abort_unless($user, 403);
+
+        $organization = $user->organization;
         $accreditationDocuments = $organization->documents()
             ->where('document_type', 'Accreditation Certification')
             ->latest()
@@ -82,6 +88,9 @@ class CollegeOrgFeesController extends Controller
 
     public function store(Request $request)
     {
+        $user = Auth::user();
+        abort_unless($user, 403);
+
         $request->validate([
             'fee_name' => 'required|string|max:255',
             'purpose' => 'required|string|max:255',
@@ -96,13 +105,19 @@ class CollegeOrgFeesController extends Controller
             'supporting_file' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png|max:5120',
         ]);
 
-        $organization = Auth::user()->organization;
+        $organization = $user->organization;
         if (!$organization) {
             return redirect()->route('college_org.fees')->with('error', 'Organization not found.');
         }
 
         $activeSY = SchoolYear::where('is_active', true)->first();
         $activeSem = Semester::where('is_active', true)->first();
+
+        if (! $activeSY || ! $activeSem) {
+            return back()->withErrors([
+                'academic_period' => 'No active school year or semester. Contact OSA for confirmation before submitting a fee.'
+            ])->withInput();
+        }
 
         // All college-local fees start with dean approval.
         // Fees created by `college_org` (and child offices) require Dean -> OSA approval flow.
@@ -201,7 +216,10 @@ class CollegeOrgFeesController extends Controller
 
     public function show(\App\Models\Fee $fee)
     {
-        $organization = Auth::user()->organization;
+        $user = Auth::user();
+        abort_unless($user, 403);
+
+        $organization = $user->organization;
         $allowedOrgIds = [$organization->id];
         if ($organization->motherOrganization) $allowedOrgIds[] = $organization->motherOrganization->id;
         if ($organization->motherOrganization && $organization->motherOrganization->inherits_osa_fees) {
@@ -219,7 +237,10 @@ class CollegeOrgFeesController extends Controller
 
     public function edit(\App\Models\Fee $fee)
     {
-        $organization = Auth::user()->organization;
+        $user = Auth::user();
+        abort_unless($user, 403);
+
+        $organization = $user->organization;
         if ($fee->organization_id !== $organization->id) abort(403);
         if ($fee->status === 'approved') {
             return redirect()->route('college_org.fees')->with('error', 'Approved fees cannot be edited.');
@@ -229,7 +250,10 @@ class CollegeOrgFeesController extends Controller
 
     public function update(Request $request, \App\Models\Fee $fee)
     {
-        $organization = Auth::user()->organization;
+        $user = Auth::user();
+        abort_unless($user, 403);
+
+        $organization = $user->organization;
         if ($fee->organization_id !== $organization->id) abort(403);
         if ($fee->status === 'approved') {
             return redirect()->route('college_org.fees')->with('error', 'Approved fees cannot be modified.');
@@ -253,8 +277,6 @@ class CollegeOrgFeesController extends Controller
         $fee->remittance_percent = $request->remittance_percent ?? null;
         $fee->requirement_level = $request->requirement_level;
         $fee->recurrence = $request->recurrence;
-
-        $organization = Auth::user()->organization;
 
         if ($request->hasFile('accreditation_file')) {
             $file = $request->file('accreditation_file');
@@ -295,7 +317,10 @@ class CollegeOrgFeesController extends Controller
 
     public function destroy(\App\Models\Fee $fee)
     {
-        $organization = Auth::user()->organization;
+        $user = Auth::user();
+        abort_unless($user, 403);
+
+        $organization = $user->organization;
         if ($fee->organization_id !== $organization->id) abort(403);
         if ($fee->status === 'approved') return back()->with('error', 'Approved fees cannot be deleted.');
 
@@ -320,7 +345,10 @@ class CollegeOrgFeesController extends Controller
 
     public function submitAppeal(Request $request, \App\Models\Fee $fee)
     {
-        $organization = Auth::user()->organization;
+        $user = Auth::user();
+        abort_unless($user, 403);
+
+        $organization = $user->organization;
         if ($fee->organization_id !== $organization->id && ($organization->motherOrganization?->id ?? null) !== $fee->organization_id) {
             abort(403);
         }

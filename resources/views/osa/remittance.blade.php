@@ -29,6 +29,46 @@
 
 </div>
 
+<div class="bg-white rounded-xl shadow p-6 mb-10">
+    <h3 class="text-lg font-semibold mb-5 border-b pb-2">Filter Remittance by Period</h3>
+
+    <form method="GET" action="{{ route('osa.remittance') }}" class="grid grid-cols-1 md:grid-cols-3 gap-5 items-end">
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">School Year</label>
+            <select id="filter_school_year_id" name="school_year_id" required
+                class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                onchange="updateSemesterOptions()">
+                @foreach($schoolYears as $sy)
+                    <option value="{{ $sy->id }}" @selected($selectedSchoolYear && $selectedSchoolYear->id === $sy->id)>
+                        {{ $sy->sy_start->format('Y') }} - {{ $sy->sy_end->format('Y') }}
+                    </option>
+                @endforeach
+            </select>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Semester</label>
+            <select id="filter_semester_id" name="semester_id" required data-selected="{{ $selectedSemester?->id }}"
+                class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                @if($selectedSchoolYear)
+                    @foreach($selectedSchoolYear->semesters as $semester)
+                        <option value="{{ $semester->id }}" @selected($selectedSemester && $selectedSemester->id === $semester->id)>
+                            {{ $semester->name }}
+                        </option>
+                    @endforeach
+                @endif
+            </select>
+        </div>
+
+        <div>
+            <button type="submit"
+                class="w-full bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition">
+                Show Period
+            </button>
+        </div>
+    </form>
+</div>
+
 
 {{-- Confirm Remittance --}}
 <div class="bg-white rounded-xl shadow p-6 mb-10">
@@ -40,13 +80,15 @@
 <form method="POST" action="{{ route('osa.remittance.confirm') }}" class="grid grid-cols-1 md:grid-cols-3 gap-5 items-end">
 
         @csrf
+        <input type="hidden" name="school_year_id" id="school_year_id" value="{{ $selectedSchoolYear?->id }}">
+        <input type="hidden" name="semester_id" id="semester_id" value="{{ $selectedSemester?->id }}">
 
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">
                 Select Organization
             </label>
 
-        <select id="from_organization_id" name="organization_id" required  class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+        <select id="from_organization_id" name="organization_id" required  class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" onchange="updateRemaining()">
             <option value="">-- Choose Organization --</option>
             @foreach($remittanceData as $row)
                 <option value="{{ $row['organization']->id }}" data-remaining="{{ $row['remaining'] }}">
@@ -84,17 +126,52 @@
 
 <script>
     function updateRemaining() {
-
         const select = document.getElementById('from_organization_id');
         const amountInput = document.getElementById('amount');
-
         const selectedOption = select.options[select.selectedIndex];
         const remaining = parseFloat(selectedOption.dataset.remaining ?? 0);
 
         amountInput.max = remaining;
-
     }
 
+    function updateSemesterOptions() {
+        const yearSelect = document.getElementById('filter_school_year_id');
+        const semesterSelect = document.getElementById('filter_semester_id');
+        const selectedSemesterId = semesterSelect.dataset.selected;
+        const semesters = window.remittanceSemesters?.[yearSelect.value] ?? [];
+
+        semesterSelect.innerHTML = '';
+
+        semesters.forEach(semester => {
+            const option = document.createElement('option');
+            option.value = semester.id;
+            option.textContent = semester.name;
+            if (selectedSemesterId && selectedSemesterId.toString() === semester.id.toString()) {
+                option.selected = true;
+            }
+            semesterSelect.appendChild(option);
+        });
+
+        const hiddenYear = document.getElementById('school_year_id');
+        const hiddenSemester = document.getElementById('semester_id');
+        if (hiddenYear) {
+            hiddenYear.value = yearSelect.value;
+        }
+        if (hiddenSemester) {
+            hiddenSemester.value = semesterSelect.value;
+        }
+    }
+
+    window.remittanceSemesters = @json($schoolYears->mapWithKeys(function ($sy) {
+        return [$sy->id => $sy->semesters->map(function ($semester) {
+            return ['id' => $semester->id, 'name' => $semester->name];
+        })->toArray()];
+    })->toArray());
+
+    window.addEventListener('DOMContentLoaded', function () {
+        updateSemesterOptions();
+        updateRemaining();
+    });
 </script>
 
 

@@ -187,9 +187,11 @@ class CoordinatorController extends Controller
 
     private function authorizeNote(PromissoryNote $note): void
     {
-        abort_unless(Auth::user()->isStudentCoordinator(), 403);
+        $user = Auth::user();
+        abort_unless($user, 403);
+        abort_unless($user->isStudentCoordinator(), 403);
         abort_unless($note->enrollment, 404);
-        abort_unless((int) $note->enrollment->college_id === (int) Auth::user()->college_id, 403);
+        abort_unless((int) $note->enrollment->college_id === (int) $user->college_id, 403);
     }
 
     private function resolveReportingContext(Request $request): array
@@ -206,10 +208,10 @@ class CoordinatorController extends Controller
 
         $selectedSemester = null;
 
-        if ($request->filled('semester_id')) {
+        if ($request->filled('semester_id') && $selectedSchoolYear) {
             $selectedSemester = Semester::where('school_year_id', $selectedSchoolYear->id)
                 ->findOrFail((int) $request->input('semester_id'));
-        } else {
+        } elseif ($selectedSchoolYear) {
             $selectedSemester = $semesters->firstWhere('is_active', true) ?? $semesters->first();
         }
 

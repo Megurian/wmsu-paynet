@@ -20,19 +20,20 @@ class OSAReportsController extends Controller
         $activeSem = $activeSY ? $activeSY->semesters()->where('is_active', true)->first() : null;
 
         $selectedSYId = $request->input('school_year_id', $activeSY->id ?? null);
-        $selectedSemId = $request->input('semester_id', $activeSem->id ?? null);
+        $selectedSemId = $request->input('semester_id');
+
+        $schoolYears = SchoolYear::orderBy('sy_start', 'desc')->get();
+        $semesters = $selectedSYId ? Semester::where('school_year_id', $selectedSYId)->get() : collect();
+
+        if (!$selectedSemId || !$semesters->pluck('id')->contains((int) $selectedSemId)) {
+            $selectedSemId = $semesters->first()?->id ?? $activeSem->id ?? null;
+        }
 
         $colleges = College::withCount('users')->get();
 
         $orgQuery = Organization::query()
             ->where(function ($q) use ($selectedSYId, $selectedSemId) {
-
-                $q->where('created_school_year_id', '<', $selectedSYId)
-                    ->orWhere(function ($q2) use ($selectedSYId, $selectedSemId) {
-
-                        $q2->where('created_school_year_id', $selectedSYId)
-                            ->where('created_semester_id', '<=', $selectedSemId);
-                    });
+                $this->applyCreatedTermFilter($q, $selectedSYId, $selectedSemId);
             })
             ->selectRaw(
                 'college_id, 
@@ -48,21 +49,11 @@ class OSAReportsController extends Controller
             $college->child_orgs_count = $orgQuery[$college->id]->child_orgs_count ?? 0;
         }
 
-        $schoolYears = SchoolYear::orderBy('sy_start', 'desc')->get();
-        $semesters = $selectedSYId ? Semester::where('school_year_id', $selectedSYId)->get() : collect();
-
         $motherOrgsQuery = Organization::whereNull('college_id')
             ->whereNull('mother_organization_id')
             ->where('org_code', '!=', 'OSA')
             ->where(function ($q) use ($selectedSYId, $selectedSemId) {
-                $q->whereNull('created_school_year_id')
-                    ->orWhere(function ($q2) use ($selectedSYId, $selectedSemId) {
-                        $q2->where('created_school_year_id', '<', $selectedSYId)
-                            ->orWhere(function ($q3) use ($selectedSYId, $selectedSemId) {
-                                $q3->where('created_school_year_id', $selectedSYId)
-                                    ->where('created_semester_id', '<=', $selectedSemId);
-                            });
-                    });
+                $this->applyCreatedTermFilter($q, $selectedSYId, $selectedSemId);
             });
 
         $motherOrgs = $motherOrgsQuery->get();
@@ -85,14 +76,7 @@ class OSAReportsController extends Controller
             ->whereNull('mother_organization_id')
             ->where('role', 'college_org')
             ->where(function ($q) use ($selectedSYId, $selectedSemId) {
-                $q->whereNull('created_school_year_id')
-                    ->orWhere(function ($q2) use ($selectedSYId, $selectedSemId) {
-                        $q2->where('created_school_year_id', '<', $selectedSYId)
-                            ->orWhere(function ($q3) use ($selectedSYId, $selectedSemId) {
-                                $q3->where('created_school_year_id', $selectedSYId)
-                                    ->where('created_semester_id', '<=', $selectedSemId);
-                            });
-                    });
+                $this->applyCreatedTermFilter($q, $selectedSYId, $selectedSemId);
             });
 
         $localOrgs = $localOrgsQuery->with('college')->get();
@@ -119,11 +103,7 @@ class OSAReportsController extends Controller
         $inheritedOsaFees = Fee::where('organization_id', $osaOrg->id) 
             ->where('fee_scope', 'university-wide') 
             ->where(function ($q) use ($selectedSYId, $selectedSemId) {
-                $q->where('created_school_year_id', '<', $selectedSYId)
-                    ->orWhere(function ($q2) use ($selectedSYId, $selectedSemId) {
-                        $q2->where('created_school_year_id', $selectedSYId)
-                            ->where('created_semester_id', '<=', $selectedSemId);
-                    });
+                $this->applyCreatedTermFilter($q, $selectedSYId, $selectedSemId);
             })
             ->get()
             ->map(function ($fee) use ($selectedSYId, $selectedSemId) {       
@@ -142,11 +122,7 @@ class OSAReportsController extends Controller
 
         $totalActiveFees = Fee::where('status', 'approved')
             ->where(function ($q) use ($selectedSYId, $selectedSemId) {
-                $q->where('created_school_year_id', '<', $selectedSYId)
-                    ->orWhere(function ($q2) use ($selectedSYId, $selectedSemId) {
-                        $q2->where('created_school_year_id', $selectedSYId)
-                            ->where('created_semester_id', '<=', $selectedSemId);
-                    });
+                $this->applyCreatedTermFilter($q, $selectedSYId, $selectedSemId);
             })
             ->count();
 
@@ -167,6 +143,28 @@ class OSAReportsController extends Controller
         ));
     }
 
+    private function applyCreatedTermFilter($q, $selectedSYId, $selectedSemId)
+    {
+        $q->whereNull('created_school_year_id');
+
+        if ($selectedSYId) {
+            $q->orWhere(function ($q2) use ($selectedSYId, $selectedSemId) {
+                $q2->where('created_school_year_id', '<', $selectedSYId)
+                    ->orWhere(function ($q3) use ($selectedSYId, $selectedSemId) {
+                        $q3->where('created_school_year_id', $selectedSYId);
+
+                        if ($selectedSemId) {
+                            $q3->where('created_semester_id', '<=', $selectedSemId);
+                        } else {
+                            $q3->whereNull('created_semester_id');
+                        }
+                    });
+            });
+        }
+
+        return $q;
+    }
+
     public function collegeDetails(Request $request, $collegeId)
     {
         $college = College::findOrFail($collegeId);
@@ -179,11 +177,7 @@ class OSAReportsController extends Controller
 
         $organizations = Organization::where('college_id', $collegeId)
             ->where(function ($q) use ($selectedSYId, $selectedSemId) {
-                $q->where('created_school_year_id', '<', $selectedSYId)
-                    ->orWhere(function ($q2) use ($selectedSYId, $selectedSemId) {
-                        $q2->where('created_school_year_id', $selectedSYId)
-                            ->where('created_semester_id', '<=', $selectedSemId);
-                    });
+                $this->applyCreatedTermFilter($q, $selectedSYId, $selectedSemId);
             })
             ->get();
 
@@ -276,11 +270,7 @@ class OSAReportsController extends Controller
         $fees = Fee::where(function ($q) use ($org, $selectedSYId, $selectedSemId, $isMotherOrg) {
             $q->where('organization_id', $org->id)
                 ->where(function ($q2) use ($selectedSYId, $selectedSemId) {
-                    $q2->where('created_school_year_id', '<', $selectedSYId)
-                        ->orWhere(function ($q3) use ($selectedSYId, $selectedSemId) {
-                            $q3->where('created_school_year_id', $selectedSYId)
-                                ->where('created_semester_id', '<=', $selectedSemId);
-                        });
+                    $this->applyCreatedTermFilter($q2, $selectedSYId, $selectedSemId);
                 });
 
             $shouldIncludeOsa = !(
@@ -293,11 +283,7 @@ class OSAReportsController extends Controller
                 $q->orWhere(function ($q4) use ($selectedSYId, $selectedSemId) {
                     $q4->where('fee_scope', 'university-wide')
                         ->where(function ($q5) use ($selectedSYId, $selectedSemId) {
-                            $q5->where('created_school_year_id', '<', $selectedSYId)
-                                ->orWhere(function ($q6) use ($selectedSYId, $selectedSemId) {
-                                    $q6->where('created_school_year_id', $selectedSYId)
-                                        ->where('created_semester_id', '<=', $selectedSemId);
-                                });
+                            $this->applyCreatedTermFilter($q5, $selectedSYId, $selectedSemId);
                         });
                 });
             }

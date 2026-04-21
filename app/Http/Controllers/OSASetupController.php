@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\SchoolYear;
 use App\Models\Semester;
+use App\Models\StudentEnrollment;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -234,15 +235,24 @@ class OSASetupController extends Controller
                     'ended_at' => now(),
                 ]);
 
+                // End-of-term auto-enrollment: paid and cleared students become officially enrolled.
+                StudentEnrollment::where('school_year_id', $schoolYear->id)
+                    ->where('semester_id', $activeSemester->id)
+                    ->where('cleared_for_enrollment', true)
+                    ->where('status', StudentEnrollment::PAID)
+                    ->update(['status' => StudentEnrollment::ENROLLED]);
+
+                // End-of-academic-year cleanup: void stale FOR_PAYMENT_VALIDATION records when the final semester closes.
+                if ($this->isFinalSemester($schoolYear, $activeSemester)) {
+                    StudentEnrollment::where('school_year_id', $schoolYear->id)
+                        ->where('status', StudentEnrollment::FOR_PAYMENT_VALIDATION)
+                        ->where('is_void', false)
+                        ->update(['is_void' => true]);
+                }
+
                 // Trigger delinquency processing when semester ends
                 $delinquencyService = app(\App\Services\PromissoryNoteDelinquencyService::class);
                 $delinquencyService->processDelinquency(now());
-
-                // Find and activate the next semester
-                $allSemesters = $schoolYear->semesters()->orderBy('created_at')->get();
-                $currentIndex = $allSemesters->search(function ($sem) use ($activeSemester) {
-                    return $sem->id === $activeSemester->id;
-                });
 
                 Log::info('Semester ended', [
                     'school_year_id' => $schoolYear->id,
@@ -292,6 +302,17 @@ class OSASetupController extends Controller
         }
 
         return back()->with('status', 'Semester started successfully.');
+    }
+
+    private function isFinalSemester(SchoolYear $schoolYear, Semester $semester): bool
+    {
+        $lastSemester = $schoolYear->semesters()
+            ->orderBy('starts_at')
+            ->orderBy('id')
+            ->get()
+            ->last();
+
+        return $lastSemester && $lastSemester->id === $semester->id;
     }
 
     private function buildSemesterPlan(

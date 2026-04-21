@@ -8,7 +8,7 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 
-<body class="min-h-screen bg-gray-100">
+<body class="min-h-screen bg-gray-100 page-shell">
 
 <main class="min-h-screen flex">
 
@@ -37,11 +37,11 @@
     </div>
 
     <!-- RIGHT COLUMN -->
-    <div class="w-full md:w-1/2 flex items-center justify-center px-4 py-8 sm:px-6 md:px-6 md:py-0">
+    <div class="w-full md:w-1/2 flex items-center justify-center px-4 py-8 sm:px-6 md:px-6 md:py-0 relative overflow-hidden">
+        <canvas id="auth-particles" class="absolute inset-0 w-full h-full pointer-events-none" aria-hidden="true"></canvas>
         <div
-            class="bg-white w-full max-w-md rounded-2xl shadow-xl p-6 sm:p-8
-                transition-all duration-300 ease-in-out
-                animate-slide-in-right"
+            class="relative bg-white w-full max-w-md rounded-2xl shadow-xl p-6 sm:p-8
+                transition-all duration-300 ease-in-out"
         >
             @yield('content')
         </div>

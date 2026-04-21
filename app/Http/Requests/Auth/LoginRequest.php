@@ -12,6 +12,18 @@ use Illuminate\Validation\ValidationException;
 class LoginRequest extends FormRequest
 {
     /**
+     * Prepare the data for validation.
+     */
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('email')) {
+            $this->merge([
+                'email' => strtolower(trim($this->input('email'))),
+            ]);
+        }
+    }
+
+    /**
      * Determine if the user is authorized to make this request.
      */
     public function authorize(): bool
@@ -41,15 +53,27 @@ class LoginRequest extends FormRequest
     {
         $this->ensureIsNotRateLimited();
 
-        if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
-            RateLimiter::hit($this->throttleKey());
+        if (! Auth::guard('web')->attempt($this->only('email', 'password'), $this->boolean('remember'))
+            && ! Auth::guard('student')->attempt($this->only('email', 'password'), $this->boolean('remember')))
+        {
+            RateLimiter::hit($this->throttleKey(), 900);
 
             throw ValidationException::withMessages([
-                'email' => trans('auth.failed'),
+                'email' => __('Invalid credentials.'),
             ]);
         }
 
         RateLimiter::clear($this->throttleKey());
+    }
+
+    public function email(): string
+    {
+        return $this->string('email');
+    }
+
+    public function password(): string
+    {
+        return $this->string('password');
     }
 
     /**

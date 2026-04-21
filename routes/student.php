@@ -7,7 +7,10 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('student')->name('student.')->group(function () {
     Route::middleware('guest.student')->group(function () {
-        Route::get('/login', [StudentAuthController::class, 'showLogin'])->name('login');
+        Route::get('/login', function () {
+            return redirect()->route('login');
+        })->name('login');
+
         Route::post('/login', [StudentAuthController::class, 'login']);
 
         Route::get('/forgot-password', [StudentPasswordController::class, 'showForgotPassword'])

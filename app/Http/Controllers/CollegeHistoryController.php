@@ -51,8 +51,11 @@ class CollegeHistoryController extends Controller
         $feesQuery = \App\Models\Fee::with('organization')
             ->where('status', 'approved')
             ->where(function ($q) use ($selectedSY, $selectedSemId) {
-                $q->whereNull('created_school_year_id')
-                    ->orWhere('created_school_year_id', '<=', $selectedSY);
+                $q->whereNull('created_school_year_id');
+
+                if ($selectedSY) {
+                    $q->orWhere('created_school_year_id', '<=', $selectedSY);
+                }
 
                 if ($selectedSemId) {
                     $q->where(function ($q2) use ($selectedSemId) {
@@ -251,8 +254,11 @@ class CollegeHistoryController extends Controller
         $feesQuery = \App\Models\Fee::with('organization')
             ->where('status', 'approved')
             ->where(function ($q) use ($selectedSY, $selectedSemId) {
-                $q->whereNull('created_school_year_id')
-                    ->orWhere('created_school_year_id', '<=', $selectedSY);
+                $q->whereNull('created_school_year_id');
+
+                if ($selectedSY) {
+                    $q->orWhere('created_school_year_id', '<=', $selectedSY);
+                }
 
                 if ($selectedSemId) {
                     $q->where(function ($q2) use ($selectedSemId) {

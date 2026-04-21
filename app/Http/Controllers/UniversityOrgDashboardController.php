@@ -15,7 +15,10 @@ class UniversityOrgDashboardController extends Controller
 {
     public function index()
     {
-        $motherOrg = Auth::user()->organization;
+        $user = Auth::user();
+        abort_unless($user, 403);
+
+        $motherOrg = $user->organization;
 
         if (!$motherOrg || $motherOrg->role !== 'university_org') {
             abort(403);
@@ -30,6 +33,33 @@ class UniversityOrgDashboardController extends Controller
             ->where('status', 'approved')
             ->pluck('id')
             ->toArray();
+
+        if (! $activeSY || ! $activeSem) {
+            $totalChildOrgs = $childOrgs->count();
+            $totalStudents = 0;
+            $totalStudentsPaid = 0;
+            $totalPaymentsCollected = 0;
+            $pendingStudents = 0;
+            $dailyPaymentLabels = collect();
+            $dailyPaymentData = collect();
+            $childOrgPerformance = collect();
+            $fees = collect();
+            $recentPayments = collect();
+
+            return view('university_org.dashboard', compact(
+                'motherOrg',
+                'totalChildOrgs',
+                'totalStudents',
+                'totalStudentsPaid',
+                'pendingStudents',
+                'totalPaymentsCollected',
+                'dailyPaymentLabels',
+                'dailyPaymentData',
+                'childOrgPerformance',
+                'fees',
+                'recentPayments'
+            ))->with('message', 'No active school year or semester is currently set.');
+        }
 
         /*
         SUMMARY METRICS

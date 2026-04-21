@@ -94,9 +94,9 @@ class PromissoryNoteSettlementService
                 throw new PromissoryNotePartialAllocationException("One or more selected fees do not exist.");
             }
 
-            if ($isOrgPayment && $selectedFees->where('fee_scope', 'college')->isNotEmpty()) {
+            if ($isOrgPayment && $selectedFees->where('fee_scope', 'college')->where('organization_id', '!=', ($user->organization_id ?? null))->isNotEmpty()) {
                 throw new PromissoryNotePartialAllocationException(
-                    "Selected fees include college-scoped fees which cannot be settled in organization payment."
+                    "Selected fees include college-scoped fees from other organizations which cannot be settled in organization payment."
                 );
             }
 
@@ -191,12 +191,15 @@ class PromissoryNoteSettlementService
             $randomSuffix = strtoupper(str_pad(dechex(random_int(0, 4095)), 3, '0', STR_PAD_LEFT));
             $transactionId = "{$collegeCode}-{$dateStr}-{$sequenceNum}-{$randomSuffix}";
 
+            $paymentSchoolYearId = $lockedNote->enrollment?->school_year_id ?? $activeSY->id ?? null;
+            $paymentSemesterId = $lockedNote->enrollment?->semester_id ?? $activeSem->id ?? null;
+
             $payment = Payment::create([
                 'student_id' => $lockedNote->student_id,
                 'enrollment_id' => $lockedNote->enrollment_id,
                 'organization_id' => $organizationId,
-                'school_year_id' => $activeSY->id ?? null,
-                'semester_id' => $activeSem->id ?? null,
+                'school_year_id' => $paymentSchoolYearId,
+                'semester_id' => $paymentSemesterId,
                 'payment_type' => 'PROMISSORY',
                 'promissory_note_id' => $lockedNote->id,
                 'amount_due' => $totalAllocated,

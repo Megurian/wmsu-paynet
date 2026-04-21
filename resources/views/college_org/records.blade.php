@@ -110,9 +110,9 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2l-6 7v5l-4 2v-7L3 6V4z" /> </svg> Filters
                     </button>
                 </div>
-                <div x-show="open" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-50" x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-50" x-transition:leave-end="opacity-0" class="fixed inset-0 bg-black bg-opacity-50 z-40" @click="open = false"></div>
+                <div x-cloak x-show="open" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-50" x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-50" x-transition:leave-end="opacity-0" class="fixed inset-0 bg-black bg-opacity-50 z-40" @click="open = false" style="display: none;"></div>
 
-                <div x-show="open" x-transition:enter="transform transition ease-in-out duration-300" x-transition:enter-start="translate-x-full" x-transition:enter-end="translate-x-0" x-transition:leave="transform transition ease-in-out duration-300" x-transition:leave-start="translate-x-0" x-transition:leave-end="translate-x-full" class="fixed right-0 top-0 h-full w-96 bg-white shadow-lg z-50 p-6 overflow-y-auto">
+                <div x-cloak x-show="open" x-transition:enter="transform transition ease-in-out duration-300" x-transition:enter-start="translate-x-full" x-transition:enter-end="translate-x-0" x-transition:leave="transform transition ease-in-out duration-300" x-transition:leave-start="translate-x-0" x-transition:leave-end="translate-x-full" class="fixed right-0 top-0 h-full w-96 bg-white shadow-lg z-50 p-6 overflow-y-auto" style="display: none;">
 
                     <div class="flex justify-between items-center mb-4">
                         <h3 class="text-xl font-semibold">Filter Payments</h3>
@@ -283,10 +283,10 @@
 </div>
 
 <div x-data="{ open: false }" x-on:open-report-modal.window="open = true">
-    <div x-show="open" class="fixed inset-0 bg-black bg-opacity-40 z-50" x-transition @click="open = false">
+    <div x-cloak x-show="open" class="fixed inset-0 bg-black bg-opacity-40 z-50" x-transition @click="open = false" style="display: none;">
     </div>
 
-    <div x-show="open" x-transition class="fixed inset-0 flex items-center justify-center z-50">
+    <div x-cloak x-show="open" x-transition class="fixed inset-0 flex items-center justify-center z-50" style="display: none;">
 
         <div class="bg-white w-96 rounded-2xl shadow-xl p-6 space-y-6">
 

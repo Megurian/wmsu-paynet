@@ -93,7 +93,7 @@
 
         <div>
             <h3 class="font-medium">Submitted By</h3>
-            <p class="text-gray-700">{{ $fee->user?->name ?? '—' }} — {{ $fee->created_at->format('Y-m-d') }}</p>
+            <p class="text-gray-700">{{ $fee->user?->full_name ?? $fee->user?->name ?? '—' }} — {{ $fee->created_at->format('Y-m-d') }}</p>
         </div>
 
         <!-- Appeals history (read-only) -->

@@ -68,24 +68,29 @@ class ValidateStudentsController extends Controller
             ->paginate(40)
             ->withQueryString();
 
-        $activeEnrollments = StudentEnrollment::where('school_year_id', $activeSY->id)
-            ->where('semester_id', $activeSem->id)
-            ->get()
-            ->keyBy('student_id');
+        if ($activeSY && $activeSem) {
+            $activeEnrollments = StudentEnrollment::where('school_year_id', $activeSY->id)
+                ->where('semester_id', $activeSem->id)
+                ->get()
+                ->keyBy('student_id');
 
-        $previousEnrollments = StudentEnrollment::whereIn('student_id', $students->pluck('id'))
-            ->where(function ($q) use ($activeSY, $activeSem) {
-                $q->where('school_year_id', '<', $activeSY->id)
-                    ->orWhere(function ($q2) use ($activeSY, $activeSem) {
-                        $q2->where('school_year_id', $activeSY->id)
-                            ->where('semester_id', '<', $activeSem->id);
-                    });
-            })
-            ->orderBy('school_year_id', 'desc')
-            ->orderBy('semester_id', 'desc')
-            ->get()
-            ->groupBy('student_id')
-            ->map(fn($rows) => $rows->first());
+            $previousEnrollments = StudentEnrollment::whereIn('student_id', $students->pluck('id'))
+                ->where(function ($q) use ($activeSY, $activeSem) {
+                    $q->where('school_year_id', '<', $activeSY->id)
+                        ->orWhere(function ($q2) use ($activeSY, $activeSem) {
+                            $q2->where('school_year_id', $activeSY->id)
+                                ->where('semester_id', '<', $activeSem->id);
+                        });
+                })
+                ->orderBy('school_year_id', 'desc')
+                ->orderBy('semester_id', 'desc')
+                ->get()
+                ->groupBy('student_id')
+                ->map(fn($rows) => $rows->first());
+        } else {
+            $activeEnrollments = collect();
+            $previousEnrollments = collect();
+        }
 
         foreach ($students as $student) {
             $latest = $student->enrollments->first() ?? null;
@@ -129,6 +134,12 @@ class ValidateStudentsController extends Controller
         $activeSY = SchoolYear::where('is_active', true)->first();
         $activeSem = Semester::where('is_active', true)->first();
 
+        if (! $activeSY || ! $activeSem) {
+            return back()->withErrors([
+                'academic_period' => 'No active school year or semester. Contact OSA for confirmation before validating a student.'
+            ]);
+        }
+
         $request->validate([
             "course_id.$studentId" => 'required|exists:courses,id',
             "year_level_id.$studentId" => 'required|exists:year_levels,id',
@@ -163,6 +174,12 @@ class ValidateStudentsController extends Controller
         $collegeId = Auth::user()->college_id;
         $activeSY = SchoolYear::where('is_active', true)->first();
         $activeSem = Semester::where('is_active', true)->first();
+
+        if (! $activeSY || ! $activeSem) {
+            return back()->withErrors([
+                'academic_period' => 'No active school year or semester. Contact OSA for confirmation before bulk validating students.'
+            ]);
+        }
 
         $request->validate([
             'selected_students' => 'required|array',
@@ -316,11 +333,23 @@ class ValidateStudentsController extends Controller
         $activeSY = SchoolYear::where('is_active', true)->first();
         $activeSem = Semester::where('is_active', true)->first();
 
+        if (! $activeSY || ! $activeSem) {
+            return back()->withErrors([
+                'academic_period' => 'No active school year or semester. Contact OSA for confirmation before marking payment completed.'
+            ]);
+        }
+
         $enrollment = StudentEnrollment::where([
             'student_id' => $student->id,
             'school_year_id' => $activeSY->id,
             'semester_id' => $activeSem->id,
-        ])->firstOrFail();
+        ])->first();
+
+        if (! $enrollment) {
+            return back()->withErrors([
+                'enrollment' => 'Active enrollment not found for the current school year and semester.'
+            ]);
+        }
 
         // no columns left to update; payment details are stored in payments table
 
@@ -333,6 +362,12 @@ class ValidateStudentsController extends Controller
 
         $activeSY = SchoolYear::where('is_active', true)->first();
         $activeSem = Semester::where('is_active', true)->first();
+
+        if (! $activeSY || ! $activeSem) {
+            return back()->withErrors([
+                'academic_period' => 'No active school year or semester. Contact OSA for confirmation before clearing enrollment.'
+            ]);
+        }
 
         try {
             $clearanceAudit = null;
@@ -402,6 +437,15 @@ class ValidateStudentsController extends Controller
             ]);
         }
 
+        $activeSYId = SchoolYear::where('is_active', true)->value('id');
+        $activeSemId = Semester::where('is_active', true)->value('id');
+
+        if (! $activeSYId || ! $activeSemId) {
+            return back()->withErrors([
+                'promissory_note' => 'No active school year or semester. Contact OSA for confirmation before issuing a promissory note.',
+            ]);
+        }
+
         $dueDateCeiling = $this->resolvePromissoryNoteDueDateCeiling($activeEnrollment);
         $activeSemester = Semester::where('is_active', true)->first();
 
@@ -445,12 +489,16 @@ class ValidateStudentsController extends Controller
         }
 
         try {
-            $note = DB::transaction(function () use ($student, $issuanceService, $context, $validated, $requestedDueDate) {
+            $note = DB::transaction(function () use ($student, $issuanceService, $context, $validated, $requestedDueDate, $activeSYId, $activeSemId) {
                 $enrollment = StudentEnrollment::where([
                     'student_id' => $student->id,
-                    'school_year_id' => SchoolYear::where('is_active', true)->value('id'),
-                    'semester_id' => Semester::where('is_active', true)->value('id'),
-                ])->lockForUpdate()->firstOrFail();
+                    'school_year_id' => $activeSYId,
+                    'semester_id' => $activeSemId,
+                ])->lockForUpdate()->first();
+
+                if (! $enrollment) {
+                    abort(404, 'Active enrollment not found for the current academic period.');
+                }
 
                 abort_unless(
                     $enrollment->college_id === Auth::user()->college_id,
@@ -659,8 +707,9 @@ class ValidateStudentsController extends Controller
         }
 
         $allOrgIds = array_values(array_unique($allOrgIds));
- $activeSY = SchoolYear::where('is_active', true)->first();
-$activeSem = Semester::where('is_active', true)->first();
+
+        $activeSY = SchoolYear::where('is_active', true)->first();
+        $activeSem = Semester::where('is_active', true)->first();
 
         return \App\Models\Fee::where('status', 'APPROVED')
             ->where(function ($q) use ($allOrgIds, $collegeId) {
@@ -672,7 +721,10 @@ $activeSem = Semester::where('is_active', true)->first();
             })
             ->with([
                 'organization',
-                'payments' => fn($q) => $q ->where('student_id', $student->id) ->where('school_year_id', $activeSY->id) ->where('semester_id', $activeSem->id)
+                'payments' => fn($q) => $q
+                    ->where('student_id', $student->id)
+                    ->when($activeSY, fn($q2) => $q2->where('school_year_id', $activeSY->id))
+                    ->when($activeSem, fn($q2) => $q2->where('semester_id', $activeSem->id)),
             ])
             ->get()
             ->unique('id')
