@@ -18,7 +18,7 @@ class CollegeOrgDashboardController extends Controller
         $orgId = $user->organization_id;
 
         $org = Organization::where('id', $orgId)
-            ->where('college_id', $collegeId)
+            ->where('role', 'college_org')
             ->firstOrFail();
 
         // Payments for THIS college org only
