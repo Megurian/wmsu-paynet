@@ -59,6 +59,78 @@
     @endforeach
 </div>
 
+<div class="mb-6 rounded-2xl border border-gray-200 bg-white p-5">
+    <form method="GET" action="{{ route('college.promissory_notes.index') }}" class="grid gap-3 md:grid-cols-2 lg:grid-cols-[1.8fr_1fr_1fr_1fr_auto] items-end">
+        <input type="hidden" name="tab" value="{{ $tab }}">
+
+        <div>
+            <label for="search" class="sr-only">Search</label>
+            <input
+                id="search"
+                name="search"
+                type="text"
+                value="{{ $search ?? '' }}"
+                placeholder="Search PN #, student name, or student ID"
+                class="w-full rounded-2xl border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 shadow-sm focus:border-red-600 focus:outline-none focus:ring-2 focus:ring-red-100"
+            >
+        </div>
+
+        <div>
+            <label for="school_year_id" class="sr-only">School Year</label>
+            <select
+                id="school_year_id"
+                name="school_year_id"
+                class="w-full rounded-2xl border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 shadow-sm focus:border-red-600 focus:outline-none focus:ring-2 focus:ring-red-100"
+            >
+                <option value="">All school years</option>
+                @foreach($schoolYears as $schoolYear)
+                    <option value="{{ $schoolYear->id }}" {{ optional($selectedSchoolYear)->id === $schoolYear->id ? 'selected' : '' }}>
+                        {{ $schoolYear->sy_start->format('Y') }} - {{ $schoolYear->sy_end->format('Y') }}
+                    </option>
+                @endforeach
+            </select>
+        </div>
+
+        <div>
+            <label for="semester_id" class="sr-only">Semester</label>
+            <select
+                id="semester_id"
+                name="semester_id"
+                class="w-full rounded-2xl border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 shadow-sm focus:border-red-600 focus:outline-none focus:ring-2 focus:ring-red-100"
+            >
+                <option value="">All semesters</option>
+                @foreach($semesters as $semester)
+                    <option value="{{ $semester->id }}" {{ optional($selectedSemester)->id === $semester->id ? 'selected' : '' }}>
+                        {{ ucfirst($semester->name) }}
+                    </option>
+                @endforeach
+            </select>
+        </div>
+
+        <div>
+            <label for="document_filter" class="sr-only">Document status</label>
+            <select
+                id="document_filter"
+                name="document_filter"
+                class="w-full rounded-2xl border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 shadow-sm focus:border-red-600 focus:outline-none focus:ring-2 focus:ring-red-100"
+            >
+                <option value="all" {{ ($documentFilter ?? 'all') === 'all' ? 'selected' : '' }}>All documents</option>
+                <option value="has_document" {{ ($documentFilter ?? '') === 'has_document' ? 'selected' : '' }}>Has uploaded document</option>
+                <option value="no_document" {{ ($documentFilter ?? '') === 'no_document' ? 'selected' : '' }}>Without document</option>
+            </select>
+        </div>
+
+        <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <button type="submit" class="inline-flex items-center justify-center rounded-2xl bg-red-800 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700">
+                Apply
+            </button>
+            <a href="{{ route('college.promissory_notes.index', ['tab' => $tab]) }}" class="inline-flex items-center justify-center rounded-2xl border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50">
+                Reset
+            </a>
+        </div>
+    </form>
+</div>
+
 @if($notes->isEmpty())
     <div class="rounded-2xl border border-dashed border-gray-300 bg-white p-10 text-center text-gray-500">
         No promissory notes found for this view.
