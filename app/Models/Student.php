@@ -123,7 +123,7 @@ protected $casts = [
 
 public function organizationOfficers()
 {
-    return $this->hasMany(OrganizationOfficer::class, 'user_id');
+    return $this->hasMany(OrganizationOfficer::class, 'student_id');
 }
 
 public function hasOrganizationAccess(): bool
