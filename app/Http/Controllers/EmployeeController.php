@@ -18,6 +18,9 @@ class EmployeeController extends Controller
 {
     public function store(Request $request)
     {
+        $user = Auth::user();
+        abort_unless($user, 403);
+
         $request->validate([
             'first_name' => 'required',
             'last_name' => 'required',
@@ -35,12 +38,12 @@ class EmployeeController extends Controller
         }
 
         Employee::create([
-            'college_id' => Auth::user()->college_id,
-           'first_name' => strtoupper($request->first_name),
+            'college_id' => $user->college_id,
+            'first_name' => strtoupper($request->first_name),
             'last_name' => strtoupper($request->last_name),
             'middle_name' => strtoupper($request->middle_name),
             'suffix' => $request->suffix,
-             'email' => $request->email, 
+            'email' => $request->email,
             'department' => $department,
             'position' => $request->position ?? [],
             'has_account' => false,
@@ -86,6 +89,9 @@ class EmployeeController extends Controller
 
 public function createAccount(Request $request, Employee $employee)
 {
+    $user = Auth::user();
+    abort_unless($user, 403);
+
     $request->validate([
         'email' => 'required|email|unique:users,email',
         'password' => 'required|min:6',
@@ -105,6 +111,12 @@ public function createAccount(Request $request, Employee $employee)
     $activeSY = SchoolYear::where('is_active', true)->first();
     $activeSem = Semester::where('is_active', true)->first();
 
+    if (! $activeSY || ! $activeSem) {
+        return back()->withErrors([
+            'academic_period' => 'No active school year or semester. Contact OSA for confirmation before creating assignments.'
+        ]);
+    }
+
     EmployeeAssignment::updateOrCreate(
         [
             'employee_id' => $employee->id,
@@ -122,7 +134,7 @@ public function createAccount(Request $request, Employee $employee)
         'password' => bcrypt($request->password),
         'first_name' => $employee->first_name,
         'last_name' => $employee->last_name,
-        'college_id' => auth()->user()->college_id,
+        'college_id' => $user->college_id,
         'role' => $roles,
         'course_id' => in_array('adviser', $roles) ? $request->course_id : null,
     ]);
@@ -138,11 +150,20 @@ public function createAccount(Request $request, Employee $employee)
 
 public function bulkAssign(Request $request)
 {
+    $user = Auth::user();
+    abort_unless($user, 403);
+
     $rolesData = $request->roles ?? [];
     $courseData = $request->course_id ?? [];
 
     $activeSY = SchoolYear::where('is_active', true)->first();
     $activeSem = Semester::where('is_active', true)->first();
+
+    if (! $activeSY || ! $activeSem) {
+        return back()->withErrors([
+            'academic_period' => 'No active school year or semester. Contact OSA for confirmation before bulk assignment.'
+        ]);
+    }
 
     $employeeIds = Employee::pluck('id')->toArray();
 

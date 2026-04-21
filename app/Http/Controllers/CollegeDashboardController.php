@@ -12,11 +12,34 @@ use App\Models\Payment;
 class CollegeDashboardController extends Controller
 {
     public function index()
-{
-    $collegeId = Auth::user()->college_id;
+    {
+        $user = Auth::user();
+        abort_unless($user, 403);
 
-    $activeSY = \App\Models\SchoolYear::where('is_active', true)->first();
-    $activeSem = \App\Models\Semester::where('is_active', true)->first();
+        $collegeId = $user->college_id;
+
+        $activeSY = \App\Models\SchoolYear::where('is_active', true)->first();
+        $activeSem = \App\Models\Semester::where('is_active', true)->first();
+        $organizations = Organization::where('college_id', $collegeId)->get();
+
+        if (! $activeSY || ! $activeSem) {
+            $totalStudents = 0;
+        $totalFees = 0;
+        $totalPayments = 0;
+        $pendingApprovals = 0;
+        $recentStudents = collect();
+        $recentFees = collect();
+
+        return view('college.dashboard', compact(
+            'totalStudents',
+            'totalFees',
+            'totalPayments',
+            'pendingApprovals',
+            'recentStudents',
+            'recentFees',
+            'organizations'
+        ))->with('message', 'No active school year or semester is currently set.');
+    }
 
     $totalStudents = StudentEnrollment::where('college_id', $collegeId)
         ->where('school_year_id', $activeSY->id)

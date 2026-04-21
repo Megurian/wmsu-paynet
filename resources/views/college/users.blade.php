@@ -79,7 +79,7 @@ $activeTab = request()->get('tab', 'college');
 
             <form method="POST" action="{{ route('college.courses.store') }}" class="flex gap-2 mb-4">
                 @csrf
-                <input type="text" name="name" required class="flex-1 border rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-red-500" placeholder="e.g. BS Computer Science">
+                <input type="text" name="name" required class="flex-1 border rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-red-500" placeholder="e.g. BS CS, BS IT, ACT">
                 <button type="button" onclick="openConfirmModal({
                                 title: 'Course',
                                 message: 'Do you want to proceed?',
@@ -116,7 +116,7 @@ $activeTab = request()->get('tab', 'college');
 
             <form method="POST" action="{{ route('college.years.store') }}" class="flex gap-2 mb-4">
                 @csrf
-                <input type="text" name="name" required class="flex-1 border rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-red-500" placeholder="e.g. 1st Year">
+                <input type="text" name="name" required class="flex-1 border rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-red-500" placeholder="e.g. 1, 2, 3, 4">
                 <button type="button" onclick="openConfirmModal({
                             title: 'Year Level',
                             message: 'Do you want to proceed?',
@@ -153,7 +153,7 @@ $activeTab = request()->get('tab', 'college');
 
             <form method="POST" action="{{ route('college.sections.store') }}" class="flex gap-2 mb-4">
                 @csrf
-                <input type="text" name="name" required class="flex-1 border rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-red-500" placeholder="Section (e.g. A)">
+                <input type="text" name="name" required class="flex-1 border rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-red-500" placeholder="e.g. A, B, C">
                 <button type="button" onclick="openConfirmModal({
                                     title: 'Sections',
                                     message: 'Do you want to proceed?',

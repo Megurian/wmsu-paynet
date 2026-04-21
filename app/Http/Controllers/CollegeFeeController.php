@@ -62,6 +62,9 @@ class CollegeFeeController extends Controller
 
     public function store(Request $request)
     {
+        $user = auth()->user();
+        abort_unless($user, 403);
+
         $data = $request->validate([
             'fee_name' => 'required|string',
             'purpose' => 'required|string',

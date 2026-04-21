@@ -17,10 +17,13 @@ class CollegeUserController extends Controller
 {
     public function index(Request $request)
     {
+        $user = Auth::user();
+        abort_unless($user, 403);
+
         $activeSY = SchoolYear::where('is_active', true)->first();
         $activeSem = Semester::where('is_active', true)->first();
 
-        $collegeId = Auth::user()->college_id;
+        $collegeId = $user->college_id;
 
     
         $allEmployees = Employee::with(['user', 'currentAssignment'])
@@ -111,6 +114,7 @@ class CollegeUserController extends Controller
         ]);
 
         $college = Auth::user()->college;
+        abort_unless($college, 404);
 
         if ($request->hasFile('college_logo')) {
             $path = $request->file('college_logo')->store('college_logos', 'public');
@@ -129,6 +133,8 @@ class CollegeUserController extends Controller
         ]);
 
         $college = Auth::user()->college;
+        abort_unless($college, 404);
+
         $college->name = $request->college_name;
         $college->save();
 
@@ -155,6 +161,10 @@ class CollegeUserController extends Controller
 
 public function toggle(Employee $employee)
 {
+    $user = Auth::user();
+    abort_unless($user, 403);
+    abort_unless($employee->college_id === $user->college_id, 403);
+
     $employee->update([
         'is_active' => !$employee->is_active
     ]);
@@ -174,16 +184,14 @@ public function roleHistory(Request $request)
     ]);
 
     $schoolYearId = $request->school_year_id ?? $activeSY?->id;
-    $semesterName = $request->semester_id ?? $activeSem?->name;
+    $semesterId = $request->semester_id ?? $activeSem?->id;
 
     if ($schoolYearId) {
         $query->where('school_year_id', $schoolYearId);
     }
 
-    if ($semesterName) {
-        $query->whereHas('semester', function ($q) use ($semesterName) {
-            $q->where('name', $semesterName);
-        });
+    if ($semesterId) {
+        $query->where('semester_id', $semesterId);
     }
 
     $assignments = $query->get();
@@ -195,7 +203,6 @@ public function roleHistory(Request $request)
             'employee' => $first->employee,
             'schoolYear' => $first->schoolYear,
             'semester' => $first->semester,
-
             'roles' => $items->pluck('positions')
                 ->flatten()
                 ->unique()

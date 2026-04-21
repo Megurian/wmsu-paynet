@@ -6,6 +6,7 @@ use App\Http\Controllers\OSACollegeController;
 use App\Http\Controllers\OSADashController;
 use App\Http\Controllers\OSARemittanceController;
 use App\Http\Controllers\OSAOrganizationsController;
+use App\Http\Controllers\OSASystemMaintenanceController;
 use App\Http\Controllers\CollegeAcademicController;
 use App\Http\Controllers\CollegeStudentController;
 use App\Http\Controllers\CollegeDashboardController;
@@ -76,6 +77,15 @@ Route::middleware(['auth', 'role:osa'])->group(function () {
     Route::post('/osa/setup/{id}/add-semester', [OSASetupController::class, 'addSemester'])->name('osa.setup.addSemester');
     Route::post('/osa/setup/{schoolYear}/start-semester/{semester}', [OSASetupController::class, 'startSemester'])->name('osa.setup.start-semester');
     Route::post('/osa/setup/{schoolYear}/end-semester', [OSASetupController::class, 'endSemester'])->name('osa.setup.end-semester');
+
+    Route::get('/osa/system-maintenance', [OSASystemMaintenanceController::class, 'index'])
+        ->name('osa.system-maintenance');
+
+    Route::post('/osa/system-maintenance/email-settings', [OSASystemMaintenanceController::class, 'saveEmailSettings'])
+        ->name('osa.system-maintenance.email-settings');
+
+    Route::post('/osa/system-maintenance/execute-command', [OSASystemMaintenanceController::class, 'executeConsoleCommand'])
+        ->name('osa.system-maintenance.execute-command');
 });
 
 Route::middleware(['auth', 'role:osa', CheckActiveSchoolYear::class])->group(function () {

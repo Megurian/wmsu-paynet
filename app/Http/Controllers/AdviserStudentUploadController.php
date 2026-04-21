@@ -236,6 +236,13 @@ public function reAddOldStudent(Request $request, $studentId)
 
     $activeSY = SchoolYear::where('is_active', true)->first();
     $activeSem = Semester::where('is_active', true)->first();
+
+    if (! $activeSY || ! $activeSem) {
+        return back()->withErrors([
+            'academic_period' => 'No active school year or semester. Contact OSA for confirmation before re-adding students.'
+        ]);
+    }
+
     $previousEnrollment = $this->getPreviousTermEnrollment($studentId, $activeSY, $activeSem);
 
     $prev = StudentEnrollment::where('student_id', $studentId)
@@ -295,6 +302,12 @@ public function reAddBulk(Request $request)
 
     $activeSY = SchoolYear::where('is_active', true)->first();
     $activeSem = Semester::where('is_active', true)->first();
+
+    if (! $activeSY || ! $activeSem) {
+        return back()->withErrors([
+            'academic_period' => 'No active school year or semester. Contact OSA for confirmation before re-adding students.'
+        ]);
+    }
 
     foreach ($request->students as $studentId) {
         $previousEnrollment = $this->getPreviousTermEnrollment($studentId, $activeSY, $activeSem);
@@ -390,14 +403,25 @@ public function updateField(Request $request, $id)
 
     $student = Student::findOrFail($id);
 
-    $enrollment = StudentEnrollment::where('student_id', $student->id)
-        ->latest('id')
-        ->first();
+    $activeSY = SchoolYear::where('is_active', true)->first();
+    $activeSem = Semester::where('is_active', true)->first();
 
-    if (!$enrollment) {
+    if (! $activeSY || ! $activeSem) {
         return response()->json([
             'success' => false,
-            'message' => 'Enrollment not found'
+            'message' => 'Active school year or semester not found',
+        ], 422);
+    }
+
+    $enrollment = StudentEnrollment::where('student_id', $student->id)
+        ->where('school_year_id', $activeSY->id)
+        ->where('semester_id', $activeSem->id)
+        ->first();
+
+    if (! $enrollment) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Current term enrollment not found'
         ], 404);
     }
 

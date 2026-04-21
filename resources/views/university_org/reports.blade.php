@@ -37,8 +37,13 @@
     </div>
 
     <div class="p-4 bg-gray-50 rounded shadow flex flex-wrap gap-4">
-        <p class="text-sm text-gray-700"><span class="font-semibold">School Year:</span> {{ \Carbon\Carbon::parse($selectedSY->sy_start)->year }} - {{ \Carbon\Carbon::parse($selectedSY->sy_end)->year }}</p>
-        <p class="text-sm text-gray-700"><span class="font-semibold">Semester:</span> {{ ucfirst($selectedSem->name) }}</p>
+        @if($selectedSY && $selectedSem)
+            <p class="text-sm text-gray-700"><span class="font-semibold">School Year:</span> {{ \Carbon\Carbon::parse($selectedSY->sy_start)->year }} - {{ \Carbon\Carbon::parse($selectedSY->sy_end)->year }}</p>
+            <p class="text-sm text-gray-700"><span class="font-semibold">Semester:</span> {{ ucfirst($selectedSem->name) }}</p>
+        @else
+            <p class="text-sm text-gray-700"><span class="font-semibold">School Year:</span> Not selected</p>
+            <p class="text-sm text-gray-700"><span class="font-semibold">Semester:</span> Not selected</p>
+        @endif
     </div>
 
     @if($motherOrg)

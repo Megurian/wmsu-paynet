@@ -15,7 +15,10 @@ class UniversityOrgFeesController extends Controller
 {
     public function index()
     {
-        $organization = Auth::user()->organization;
+        $user = Auth::user();
+        abort_unless($user, 403);
+
+        $organization = $user->organization;
         if (!$organization) {
             return redirect()->route('dashboard')->with('error', 'Organization not found.');
         }
@@ -30,7 +33,10 @@ class UniversityOrgFeesController extends Controller
      */
     public function show(Fee $fee)
     {
-        $organization = Auth::user()->organization;
+        $user = Auth::user();
+        abort_unless($user, 403);
+
+        $organization = $user->organization;
         if (!$organization || $fee->organization_id !== $organization->id) {
             abort(403);
         }
@@ -43,7 +49,10 @@ class UniversityOrgFeesController extends Controller
 
     public function edit(Fee $fee)
     {
-        $organization = Auth::user()->organization;
+        $user = Auth::user();
+        abort_unless($user, 403);
+
+        $organization = $user->organization;
         if (!$organization || $fee->organization_id !== $organization->id) {
             abort(403);
         }
@@ -57,7 +66,10 @@ class UniversityOrgFeesController extends Controller
 
     public function update(Request $request, Fee $fee)
     {
-        $organization = Auth::user()->organization;
+        $user = Auth::user();
+        abort_unless($user, 403);
+
+        $organization = $user->organization;
         if (!$organization || $fee->organization_id !== $organization->id) {
             abort(403);
         }
@@ -84,8 +96,6 @@ class UniversityOrgFeesController extends Controller
         $fee->remittance_percent = $request->remittance_percent ?? null;
         $fee->requirement_level = $request->requirement_level;
         $fee->recurrence = $request->recurrence;
-
-        $organization = Auth::user()->organization;
 
         if ($request->hasFile('accreditation_file')) {
             $file = $request->file('accreditation_file');
@@ -126,7 +136,10 @@ class UniversityOrgFeesController extends Controller
 
     public function destroy(Fee $fee)
     {
-        $organization = Auth::user()->organization;
+        $user = Auth::user();
+        abort_unless($user, 403);
+
+        $organization = $user->organization;
         if (!$organization || $fee->organization_id !== $organization->id) {
             abort(403);
         }
@@ -159,7 +172,10 @@ class UniversityOrgFeesController extends Controller
      */
     public function submitAppeal(Request $request, Fee $fee)
     {
-        $organization = Auth::user()->organization;
+        $user = Auth::user();
+        abort_unless($user, 403);
+
+        $organization = $user->organization;
         if (!$organization || $fee->organization_id !== $organization->id) {
             abort(403);
         }
@@ -196,7 +212,10 @@ class UniversityOrgFeesController extends Controller
 
     public function create()
     {
-        $organization = Auth::user()->organization;
+        $user = Auth::user();
+        abort_unless($user, 403);
+
+        $organization = $user->organization;
         $accreditationDocuments = $organization->documents()
             ->where('document_type', 'Accreditation Certification')
             ->latest()
@@ -227,7 +246,10 @@ class UniversityOrgFeesController extends Controller
         ]);
 
         // Get the organization from authenticated user
-        $organization = Auth::user()->organization;
+        $user = Auth::user();
+        abort_unless($user, 403);
+
+        $organization = $user->organization;
 
         if (!$organization) {
             return redirect()->route('university_org.fees')
@@ -235,6 +257,13 @@ class UniversityOrgFeesController extends Controller
         }
         $activeSY = SchoolYear::where('is_active', true)->first();
         $activeSem = Semester::where('is_active', true)->first();
+
+        if (! $activeSY || ! $activeSem) {
+            return back()->withErrors([
+                'academic_period' => 'No active school year or semester. Contact OSA for confirmation before submitting a fee.'
+            ])->withInput();
+        }
+
         $data = [
             'organization_id' => $organization->id,
             'user_id' => Auth::id(),
