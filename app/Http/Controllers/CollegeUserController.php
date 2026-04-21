@@ -7,26 +7,51 @@ use App\Models\User;
 use App\Models\Course;
 use App\Models\YearLevel;
 use App\Models\Section;
+use App\Models\SchoolYear;
+use App\Models\Semester;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
+use App\Models\Employee;
 
 class CollegeUserController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $collegeId = Auth::user()->college_id;
-        $users = User::where('college_id', $collegeId)
-                     ->whereIn('role', ['treasurer', 'student_coordinator', 'adviser', 'assessor'])
-                     ->get();
+        $user = Auth::user();
+        abort_unless($user, 403);
+
+        $activeSY = SchoolYear::where('is_active', true)->first();
+        $activeSem = Semester::where('is_active', true)->first();
+
+        $collegeId = $user->college_id;
+
+    
+        $allEmployees = Employee::with(['user', 'currentAssignment'])
+            ->where('college_id', $collegeId)
+            ->get();
+
+        $accountEmployees = Employee::with(['user', 'currentAssignment'])
+        ->where('college_id', $collegeId)
+        ->where('has_account', true)
+        ->whereNotNull('user_id')
+        ->get();
 
         return view('college.users', [
-            'users' => $users,
+            'users' => User::where('college_id', $collegeId)
+                ->whereIn('role', ['treasurer', 'student_coordinator', 'adviser', 'assessor'])
+                ->get(),
+
             'courses' => Course::where('college_id', $collegeId)->get(),
             'years' => YearLevel::where('college_id', $collegeId)->get(),
             'sections' => Section::where('college_id', $collegeId)->get(),
+
+            'employees' => $allEmployees,
+            'accountEmployees' => $accountEmployees,
+
+            'activeSY' => $activeSY,
+            'activeSem' => $activeSem,
         ]);
     }
-
     public function create()
     {
         
@@ -89,6 +114,7 @@ class CollegeUserController extends Controller
         ]);
 
         $college = Auth::user()->college;
+        abort_unless($college, 404);
 
         if ($request->hasFile('college_logo')) {
             $path = $request->file('college_logo')->store('college_logos', 'public');
@@ -107,6 +133,8 @@ class CollegeUserController extends Controller
         ]);
 
         $college = Auth::user()->college;
+        abort_unless($college, 404);
+
         $college->name = $request->college_name;
         $college->save();
 
@@ -130,4 +158,73 @@ class CollegeUserController extends Controller
         return redirect()->route('college.users.index', ['tab' => 'accounts'])
                         ->with('status', 'Course assigned to adviser successfully!');
     }
+
+public function toggle(Employee $employee)
+{
+    $user = Auth::user();
+    abort_unless($user, 403);
+    abort_unless($employee->college_id === $user->college_id, 403);
+
+    $employee->update([
+        'is_active' => !$employee->is_active
+    ]);
+
+    return back()->with('status', 'Employee status updated!');
+}
+
+public function roleHistory(Request $request)
+{
+    $activeSY = SchoolYear::where('is_active', true)->first();
+    $activeSem = Semester::where('is_active', true)->first();
+
+    $query = \App\Models\EmployeeAssignment::with([
+        'employee',
+        'schoolYear',
+        'semester'
+    ]);
+
+    $schoolYearId = $request->school_year_id ?? $activeSY?->id;
+    $semesterId = $request->semester_id ?? $activeSem?->id;
+
+    if ($schoolYearId) {
+        $query->where('school_year_id', $schoolYearId);
+    }
+
+    if ($semesterId) {
+        $query->where('semester_id', $semesterId);
+    }
+
+    $assignments = $query->get();
+
+    $history = $assignments->groupBy('employee_id')->map(function ($items) {
+        $first = $items->first();
+
+        return (object)[
+            'employee' => $first->employee,
+            'schoolYear' => $first->schoolYear,
+            'semester' => $first->semester,
+            'roles' => $items->pluck('positions')
+                ->flatten()
+                ->unique()
+                ->values()
+        ];
+    })->values();
+
+    $schoolYears = SchoolYear::orderByDesc('id')->get();
+
+    $semesters = collect([
+        (object)['id' => '1st Semester', 'name' => '1st Semester'],
+        (object)['id' => '2nd Semester', 'name' => '2nd Semester'],
+        (object)['id' => 'Summer', 'name' => 'Summer'],
+    ]);
+
+    return view('college.roles.history', compact(
+        'history',
+        'schoolYears',
+        'semesters',
+        'activeSY',
+        'activeSem'
+    ));
+}
+   
 }

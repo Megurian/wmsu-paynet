@@ -15,10 +15,21 @@ use Illuminate\Support\Facades\DB;
 class OSARemittanceController extends Controller
 {
 
-    public function index()
+    public function index(Request $request)
     {
-        $currentSY = SchoolYear::latest()->first();
-        $currentSem = Semester::latest()->first();
+        $schoolYears = SchoolYear::with('semesters')->orderByDesc('sy_start')->get();
+        $activeSY = $schoolYears->firstWhere('is_active', true) ?? $schoolYears->first();
+
+        $selectedSchoolYear = $schoolYears->firstWhere('id', $request->query('school_year_id')) ?? $activeSY;
+        $selectedSemester = null;
+
+        if ($request->filled('semester_id')) {
+            $selectedSemester = $selectedSchoolYear?->semesters->firstWhere('id', $request->query('semester_id'));
+        }
+
+        $selectedSemester = $selectedSemester
+            ?? $selectedSchoolYear?->semesters->firstWhere('is_active', true)
+            ?? $selectedSchoolYear?->semesters->first();
 
         $osaOrg = Organization::firstOrCreate(
             ['org_code' => 'OSA'],
@@ -43,23 +54,32 @@ class OSARemittanceController extends Controller
             ->get();
 
         foreach ($childOrgs as $org) {
-
             $feeDetails = [];
             $orgCollected = 0;
 
             foreach ($fees as $fee) {
-
-                $studentsPaid = DB::table('fee_payment')
+                $studentsPaidQuery = DB::table('fee_payment')
                     ->join('payments', 'payments.id', '=', 'fee_payment.payment_id')
                     ->where('fee_payment.fee_id', $fee->id)
-                    ->where('payments.organization_id', $org->id)
-                    ->count();
+                    ->where('payments.organization_id', $org->id);
 
-                $totalFeeCollected = DB::table('fee_payment')
+                $totalFeeCollectedQuery = DB::table('fee_payment')
                     ->join('payments', 'payments.id', '=', 'fee_payment.payment_id')
                     ->where('fee_payment.fee_id', $fee->id)
-                    ->where('payments.organization_id', $org->id)
-                    ->sum('fee_payment.amount_paid');
+                    ->where('payments.organization_id', $org->id);
+
+                if ($selectedSchoolYear) {
+                    $studentsPaidQuery->where('payments.school_year_id', $selectedSchoolYear->id);
+                    $totalFeeCollectedQuery->where('payments.school_year_id', $selectedSchoolYear->id);
+                }
+
+                if ($selectedSemester) {
+                    $studentsPaidQuery->where('payments.semester_id', $selectedSemester->id);
+                    $totalFeeCollectedQuery->where('payments.semester_id', $selectedSemester->id);
+                }
+
+                $studentsPaid = $studentsPaidQuery->count();
+                $totalFeeCollected = $totalFeeCollectedQuery->sum('fee_payment.amount_paid');
 
                 $percent = $fee->remittance_percent ?? 100;
                 $feeRemittanceAmount = ($totalFeeCollected * $percent) / 100;
@@ -76,13 +96,18 @@ class OSARemittanceController extends Controller
 
             $remitted = Remittance::where('from_organization_id', $org->id)
                 ->whereIn('fee_id', $fees->pluck('id'))
+                ->when($selectedSchoolYear, fn($query) => $query->where('school_year_id', $selectedSchoolYear->id))
+                ->when($selectedSemester, fn($query) => $query->where('semester_id', $selectedSemester->id))
                 ->sum('amount');
 
             $remaining = max($orgCollected - $remitted, 0);
 
             $status = 'Pending';
-            if ($remaining <= 0 && $orgCollected > 0) $status = 'Completed';
-            elseif ($remitted > 0) $status = 'Partial';
+            if ($remaining <= 0 && $orgCollected > 0) {
+                $status = 'Completed';
+            } elseif ($remitted > 0) {
+                $status = 'Partial';
+            }
 
             $remittanceData[] = [
                 'organization' => $org,
@@ -103,6 +128,8 @@ class OSARemittanceController extends Controller
         $osaFees = Fee::where('organization_id', $osaOrg->id)->pluck('id');
 
         $history = Remittance::whereIn('fee_id', $osaFees)
+            ->when($selectedSchoolYear, fn($query) => $query->where('school_year_id', $selectedSchoolYear->id))
+            ->when($selectedSemester, fn($query) => $query->where('semester_id', $selectedSemester->id))
             ->whereHas('fromOrganization', function ($q) {
                 $q->where('role', 'college_org');
             })
@@ -111,6 +138,9 @@ class OSARemittanceController extends Controller
             ->get();
 
         return view('osa.remittance', compact(
+            'schoolYears',
+            'selectedSchoolYear',
+            'selectedSemester',
             'remittanceData',
             'totalCollected',
             'totalExpected',
@@ -126,6 +156,8 @@ class OSARemittanceController extends Controller
         $request->validate([
             'organization_id' => 'required|exists:organizations,id',
             'amount' => 'required|numeric|min:0.01',
+            'school_year_id' => 'required|exists:school_years,id',
+            'semester_id' => 'required|exists:semesters,id',
         ]);
 
         $osaOrg = Organization::firstOrCreate(
@@ -133,14 +165,55 @@ class OSARemittanceController extends Controller
             ['name' => 'Office of Student Affairs', 'role' => 'super_admin']
         );
 
+        $schoolYear = SchoolYear::findOrFail($request->school_year_id);
+        $semester = Semester::where('id', $request->semester_id)
+            ->where('school_year_id', $schoolYear->id)
+            ->firstOrFail();
+
         $fee = Fee::where('organization_id', $osaOrg->id)
             ->where('status', 'approved')
             ->first();
 
-        $remittance = Remittance::create([
+        if (! $fee) {
+            return back()->withErrors(['fee' => 'No approved OSA fee is configured for remittance.']);
+        }
+
+        $fees = Fee::where('organization_id', $osaOrg->id)
+            ->where('status', 'approved')
+            ->get();
+
+        $expected = 0;
+
+        foreach ($fees as $feeItem) {
+            $totalFeeCollected = DB::table('fee_payment')
+                ->join('payments', 'payments.id', '=', 'fee_payment.payment_id')
+                ->where('fee_payment.fee_id', $feeItem->id)
+                ->where('payments.organization_id', $request->organization_id)
+                ->where('payments.school_year_id', $schoolYear->id)
+                ->where('payments.semester_id', $semester->id)
+                ->sum('fee_payment.amount_paid');
+
+            $percent = $feeItem->remittance_percent ?? 100;
+            $expected += ($totalFeeCollected * $percent) / 100;
+        }
+
+        $totalRemitted = Remittance::where('from_organization_id', $request->organization_id)
+            ->where('school_year_id', $schoolYear->id)
+            ->where('semester_id', $semester->id)
+            ->sum('amount');
+
+        $remaining = max($expected - $totalRemitted, 0);
+
+        if ($request->amount > $remaining) {
+            return back()->with('error', 'Amount cannot exceed remaining balance of ₱' . number_format($remaining, 2));
+        }
+
+        Remittance::create([
             'from_organization_id' => $request->organization_id,
             'to_organization_id' => $osaOrg->id,
             'fee_id' => $fee->id,
+            'school_year_id' => $schoolYear->id,
+            'semester_id' => $semester->id,
             'amount' => $request->amount,
             'status' => 'confirmed',
             'confirmed_by' => Auth::id()

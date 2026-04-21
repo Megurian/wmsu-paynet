@@ -6,39 +6,46 @@
 @section('content')
 <div class="space-y-6">
 
-    <div class="p-4 bg-white rounded shadow flex flex-col sm:flex-row sm:items-end sm:space-x-6 space-y-4 sm:space-y-0">
-        <div class="flex-1">
-            <label class="block text-sm font-medium text-gray-700">School Year</label>
-            <select name="school_year_id" class="mt-1 w-full border-gray-300 rounded shadow-sm">
-                @foreach($schoolYears as $sy)
-                <option value="{{ $sy->id }}" {{ $selectedSY && $selectedSY->id == $sy->id ? 'selected' : '' }}>
-                    {{ \Carbon\Carbon::parse($sy->sy_start)->year }} - {{ \Carbon\Carbon::parse($sy->sy_end)->year }}
-                </option>
-                @endforeach
-            </select>
-        </div>
+    <form method="GET" action="{{ route('university_org.reports') }}">
+        <div class="p-4 bg-white rounded shadow flex flex-col sm:flex-row sm:items-end sm:space-x-6 space-y-4 sm:space-y-0">
+            <div class="flex-1">
+                <label class="block text-sm font-medium text-gray-700">School Year</label>
+                <select name="school_year_id" class="mt-1 w-full border-gray-300 rounded shadow-sm">
+                    @foreach($schoolYears as $sy)
+                    <option value="{{ $sy->id }}" {{ $selectedSY && $selectedSY->id == $sy->id ? 'selected' : '' }}>
+                        {{ \Carbon\Carbon::parse($sy->sy_start)->year }} - {{ \Carbon\Carbon::parse($sy->sy_end)->year }}
+                    </option>
+                    @endforeach
+                </select>
+            </div>
 
-        <div class="flex-1">
-            <label class="block text-sm font-medium text-gray-700">Semester</label>
-            <select name="semester_id" class="mt-1 w-full border-gray-300 rounded shadow-sm">
-                @foreach($semesters as $sem)
-                <option value="{{ $sem->id }}" {{ $selectedSem && $selectedSem->id == $sem->id ? 'selected' : '' }}>
-                    {{ ucfirst($sem->name) }}
-                </option>
-                @endforeach
-            </select>
-        </div>
+            <div class="flex-1">
+                <label class="block text-sm font-medium text-gray-700">Semester</label>
+                <select name="semester_id" class="mt-1 w-full border-gray-300 rounded shadow-sm">
+                    @foreach($semesters as $sem)
+                    <option value="{{ $sem->id }}" {{ $selectedSem && $selectedSem->id == $sem->id ? 'selected' : '' }}>
+                        {{ ucfirst($sem->name) }}
+                    </option>
+                    @endforeach
+                </select>
+            </div>
 
-        <div>
-            <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded shadow text-sm hover:bg-blue-700">
-                Filter
-            </button>
+            <div>
+                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded shadow text-sm hover:bg-blue-700">
+                    Filter
+                </button>
+            </div>
         </div>
-    </div>
+    </form>
 
     <div class="p-4 bg-gray-50 rounded shadow flex flex-wrap gap-4">
-        <p class="text-sm text-gray-700"><span class="font-semibold">School Year:</span> {{ \Carbon\Carbon::parse($selectedSY->sy_start)->year }} - {{ \Carbon\Carbon::parse($selectedSY->sy_end)->year }}</p>
-        <p class="text-sm text-gray-700"><span class="font-semibold">Semester:</span> {{ ucfirst($selectedSem->name) }}</p>
+        @if($selectedSY && $selectedSem)
+            <p class="text-sm text-gray-700"><span class="font-semibold">School Year:</span> {{ \Carbon\Carbon::parse($selectedSY->sy_start)->year }} - {{ \Carbon\Carbon::parse($selectedSY->sy_end)->year }}</p>
+            <p class="text-sm text-gray-700"><span class="font-semibold">Semester:</span> {{ ucfirst($selectedSem->name) }}</p>
+        @else
+            <p class="text-sm text-gray-700"><span class="font-semibold">School Year:</span> Not selected</p>
+            <p class="text-sm text-gray-700"><span class="font-semibold">Semester:</span> Not selected</p>
+        @endif
     </div>
 
     @if($motherOrg)

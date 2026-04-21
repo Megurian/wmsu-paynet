@@ -10,7 +10,10 @@ class CollegeFeeApprovalController extends Controller
 {
     public function index(Request $request)
     {
-        $collegeId = auth()->user()->college_id;
+        $user = auth()->user();
+        abort_unless($user, 403);
+
+        $collegeId = $user->college_id;
         $tab = $request->get('tab', 'pending');
 
         $baseQuery = Fee::with(['organization.motherOrganization'])
@@ -75,7 +78,9 @@ class CollegeFeeApprovalController extends Controller
      */
     public function show(Fee $fee)
     {
-        abort_unless($fee->college_id === auth()->user()->college_id, 403);
+        $user = auth()->user();
+        abort_unless($user, 403);
+        abort_unless($fee->college_id === $user->college_id, 403);
 
         $fee->load(['organization', 'appeals', 'user']);
 
@@ -84,15 +89,18 @@ class CollegeFeeApprovalController extends Controller
 
     public function approve(Request $request, Fee $fee)
     {
+        $user = auth()->user();
+        abort_unless($user, 403);
+
         $request->validate([
             'password' => 'required|string',
         ]);
 
-        if (! Hash::check($request->password, auth()->user()->password)) {
+        if (! Hash::check($request->password, $user->password)) {
             return back()->withErrors(['password' => 'Password verification failed.'])->withInput();
         }
 
-        abort_unless($fee->college_id === auth()->user()->college_id, 403);
+        abort_unless($fee->college_id === $user->college_id, 403);
 
         // If this fee belongs to a college organization (college_org) or a child office,
         // the dean's approval should forward it to OSA for final approval (dean -> OSA).
@@ -117,15 +125,18 @@ class CollegeFeeApprovalController extends Controller
 
     public function reject(Request $request, Fee $fee)
     {
+        $user = auth()->user();
+        abort_unless($user, 403);
+
         $request->validate([
             'password' => 'required|string',
         ]);
 
-        if (! Hash::check($request->password, auth()->user()->password)) {
+        if (! Hash::check($request->password, $user->password)) {
             return back()->withErrors(['password' => 'Password verification failed.'])->withInput();
         }
 
-        abort_unless($fee->college_id === auth()->user()->college_id, 403);
+        abort_unless($fee->college_id === $user->college_id, 403);
 
         $fee->update([
             'status' => 'rejected',

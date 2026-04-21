@@ -225,11 +225,13 @@ function setFeedback(el, msg, colorClass) {
 }
 
 function toggleCreateDisabled() {
-    const shouldDisable = (codeAvailable === false || emailAvailable === false || codePending || emailPending || passwordMismatch);
+    const step1Disabled = codeAvailable === false || codePending;
+    const step2Disabled = codeAvailable === false || codePending;
+    const previewDisabled = codeAvailable === false || emailAvailable === false || codePending || emailPending || passwordMismatch;
 
     // Open Preview / Create button
     if (openPreviewBtn) {
-        if (shouldDisable) {
+        if (previewDisabled) {
             openPreviewBtn.disabled = true;
             openPreviewBtn.classList.add('opacity-60', 'cursor-not-allowed');
         } else {
@@ -240,7 +242,7 @@ function toggleCreateDisabled() {
 
     // Next button on step 1
     if (nextBtn1) {
-        if (shouldDisable) {
+        if (step1Disabled) {
             nextBtn1.disabled = true;
             nextBtn1.classList.add('opacity-60', 'cursor-not-allowed');
         } else {
@@ -251,7 +253,7 @@ function toggleCreateDisabled() {
 
     // Next button on step 2
     if (nextBtn2) {
-        if (shouldDisable) {
+        if (step2Disabled) {
             nextBtn2.disabled = true;
             nextBtn2.classList.add('opacity-60', 'cursor-not-allowed');
         } else {

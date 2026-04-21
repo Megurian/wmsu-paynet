@@ -18,7 +18,7 @@
 
     <!-- Filters Section -->
     <div class="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
-        <form method="GET" class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+        <form method="GET" action="{{ route('osa.reports') }}" class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
 
             <div>
                 <label class="block text-xs font-medium text-gray-500 mb-1">School Year</label>

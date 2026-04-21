@@ -7,7 +7,7 @@
 @php
     $isCleared =  false;
 @endphp
-<div x-data="myStudentsUpload()" x-init="">
+<div x-data="myStudentsUpload()" x-init="init()">
     {{-- Import Modal --}}
     <div x-show="showImportModal" x-cloak class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
         <div @click.away="resetImport()" class="bg-white rounded-xl shadow-lg w-full max-w-lg p-6 relative">
@@ -93,8 +93,168 @@
         </div>
     </div>
 
+    <div x-show="showPromotionModal" x-cloak
+     class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
 
-    {{-- Import result flash messages --}}
+    <div class="bg-white rounded-xl shadow-lg w-full max-w-2xl p-6">
+
+        <h3 class="text-lg font-semibold mb-2">
+            Year Level Promotion
+        </h3>
+
+        <p class="text-sm text-gray-600 mb-4">
+            Total eligible students: <span x-text="promotionPreview.total"></span>
+        </p>
+
+        <template x-if="promotionLoading">
+            <p class="text-sm text-gray-500">Loading...</p>
+        </template>
+
+        <template x-if="!promotionLoading">
+
+            <div class="space-y-3 max-h-96 overflow-y-auto">
+
+                <template x-for="group in promotionPreview.breakdown" :key="group.from">
+
+                    <div class="border rounded-lg p-3">
+
+                        <div class="font-semibold text-sm mb-2">
+                            <span x-text="group.from"></span>
+                            →
+                            <span x-text="group.to"></span>
+                            (<span x-text="group.count"></span>)
+                        </div>
+
+                        <div class="text-xs text-gray-600 max-h-24 overflow-y-auto">
+                            <template x-for="s in group.students" :key="s.id">
+                                <div x-text="s.student_id + ' - ' + s.name"></div>
+                            </template>
+                        </div>
+
+                    </div>
+
+                </template>
+
+            </div>
+
+        </template>
+
+        <div class="flex justify-end gap-2 mt-4">
+
+            <button @click="showPromotionModal = false"
+                class="px-4 py-2 bg-gray-300 rounded text-sm">
+                Cancel
+            </button>
+
+            <button @click="confirmPromotion()"
+                class="px-4 py-2 bg-indigo-600 text-white rounded text-sm">
+               Proceed to Payment
+            </button>
+
+        </div>
+
+    </div>
+</div>
+
+<div x-show="showBulkModal" x-cloak
+     class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+
+    <div class="bg-white rounded-xl shadow-lg w-full max-w-6xl p-6">
+
+        <div class="flex items-start justify-between gap-4 mb-4">
+            <div>
+                <h3 class="text-lg font-semibold">Bulk Proceed to Payment</h3>
+                <p class="text-sm text-gray-600 mt-1">
+                    Selected students: <span x-text="bulkStudents.filter(s => s.include).length"></span>
+                </p>
+            </div>
+            <button @click="showBulkModal = false" class="text-gray-500 hover:text-gray-800">&times;</button>
+        </div>
+
+        <div class="flex flex-col gap-3 mb-4 text-sm text-gray-600">
+            <div class="flex items-center gap-2">
+                <input type="checkbox" x-model="promoteAll" @change="togglePromoteAll">
+                <label class="font-medium">Promote All</label>
+            </div>
+            <p>
+                Bulk proceed to payment follows the same eligibility rules as single student processing.
+                Students must have no unsettled previous-semester fees,
+                and a valid previous enrollment if no current semester enrollment exists.
+            </p>
+            <p>
+                Promotion is only available in 1st SEMESTER. Fourth year students may be marked graduated when available.
+            </p>
+        </div>
+
+        <div class="max-h-96 overflow-y-auto border rounded">
+            <table class="w-full text-sm">
+                <thead class="bg-gray-100 sticky top-0">
+                    <tr>
+                        <th class="p-2">Include</th>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Current Year</th>
+                        <th class="text-center">Promote</th>
+                        <th class="text-center">Graduated</th>
+                        <th>Section</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template x-for="s in bulkStudents" :key="s.id">
+                        <tr :class="s.include ? '' : 'opacity-70'" class="border-t">
+                            <td class="p-2 text-center">
+                                <input type="checkbox" x-model="s.include" :disabled="s.disabled" :title="s.bulkDisabledReason || 'Include student in bulk payment'">
+                            </td>
+                            <td x-text="s.student_id"></td>
+                            <td x-text="s.last_name + ', ' + s.first_name"></td>
+                            <td x-text="getBulkPromotionPreviewText(s)"></td>
+                            <td class="text-center">
+                                <input type="checkbox"
+                                    x-model="s.promote"
+                                    @change="checkPromoteAll"
+                                    :disabled="!canBulkPromote(s)"
+                                    :title="canBulkPromote(s) ? 'Promote student' : 'Promotion unavailable'"
+                                >
+                            </td>
+                            <td class="text-center">
+                                <template x-if="s.showGraduatedCheckbox">
+                                    <input type="checkbox"
+                                        x-model="s.graduated"
+                                        @change="if (s.graduated) s.promote = false"
+                                        class="h-4 w-4 rounded border-gray-300 text-indigo-600"
+                                    >
+                                </template>
+                            </td>
+                            <td>
+                                <select x-model="s.section_id"
+                                    class="border rounded px-2 py-1 text-xs w-full"
+                                    :disabled="s.disabled">
+                                    @foreach($sections as $section)
+                                        <option value="{{ $section->id }}">{{ $section->name }}</option>
+                                    @endforeach
+                                </select>
+                            </td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="flex justify-end gap-2 mt-4">
+            <button @click="showBulkModal = false"
+                    class="px-4 py-2 bg-gray-300 rounded">
+                Cancel
+            </button>
+
+            <button @click="submitBulkPromotion()"
+                    class="px-4 py-2 bg-green-600 text-white rounded">
+                Confirm & Proceed
+            </button>
+        </div>
+
+    </div>
+</div>
+
     @if(session('import_success'))
     <div class="mb-4 p-4 bg-green-100 border border-green-400 text-green-800 rounded-lg text-sm">
         ✓ {{ session('import_success') }}
@@ -113,60 +273,70 @@
 
     {{-- Filters and Actions --}}
     <div class="bg-white border border-gray-200 rounded-xl p-4 mb-5 shadow-sm">
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
+        <form method="GET"  @submit="if(isDirty && !confirm('You have selected students. Leave anyway?')) $event.preventDefault()" class="bg-white border border-gray-200 rounded-xl p-4 mb-5 shadow-sm">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
 
-            {{-- Search --}}
-            <div class="relative col-span-1 sm:col-span-2">
-                <input type="text" x-model="search" placeholder="Search by name or Student ID"
-                    class="w-full px-3 py-2 pr-10 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none">
-                <button type="button" x-show="search" @click="search=''"
-                    class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none transition">&times;</button>
-            </div>
-
-            
-            @if(Auth::user()->role === 'adviser')
-                <select class="rounded-lg border border-gray-300 px-4 py-2.5 text-sm bg-gray-100 cursor-not-allowed" disabled>
-                    <option value="{{ Auth::user()->course_id }}" selected>
-                        {{ Auth::user()->course?->name ?? 'No course assigned' }}
-                    </option>
-                </select>
-            @else
-                <select x-model="filterCourse"
-                        class="rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
-                    <option value="">All Courses</option>
-                    @foreach($courses as $course)
-                    <option value="{{ $course->id }}">{{ $course->name }}</option>
-                    @endforeach
-                </select>
-            @endif
-            
-
-            {{-- Year --}}
-            <select x-model="filterYear"
-                class="rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
-                <option value="">All Year Levels</option>
-                @foreach($years as $year)
-                <option value="{{ $year->id }}">{{ $year->name }}</option>
-                @endforeach
-            </select>
-
-            {{-- Section --}}
-            <select x-model="filterSection"
-                class="rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
-                <option value="">All Sections</option>
-                @foreach($sections as $section)
-                <option value="{{ $section->id }}">{{ $section->name }}</option>
-                @endforeach
-            </select>
-
+        <div class="relative col-span-1 sm:col-span-2">
+            <input type="text"
+                   name="search"
+                   value="{{ request('search') }}"
+                   placeholder="Search by name or Student ID"
+                   class="w-full px-3 py-2 pr-10 rounded-lg border border-gray-300">
         </div>
+
+        {{-- Adviser Course (LOCKED) --}}
+            <select class="rounded-lg border border-gray-300 px-4 py-2.5 text-sm bg-gray-100 cursor-not-allowed" disabled>
+                <option>
+                    {{ Auth::user()->course?->name ?? 'No course assigned' }}
+                </option>
+            </select>
+
+        {{-- Year --}}
+        <select name="year_level_id"
+                class="rounded-lg border border-gray-300 px-4 py-2.5 text-sm">
+            <option value="">All Year Levels</option>
+            @foreach($years as $year)
+                <option value="{{ $year->id }}"
+                    {{ request('year_level_id') == $year->id ? 'selected' : '' }}>
+                    {{ $year->name }}
+                </option>
+            @endforeach
+        </select>
+
+        {{-- Section --}}
+        <select name="section_id"
+                class="rounded-lg border border-gray-300 px-4 py-2.5 text-sm">
+            <option value="">All Sections</option>
+            @foreach($sections as $section)
+                <option value="{{ $section->id }}"
+                    {{ request('section_id') == $section->id ? 'selected' : '' }}>
+                    {{ $section->name }}
+                </option>
+            @endforeach
+        </select>
+    </div>
+
+    <div class="flex justify-between mt-4">
+        <div class="text-gray-500 text-sm italic">
+            This view shows the students you are assigned to.
+        </div>
+
+        <div class="flex gap-2">
+            <a href="{{ route('college.students.my-upload') }}"
+               class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 text-sm">
+                Reset
+            </a>
+
+            <button type="submit"
+                    class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-500 text-sm">
+                Apply Filters
+            </button>
+        </div>
+    </div>
+</form>
 
         {{-- Action Buttons --}}
         <div class="flex justify-end gap-4 mt-4 i items-center">
-
-             <div class="text-gray-500 text-sm italic">
-                This view shows the students you are assigned to. You can manage, add, or import student data for your course.
-            </div>
             <button @click="showModal = true"
                 class="bg-red-800 text-white px-4 py-2 rounded hover:bg-red-700 transition">
                 New Student
@@ -176,6 +346,11 @@
                 class="px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-500 transition">
                 Import Student List
             </button>
+
+            {{-- <button @click="openPromotionPreview()"
+                class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-500 text-sm">
+                Year Level Promotion
+            </button> --}}
         </div>
     </div>
 
@@ -233,27 +408,17 @@
 
                 {{-- Course / Year / Section --}}
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                   @if(Auth::user()->role === 'adviser')
-                        <div>
-                            <label class="text-sm font-medium">Course</label>
-                            <select class="w-full border rounded px-3 py-2 text-sm bg-gray-100" disabled>
-                                <option value="{{ Auth::user()->course_id }}" selected>
-                                    {{ Auth::user()->course?->name ?? 'No course assigned' }}
-                                </option>
-                            </select>
-                            <input type="hidden" name="course_id" value="{{ Auth::user()->course_id }}">
-                        </div>
-                    @else
-                        <div>
-                            <label class="text-sm font-medium">Course <span class="text-red-500">*</span></label>
-                            <select name="course_id" required class="w-full border rounded px-3 py-2 text-sm">
-                                <option value="">Select Course</option>
-                                @foreach($courses as $course)
-                                <option value="{{ $course->id }}">{{ $course->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                    @endif        
+                   <div>
+                        <label class="text-sm font-medium">Course</label>
+
+                        <select class="w-full border rounded px-3 py-2 text-sm bg-gray-100" disabled>
+                            <option value="{{ Auth::user()->course_id }}">
+                                {{ Auth::user()->course?->name ?? 'No course assigned' }}
+                            </option>
+                        </select>
+
+                        <input type="hidden" name="course_id" value="{{ Auth::user()->course_id }}">
+                    </div>      
                     <div>
                         <label class="text-sm font-medium">Year Level <span class="text-red-500">*</span></label>
                         <select name="year_level_id" required class="w-full border rounded px-3 py-2 text-sm">
@@ -305,9 +470,92 @@
         </button>
     </div>
 
+    <div x-show="showStudentPromotionModal" x-cloak
+     class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+
+    <div class="bg-white rounded-xl shadow-lg w-full max-w-lg p-6">
+
+        <h3 class="text-lg font-semibold mb-3">
+            Proceed to Payment
+        </h3>
+
+        <!-- Confirmed Student Info -->
+        <div class="border rounded-xl p-4 mb-4 bg-gray-50 text-sm">
+            <div class="font-semibold mb-2" x-text="activeStudent?.student_id + ' - ' + activeStudent?.last_name + ', ' + activeStudent?.first_name"></div>
+            <div class="text-gray-600">
+                This student will be moved to payment validation for the current academic year and semester.
+            </div>
+        </div>
+
+        <!-- Promotion Checkbox -->
+        <label class="flex items-center gap-2 mb-2 text-sm" :class="promotionDisabled || studentPromotion.graduated ? 'opacity-50 cursor-not-allowed' : ''">
+            <input
+                type="checkbox"
+                x-model="studentPromotion.promote"
+                :disabled="promotionDisabled || studentPromotion.graduated"
+                class="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
+            >
+            <span class="font-medium">Promote Student Year</span>
+        </label>
+
+        <template x-if="showGraduatedCheckbox">
+            <label class="flex items-center gap-2 mb-2 text-sm">
+                <input
+                    type="checkbox"
+                    x-model="studentPromotion.graduated"
+                    @change="if (studentPromotion.graduated) studentPromotion.promote = false"
+                    class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                >
+                <span class="font-medium">Graduated</span>
+            </label>
+            <p class="text-xs text-gray-500 mb-4">
+                Mark this 4th year student as graduated instead of promoting to the next year level.
+            </p>
+        </template>
+
+        <p class="text-sm font-semibold text-green-800 bg-green-50 border border-green-100 rounded-xl px-3 py-2 mb-4">
+            <span x-text="promotionPreviewText"></span>
+        </p>
+
+        <template x-if="promotionDisabled">
+            <p class="text-xs text-red-600 mb-4" x-text="promotionDisabledReason"></p>
+        </template>
+
+        <!-- Section -->
+        <div class="mb-4">
+            <label class="text-xs text-gray-600">Section</label>
+            <select x-model="studentPromotion.section_id"
+                    class="w-full border rounded px-2 py-1 text-sm">
+                @foreach($sections as $section)
+                    <option value="{{ $section->id }}">{{ $section->name }}</option>
+                @endforeach
+            </select>
+        </div>
+
+        <!-- Buttons -->
+        <div class="flex justify-end gap-2">
+            <button @click="showStudentPromotionModal = false"
+                    class="px-4 py-2 bg-gray-300 rounded text-sm">
+                Close
+            </button>
+
+            <button @click="confirmStudentPromotion()"
+                    :disabled="paymentBlocked"
+                    :class="paymentBlocked ? 'px-4 py-2 bg-gray-300 text-white rounded text-sm cursor-not-allowed' : 'px-4 py-2 bg-green-600 text-white rounded text-sm'"
+                    class="px-4 py-2 bg-green-600 text-white rounded text-sm">
+                Confirm & Proceed
+            </button>
+        </div>
+
+    </div>
+</div>
     {{-- Students Table as Cards --}}
     <div class="space-y-4">
-        <template x-for="student in filtered" :key="student.id">
+
+        <div class="mt-4">
+    {{ $students->links() }}
+</div>
+        <template x-for="student in students" :key="student.id">
             <div class="bg-white shadow rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between space-y-3 md:space-y-0 md:space-x-4">
                <div class="flex items-center md:w-1/3 space-x-2">
                     <template x-if="student.status === 'NOT_ENROLLED'">
@@ -316,6 +564,8 @@
                             <input type="checkbox" 
                                 x-model="selectedStudents" 
                                 :value="student.id" 
+                                :disabled="student.status !== 'NOT_ENROLLED' || isFinanciallyBlocked(student) || !isBulkAdviseEligible(student)"
+                                :title="isBulkAdviseEligible(student) ? (isFinanciallyBlocked(student) ? 'Unsettled previous fees' : '') : 'Student must have a valid previous semester enrollment or be voided.'"
                                 class="w-5 h-5 border-gray-400 rounded cursor-pointer">
                         </div>
                     </template>
@@ -379,7 +629,11 @@
                                 <input type="hidden" name="course_id" :value="student.course_id">
                                 <input type="hidden" name="year_level_id" :value="student.year_level_id">
                                 <input type="hidden" name="section_id" :value="student.section_id">
-                                <button type="submit" class="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-500 text-xs" onclick="return confirm('Confirm this Student is Advised and may proceed to payment?')">
+                                <button type="button"
+                                        @click="openStudentPromotion(student)"
+                                        :disabled="isFinanciallyBlocked(student)"
+                                        :title="isFinanciallyBlocked(student) ? 'This student has unsettled fees from previous semester.' : ''"
+                                        :class="isFinanciallyBlocked(student) ? 'px-3 py-1 bg-gray-300 text-white rounded text-xs cursor-not-allowed' : 'px-3 py-1 bg-green-600 text-white rounded hover:bg-green-500 text-xs'">
                                     Proceed to Payment
                                 </button>
                             </form>
@@ -451,7 +705,7 @@
             </div>
         </template>
 
-        <div x-show="filteredStudents.length === 0" class="text-center text-gray-500 py-6 italic">
+        <div x-show="students.length === 0" class="text-center text-gray-500 py-6 italic">
             No students found.
         </div>
     </div>
@@ -470,70 +724,97 @@
         importFile: null,
         importPreview: { new_count: 0, existing_match: [], existing_mismatch: [] },
         importPreviewing: false,
-        search: '',
-        filterCourse: '',
-        filterYear: '',
-        filterSection: '',
         students: @json($alpineStudents),
-        filtered: [],
 
         selectedStudents: [],
-
-        init() {
-            this.filtered = [...this.students];
-
-             this.$watch('search', () => this.updateFiltered());
-    this.$watch('filterCourse', () => this.updateFiltered());
-    this.$watch('filterYear', () => this.updateFiltered());
-    this.$watch('filterSection', () => this.updateFiltered());
+        isDirty: false,
+        showPromotionModal: false,
+        promotionPreview: { breakdown: [], total: 0 },
+        promotionLoading: false,
+        showStudentPromotionModal: false,
+        activeStudent: null,
+        activeSemesterName: @json($activeSemesterName),
+        yearLevels: @json($years->map(fn($year) => ['id' => $year->id, 'name' => $year->name])),
+        blockedFinancialStatuses: ['UNPAID', 'DEFAULT', 'BAD_DEBT', 'PARTIALLY_PAID'],
+        promotionDisabled: false,
+        paymentBlocked: false,
+        promotionDisabledReason: '',
+        showGraduatedCheckbox: false,
+        studentPromotion: {
+            promote: true,
+            graduated: false,
+            section_id: null
         },
-        updateFiltered() {
-            let result = [...this.students];
+        showBulkModal: false,
+        bulkStudents: [],
+        promoteAll: true,
 
-            if (this.search) {
-                const s = this.search.toLowerCase();
-                result = result.filter(st =>
-                    st.student_id.toLowerCase().includes(s) ||
-                    st.first_name.toLowerCase().includes(s) ||
-                    st.last_name.toLowerCase().includes(s) ||
-                    (st.middle_name && st.middle_name.toLowerCase().includes(s))
-                );
+       init() {
+            this.promotionDisabled = this.activeSemesterName !== '1st SEMESTER';
+
+            this.$watch('selectedStudents', (value) => {
+                this.isDirty = value.length > 0;
+            });
+
+            this._beforeUnloadHandler = (e) => {
+                if (this.selectedStudents.length > 0) {
+                    e.preventDefault();
+                    e.returnValue = '';
+                }
+            };
+
+            window.addEventListener('beforeunload', this._beforeUnloadHandler);
+        },
+        destroy() {
+            window.removeEventListener('beforeunload', this._beforeUnloadHandler);
+        },
+        beforeUnloadHandler(e) {
+            if (this.selectedStudents.length > 0) {
+                e.preventDefault();
+                e.returnValue = '';
             }
-
-            if (this.filterCourse) result = result.filter(st => st.course_id == Number(this.filterCourse));
-            if (this.filterYear) result = result.filter(st => st.year_level_id == Number(this.filterYear));
-            if (this.filterSection) result = result.filter(st => st.section_id == Number(this.filterSection));
-
-            this.filtered = result;
-            this.selectedStudents = [];
         },
-
         toggleAll(event) {
             const checked = event.target.checked;
 
             if (checked) {
-                this.selectedStudents = this.filtered.map(s => s.id);
+                this.selectedStudents = this.students
+                    .filter(s => s.status === 'NOT_ENROLLED' && !this.isFinanciallyBlocked(s) && this.isBulkAdviseEligible(s))
+                    .map(s => s.id);
             } else {
                 this.selectedStudents = [];
             }
         },
-
         proceedToPayment() {
             if (this.selectedStudents.length === 0) return;
 
-            if (!confirm(`Proceed to payment for ${this.selectedStudents.length} student(s)?`)) return;
+            const selectedIds = this.selectedStudents.map(Number);
+            const students = this.students.filter(s => selectedIds.includes(Number(s.id)));
+            const eligible = students.filter(s => !this.isFinanciallyBlocked(s) && this.isBulkAdviseEligible(s));
+            const ineligible = students.filter(s => this.isFinanciallyBlocked(s) || !this.isBulkAdviseEligible(s));
 
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = '{{ route("college.students.readd.bulk") }}';
-            form.innerHTML = `
-                @csrf
-                ${this.selectedStudents.map(id => `<input type="hidden" name="students[]" value="${id}">`).join('')}
-            `;
-            document.body.appendChild(form);
-            form.submit();
+            if (ineligible.length > 0) {
+                alert('Some selected students are not eligible for bulk payment and have been removed.');
+                this.selectedStudents = eligible.map(s => s.id);
+            }
+
+            if (eligible.length === 0) return;
+
+            this.bulkStudents = eligible.map(s => ({
+                ...s,
+                include: true,
+                promote: this.activeSemesterName === '1st SEMESTER',
+                graduated: false,
+                next_year_level_id: null,
+                section_id: s.section_id,
+                showGraduatedCheckbox: this.isFourthYearStudent(s) && this.activeSemesterName === '1st SEMESTER',
+                disabled: false,
+                bulkDisabledReason: '',
+            }));
+
+            this.promoteAll = true;
+            this.showBulkModal = true;
         },
-
         resetImport() {
             this.showImportModal = false;
             this.importStep = 'select';
@@ -557,7 +838,6 @@
                 });
                 if (!res.ok) throw new Error('Preview request failed');
                 this.importPreview = await res.json();
-                // If no existing or mismatch students, skip confirmation and submit directly
                 if (this.importPreview.existing_match.length === 0 && this.importPreview.existing_mismatch.length === 0) {
                     this.submitImport();
                 } else {
@@ -575,20 +855,303 @@
         },
 
         updateStudent(studentId, field, value) {
-            fetch(`/college/students/${studentId}/update-field`, {
+        fetch(`/college/students/${studentId}/update-field`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ field, value })
+        })
+        .then(async res => {
+            if (!res.ok) {
+                const text = await res.text();
+                throw new Error(text);
+            }
+            return res.json();
+        })
+        .then(data => {
+            if (data.success) {
+                console.log('Updated successfully');
+            } else {
+                console.error(data.message);
+            }
+        })
+        .catch(err => console.error('Update failed:', err));
+    },
+
+    watchSelected() {
+        this.selectedStudents = this.selectedStudents.filter(id =>
+            this.students.some(s => s.id === id && s.status === 'NOT_ENROLLED')
+        );
+    },
+    async openPromotionPreview() {
+        this.showPromotionModal = true;
+        this.promotionLoading = true;
+
+        try {
+            const res = await fetch('{{ route("college.students.promotion.preview") }}');
+            this.promotionPreview = await res.json();
+        } catch (e) {
+            alert('Failed to load promotion preview');
+        } finally {
+            this.promotionLoading = false;
+        }
+    },
+
+    async confirmPromotion() {
+        if (!confirm('Proceed with year promotion and send students to payment process?')) return;
+
+        try {
+            const res = await fetch('{{ route("college.students.promotion.execute") }}', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                },
-                body: JSON.stringify({ field, value })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) console.log('Updated successfully');
-            })
-            .catch(err => console.error(err));
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json'
+                }
+            });
+
+            const data = await res.json();
+
+            alert(data.message);
+
+            this.showPromotionModal = false;
+            window.location.reload();
+
+        } catch (e) {
+            alert('Promotion failed');
         }
+    },
+
+    getCurrentYearName() {
+        return this.yearLevels.find(year => Number(year.id) === Number(this.activeStudent?.year_level_id))?.name || 'Unknown';
+    },
+
+    getYearName(yearLevelId) {
+        return this.yearLevels.find(year => Number(year.id) === Number(yearLevelId))?.name || 'Unknown';
+    },
+
+    getNextYearName() {
+        const currentId = Number(this.activeStudent?.year_level_id);
+        const currentIndex = this.yearLevels.findIndex(year => Number(year.id) === currentId);
+
+        if (currentIndex === -1) {
+            return 'Unknown';
+        }
+
+        const next = this.yearLevels[currentIndex + 1];
+        return next ? next.name : 'Graduated';
+    },
+
+    getNextYearNameFromId(yearLevelId) {
+        const currentId = Number(yearLevelId);
+        const currentIndex = this.yearLevels.findIndex(year => Number(year.id) === currentId);
+
+        if (currentIndex === -1) {
+            return 'Unknown';
+        }
+
+        const next = this.yearLevels[currentIndex + 1];
+        return next ? next.name : 'Graduated';
+    },
+
+    getBulkPromotionPreviewText(student) {
+        if (student.graduated) {
+            return 'Graduation selected; the student will be marked graduated instead of promoted.';
+        }
+
+        const current = this.getYearName(student.year_level_id);
+        const next = student.promote
+            ? (student.next_year_level_id
+                ? this.getYearName(student.next_year_level_id)
+                : this.getNextYearNameFromId(student.year_level_id))
+            : current;
+
+        return `Year level: [${current} → ${next}]`;
+    },
+
+    isBulkAdviseEligible(student) {
+        const hasActiveEnrollment = student.has_current_enrollment;
+        const previousEligible = student.previous_is_void || student.previous_status === 'ENROLLED';
+        const currentNotAllowed = hasActiveEnrollment && !['NOT_ENROLLED', 'ENROLLED'].includes(student.status);
+        const noCurrentAndPreviousNotEligible = !hasActiveEnrollment && !previousEligible;
+
+        return !(currentNotAllowed || noCurrentAndPreviousNotEligible);
+    },
+
+    bulkAdviseDisabledReason(student) {
+        if (student.has_current_enrollment && !['NOT_ENROLLED', 'ENROLLED'].includes(student.status)) {
+            return 'Current semester enrollment must be NOT_ENROLLED or ENROLLED.';
+        }
+
+        if (!student.has_current_enrollment && !student.previous_is_void && student.previous_status !== 'ENROLLED') {
+            return 'Previous semester record must be ENROLLED or voided.';
+        }
+
+        return '';
+    },
+
+    canBulkPromote(student) {
+        return this.activeSemesterName === '1st SEMESTER' && !student.graduated;
+    },
+
+    promotionPreviewText() {
+        if (!this.activeStudent) {
+            return '';
+        }
+
+        if (this.studentPromotion.graduated) {
+            return 'Graduation selected; the student will be marked graduated instead of promoted.';
+        }
+
+        const current = this.getCurrentYearName();
+        const next = this.studentPromotion.promote ? this.getNextYearName() : current;
+        return `Year level: [${current} → ${next}]`;
+    },
+
+    isFinanciallyBlocked(student) {
+        if (student.previous_is_void) {
+            return false;
+        }
+
+        const status = student.previous_financial_status ?? student.financial_status;
+        return this.blockedFinancialStatuses.includes(status);
+    },
+
+    isFourthYearStudent(student) {
+        const yearName = this.yearLevels.find(year => Number(year.id) === Number(student.year_level_id))?.name || '';
+        const numericMatch = yearName.match(/(\d+)/);
+
+        if (numericMatch) {
+            return Number(numericMatch[1]) >= 4;
+        }
+
+        return /(^|\s)(fourth|fifth|sixth|seventh|eighth|ninth|tenth|eleventh|twelfth)(\s|$)/i.test(yearName);
+    },
+
+    openStudentPromotion(student) {
+            this.activeStudent = student;
+
+            const semesterNotFirst = this.activeSemesterName !== '1st SEMESTER';
+            const previousEligible = student.previous_is_void || student.previous_status === 'ENROLLED';
+            const hasActiveEnrollment = student.has_current_enrollment;
+            const currentNotAllowed = hasActiveEnrollment && !['NOT_ENROLLED', 'ENROLLED'].includes(student.status);
+            const noCurrentAndPreviousNotEligible = !hasActiveEnrollment && !previousEligible;
+
+            const paymentBlocked = this.isFinanciallyBlocked(student);
+            const isFourthYear = this.isFourthYearStudent(student);
+            const showGraduatedCheckbox = isFourthYear && this.activeSemesterName === '1st SEMESTER';
+
+            this.promotionDisabled = semesterNotFirst || currentNotAllowed || noCurrentAndPreviousNotEligible;
+            this.paymentBlocked = paymentBlocked;
+            this.showGraduatedCheckbox = showGraduatedCheckbox;
+            this.promotionDisabledReason = paymentBlocked
+                ? 'This student cannot proceed to payment because their financial status is not cleared.'
+                : semesterNotFirst
+                    ? 'Promotion is only available during 1st SEMESTER.'
+                    : currentNotAllowed
+                        ? 'Promotion requires the student’s current semester enrollment to be NOT_ENROLLED or ENROLLED.'
+                        : noCurrentAndPreviousNotEligible
+                            ? 'Promotion requires the student’s most recent previous semester enrollment status to be ENROLLED or voided.'
+                            : '';
+
+            this.studentPromotion.graduated = false;
+            this.studentPromotion.promote = !this.promotionDisabled;
+            this.studentPromotion.section_id = student.section_id;
+
+            this.showStudentPromotionModal = true;
+        },
+        async confirmStudentPromotion() {
+            if (!this.activeStudent) return;
+            if (this.paymentBlocked) return;
+
+            // if (!confirm('Proceed student to payment and apply promotion?')) return;
+
+            try {
+                const res = await fetch(`/college/students/${this.activeStudent.id}/promote-pay`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        promote: this.studentPromotion.promote,
+                        graduated: this.studentPromotion.graduated,
+                        section_id: this.studentPromotion.section_id
+                    })
+                });
+
+                const data = await res.json();
+
+                alert(data.message);
+
+                this.showStudentPromotionModal = false;
+                this.activeStudent = null;
+
+                window.location.reload();
+
+            } catch (e) {
+                alert('Failed to process student');
+            }
+        },
+        togglePromoteAll() {
+            this.bulkStudents.forEach(s => {
+                if (this.canBulkPromote(s)) {
+                    s.promote = this.promoteAll;
+                }
+            });
+        },
+
+        checkPromoteAll() {
+            this.promoteAll = this.bulkStudents.every(s => !this.canBulkPromote(s) || s.promote);
+        },
+
+        async submitBulkPromotion() {
+
+        const selected = this.bulkStudents
+            .filter(s => s.include)
+            .map(s => ({
+                ...s,
+                next_year_level_id: s.next_year_level_id || null,
+                section_id: s.section_id ? Number(s.section_id) : null,
+            }));
+
+        if (selected.length === 0) {
+            alert('No students selected');
+            return;
+        }
+
+        if (!confirm('Proceed selected students to payment?')) return;
+
+        try {
+            const res = await fetch('{{ route("college.students.bulk.promote-pay") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    students: selected
+                })
+            });
+
+            const data = await res.json();
+
+            alert(data.message);
+
+            this.showBulkModal = false;
+            this.selectedStudents = [];
+
+            window.location.reload();
+
+        } catch (e) {
+            alert('Bulk process failed');
+        }
+    }
     }
 }
 

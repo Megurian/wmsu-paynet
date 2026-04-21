@@ -17,7 +17,13 @@ class StudentPasswordController extends Controller
 {
     public function showForgotPassword(): View
     {
-        return view('student.auth.forgot-password');
+        return view('auth.forgot-password', [
+            'action' => route('student.password.email'),
+            'title' => 'Reset Student Password',
+            'description' => 'Enter the email address associated with your student account to receive a password reset link.',
+            'backUrl' => route('student.login'),
+            'backText' => 'Back to student login',
+        ]);
     }
 
     public function sendResetLink(Request $request): RedirectResponse
@@ -38,7 +44,14 @@ class StudentPasswordController extends Controller
 
     public function showResetPassword(Request $request): View
     {
-        return view('student.auth.reset-password', ['request' => $request]);
+        return view('auth.reset-password', [
+            'request' => $request,
+            'action' => route('student.password.store'),
+            'title' => 'Reset Student Password',
+            'description' => 'Create a new password for your student account.',
+            'backUrl' => route('student.login'),
+            'backText' => 'Back to student login',
+        ]);
     }
 
     public function resetPassword(Request $request): RedirectResponse
@@ -62,8 +75,7 @@ class StudentPasswordController extends Controller
         );
 
         return $status === Password::PASSWORD_RESET
-            ? redirect()->route('student.login')->with('status', __($status))
+            ? redirect()->route('login')->with('status', __($status))
             : back()->withInput($request->only('email'))
-                ->withErrors(['email' => __($status)]);
-    }
+                ->withErrors(['email' => __($status)]);    }
 }

@@ -23,9 +23,15 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('fees', function (Blueprint $table) {
-            $table->dropForeign(['accreditation_document_id']);
-            $table->dropForeign(['resolution_document_id']);
-            $table->dropColumn(['accreditation_document_id', 'resolution_document_id']);
+            if (Schema::hasColumn('fees', 'accreditation_document_id')) {
+                $table->dropForeign(['accreditation_document_id']);
+                $table->dropColumn('accreditation_document_id');
+            }
+
+            if (Schema::hasColumn('fees', 'resolution_document_id')) {
+                $table->dropForeign(['resolution_document_id']);
+                $table->dropColumn('resolution_document_id');
+            }
         });
     }
 };

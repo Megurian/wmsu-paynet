@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 class StudentEnrollment extends Model
 {
@@ -24,6 +25,7 @@ class StudentEnrollment extends Model
         'assessed_at' => 'datetime',
         'cleared_for_enrollment' => 'boolean',
         'financial_status' => 'string',
+        'is_void' => 'boolean',
     ];
 
     protected $fillable = [
@@ -43,6 +45,7 @@ class StudentEnrollment extends Model
         'assessed_at',
         'cleared_for_enrollment',
         'financial_status',
+        'is_void',
     ];
 
     public function student() {
@@ -161,6 +164,85 @@ class StudentEnrollment extends Model
         }
 
         return $financialStatus;
+    }
+
+    public function applicableFees()
+    {
+        return Fee::where('status', 'approved')
+            ->where('college_id', $this->college_id)
+            ->where(function ($q) {
+                $q->whereNull('organization_id')
+                    ->orWhereIn('organization_id', function ($query) {
+                        $query->select('id')
+                            ->from('organizations')
+                            ->where('college_id', $this->college_id);
+                    });
+            })
+            ->where(function ($q) {
+                $q->whereNull('created_school_year_id')
+                    ->orWhere('created_school_year_id', '<=', $this->school_year_id);
+            })
+            ->where(function ($q) {
+                $q->whereNull('created_semester_id')
+                    ->orWhere('created_semester_id', '<=', $this->semester_id);
+            })
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->unique('id')
+            ->values();
+    }
+
+    public function resolveApplicableFeePaymentStatus($fees = null)
+    {
+        if ($fees === null) {
+            $fees = $this->applicableFees();
+        }
+
+        if ($fees->isEmpty()) {
+            return [
+                'status' => $this->status,
+                'financial_status' => $this->financial_status,
+            ];
+        }
+
+        $feeAmounts = $fees->pluck('amount', 'id');
+        $paidAmounts = DB::table('fee_payment')
+            ->join('payments', 'fee_payment.payment_id', '=', 'payments.id')
+            ->where('payments.enrollment_id', $this->id)
+            ->whereIn('fee_payment.fee_id', $fees->pluck('id')->toArray())
+            ->groupBy('fee_payment.fee_id')
+            ->select('fee_payment.fee_id', DB::raw('SUM(fee_payment.amount_paid) as amount_paid'))
+            ->pluck('amount_paid', 'fee_payment.fee_id');
+
+        $fullyPaid = $fees->every(function ($fee) use ($feeAmounts, $paidAmounts) {
+            $required = (float) $feeAmounts[$fee->id];
+            $paid = (float) ($paidAmounts[$fee->id] ?? 0);
+            return $paid >= $required;
+        });
+
+        return [
+            'status' => $fullyPaid ? self::PAID : self::FOR_PAYMENT_VALIDATION,
+            'financial_status' => $fullyPaid ? self::FINANCIAL_PAID : self::FINANCIAL_PARTIALLY_PAID,
+        ];
+    }
+
+    public function updatePaymentStatusForApplicableFees($fees = null)
+    {
+        if ($fees === null) {
+            $fees = $this->applicableFees();
+        }
+
+        if ($fees->isEmpty()) {
+            return;
+        }
+
+        $statuses = $this->resolveApplicableFeePaymentStatus($fees);
+
+        if ($this->status !== $statuses['status'] || $this->financial_status !== $statuses['financial_status']) {
+            $this->status = $statuses['status'];
+            $this->financial_status = $statuses['financial_status'];
+            $this->save();
+        }
     }
 
     /**

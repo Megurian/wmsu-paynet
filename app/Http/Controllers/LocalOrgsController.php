@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Fee;
+use App\Models\OrganizationOfficer;
+use Illuminate\Validation\ValidationException;
 
 use App\Models\Payment;
 
@@ -16,7 +18,10 @@ class LocalOrgsController extends Controller
 {
     public function index()
     {
-        $collegeId = Auth::user()->college_id;
+        $user = Auth::user();
+        abort_unless($user, 403);
+
+        $collegeId = $user->college_id;
 
         $orgs = Organization::with('users')
             ->where('college_id', $collegeId)
@@ -27,11 +32,29 @@ class LocalOrgsController extends Controller
 
     public function create()
     {
+        abort_unless(Auth::user(), 403);
         return view('college.local_organizations.create');
+    }
+
+    public function checkCode(Request $request)
+    {
+        $code = strtoupper(trim($request->input('org_code', '')));
+        $available = !Organization::whereRaw('upper(org_code) = ?', [$code])->exists();
+        return response()->json(['available' => $available]);
+    }
+
+    public function checkEmail(Request $request)
+    {
+        $email = trim($request->input('admin_email', ''));
+        $available = !User::where('email', $email)->exists();
+        return response()->json(['available' => $available]);
     }
 
     public function store(Request $request)
     {
+        $user = Auth::user();
+        abort_unless($user, 403);
+
         $request->validate([
             'name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
@@ -44,24 +67,24 @@ class LocalOrgsController extends Controller
             'admin_password' => 'required|string|min:8|confirmed',
         ]);
 
-        DB::transaction(function () use ($request) {
+        DB::transaction(function () use ($request, $user) {
             $logoPath = $request->hasFile('logo')
                 ? $request->file('logo')->store('org_logos', 'public')
                 : null;
 
-                $activeSY = \App\Models\SchoolYear::where('is_active', true)->first();
-                $activeSem = \App\Models\Semester::where('is_active', true)->first();
+            $activeSY = \App\Models\SchoolYear::where('is_active', true)->first();
+            $activeSem = \App\Models\Semester::where('is_active', true)->first();
 
             $org = Organization::create([
                 'name' => $request->name,
                 'org_code' => $request->org_code,
                 'role' => 'college_org',
-                'college_id' => Auth::user()->college_id,
+                'college_id' => $user->college_id,
                 'mother_organization_id' => null,
                 'status' => 'pending',
                 'logo' => $logoPath,
                 'created_school_year_id' => $activeSY?->id,
-                    'created_semester_id' => $activeSem?->id,
+                'created_semester_id' => $activeSem?->id,
             ]);
 
             User::create([
@@ -72,7 +95,7 @@ class LocalOrgsController extends Controller
                 'email' => $request->admin_email,
                 'password' => Hash::make($request->admin_password),
                 'role' => 'college_org',
-                'college_id' => Auth::user()->college_id,
+                'college_id' => $user->college_id,
                 'organization_id' => $org->id,
             ]);
         });
@@ -83,17 +106,105 @@ class LocalOrgsController extends Controller
 
     public function show(Organization $org)
     {
-        $fees = Fee::where('organization_id', $org->id)
-            ->where('status', 'approved')
+
+        $user = Auth::user();
+        abort_unless($user, 403);
+        abort_unless($org->college_id === $user->college_id, 403);
+            $fees = Fee::where('organization_id', $org->id)
+                ->where('status', 'approved')
+                ->get();
+
+        $officers = DB::table('organization_officers')
+            ->join('students', 'students.id', '=', 'organization_officers.student_id')
+            ->where('organization_officers.organization_id', $org->id)
+            ->where('organization_officers.is_active', true)
+            ->select(
+                'students.id',
+                'students.first_name',
+                'students.last_name',
+                'students.email',
+                'students.student_id',
+                'organization_officers.role',
+                'organization_officers.is_active'
+            )
+            ->get();
+        $activeSY = \App\Models\SchoolYear::where('is_active', true)->first();
+        $activeSem = \App\Models\Semester::where('is_active', true)->first();
+
+        $eligibleStudents = \App\Models\Student::whereHas('enrollments', function ($q) use ($activeSY, $activeSem) {
+            $q->where('college_id', Auth::user()->college_id)
+                ->where('school_year_id', $activeSY->id)
+                ->where('semester_id', $activeSem->id)
+                ->where('status', 'ENROLLED');
+        })
+            ->select('id', 'student_id', 'last_name', 'first_name', 'email')
             ->get();
 
-        $users = User::where('organization_id', $org->id)->get();
-
-        return view('college.local_organizations.show', compact('org', 'fees', 'users'));
+        return view('college.local_organizations.show', compact('org', 'fees', 'officers', 'eligibleStudents'));
     }
+
+
+public function assignOfficer(Request $request, $orgId)
+{
+    $user = Auth::user();
+    abort_unless($user, 403);
+
+    $request->validate([
+        'student_id' => 'required|exists:students,id',
+        'role' => 'required|string',
+        'secondary_email' => 'required|email',
+        'password' => 'required|string|min:8|confirmed',
+    ]);
+
+    $activeSY = \App\Models\SchoolYear::where('is_active', true)->first();
+    $activeSem = \App\Models\Semester::where('is_active', true)->first();
+
+    abort_unless($activeSY && $activeSem, 500, 'Active school year or semester not set.');
+
+    $exists = OrganizationOfficer::where('organization_id', $orgId)
+        ->where('student_id', $request->student_id)
+        ->exists();
+
+    if ($exists) {
+        throw ValidationException::withMessages([
+            'student_id' => 'This student is already assigned as an officer.',
+        ]);
+    }
+
+    DB::transaction(function () use ($request, $orgId, $activeSY, $activeSem) {
+
+        User::create([
+            'first_name' => '',
+            'middle_name' => null,
+            'last_name' => '',
+            'email' => $request->secondary_email,
+            'password' => Hash::make($request->password),
+            'role' => 'college_org',
+            'college_id' => Auth::user()->college_id,
+            'organization_id' => $orgId,
+        ]);
+
+        OrganizationOfficer::create([
+            'organization_id' => $orgId,
+            'student_id' => $request->student_id,
+            'role' => $request->role,
+            'secondary_email' => $request->secondary_email,
+            'password' => Hash::make($request->password),
+            'is_active' => true,
+            'school_year_id' => $activeSY->id,
+            'semester_id' => $activeSem->id,
+        ]);
+    });
+
+    return back()->with('success', 'Officer assigned and account created successfully.');
+}
 
     public function cancelSubmission(Organization $org)
     {
+        $user = Auth::user();
+        abort_unless($user, 403);
+        abort_unless($org->college_id === $user->college_id, 403);
+
         if ($org->status === 'pending') {
             $org->delete();
             return redirect()->route('college.local_organizations')->with('status', 'Submission canceled successfully.');
@@ -104,6 +215,10 @@ class LocalOrgsController extends Controller
 
     public function records(Organization $org)
     {
+        $user = Auth::user();
+        abort_unless($user, 403);
+        abort_unless($org->college_id === $user->college_id, 403);
+
         $payments = Payment::with([
             'student',
             'enrollment.course',

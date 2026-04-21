@@ -289,13 +289,8 @@ function toggleCreateDisabled() {
     }
 
     if (nextBtnStep1) {
-        if (codePending || emailPending || passwordMismatch) {
-            nextBtnStep1.disabled = true;
-            nextBtnStep1.classList.add('opacity-60', 'cursor-not-allowed');
-        } else {
-            nextBtnStep1.disabled = false;
-            nextBtnStep1.classList.remove('opacity-60', 'cursor-not-allowed');
-        }
+        nextBtnStep1.disabled = false;
+        nextBtnStep1.classList.remove('opacity-60', 'cursor-not-allowed');
     }
 }
 

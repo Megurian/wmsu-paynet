@@ -40,8 +40,9 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('promissory_notes', function (Blueprint $table) {
+            $table->dropForeign(['open_student_id']);
             $table->dropUnique('unique_student_open_pn');
-            $table->dropConstrainedForeignId('open_student_id');
+            $table->dropColumn('open_student_id');
             $table->unique('student_id', 'unique_student_active_pn');
         });
     }

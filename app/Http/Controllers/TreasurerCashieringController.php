@@ -21,9 +21,16 @@ use Illuminate\Support\Facades\Log;
 class TreasurerCashieringController extends Controller
 {
     public function index() {
+        $user = Auth::user();
+        abort_unless($user, 403);
+
         $fees = Fee::where('status', 'approved')
             ->where('fee_scope', 'college')
-            ->where('college_id', Auth::user()->college_id)
+            ->where('college_id', $user->college_id)
+            ->whereNull('organization_id')
+            ->whereHas('creator', function ($q) {
+                $q->whereJsonContains('role', 'student_coordinator');
+            })
             ->get();
 
         return view('college.cashiering', compact('fees'));
@@ -31,8 +38,11 @@ class TreasurerCashieringController extends Controller
 
     public function searchAdvisedStudents(Request $request)
     {
+        $user = Auth::user();
+        abort_unless($user, 403);
+
         $query = $request->query('q');
-        $collegeId = Auth::user()->college_id;
+        $collegeId = $user->college_id;
         $activeSY = SchoolYear::where('is_active', true)->first();
         $activeSem = Semester::where('is_active', true)->first();
 
@@ -59,7 +69,10 @@ class TreasurerCashieringController extends Controller
 
     public function getStudentDetails($studentId)
     {
-        $collegeId = Auth::user()->college_id;
+        $user = Auth::user();
+        abort_unless($user, 403);
+
+        $collegeId = $user->college_id;
         $activeSY = SchoolYear::where('is_active', true)->first();
         $activeSem = Semester::where('is_active', true)->first();
 
@@ -67,18 +80,11 @@ class TreasurerCashieringController extends Controller
             return response()->json(['message' => 'No active school year or semester.'], 422);
         }
 
-        $student = Student::with(['enrollments' => function($q) use ($activeSY, $activeSem) {
-            $q->where('school_year_id', $activeSY->id)
-                ->where('semester_id', $activeSem->id);
-        }])->findOrFail($studentId);
+        $student = Student::findOrFail($studentId);
+        $enrollment = $this->resolvePaymentEnrollment($student);
 
-        $enrollment = StudentEnrollment::where('student_id', $student->id)
-            ->where('school_year_id', $activeSY->id)
-            ->where('semester_id', $activeSem->id)
-            ->first();
-
-        if (!$enrollment) {
-            return response()->json(['message' => 'Student not enrolled in active period.'], 404);
+        if (! $enrollment) {
+            return response()->json(['message' => 'Student enrollment for payment could not be determined.'], 404);
         }
 
         // Verify student belongs to treasurer's college
@@ -101,13 +107,26 @@ class TreasurerCashieringController extends Controller
 
         $feesQuery = Fee::where('status', 'approved')
             ->where('fee_scope', 'college')
-            ->where('college_id', $collegeId);
+            ->where('college_id', $collegeId)
+            ->whereNull('organization_id')
+            ->whereHas('creator', function ($q) {
+                $q->whereJsonContains('role', 'student_coordinator');
+            });
 
         if (!empty($pnFeeIds)) {
             $feesQuery->whereNotIn('id', $pnFeeIds);
         }
 
-        $fees = $feesQuery->get();
+        $fees = $feesQuery->get()->map(function ($fee) use ($enrollment) {
+            return [
+                'id' => $fee->id,
+                'fee_name' => $fee->fee_name,
+                'amount' => $fee->amount,
+                'requirement_level' => $fee->requirement_level,
+                'school_year' => optional($enrollment->schoolYear)->sy_start ? optional($enrollment->schoolYear)->sy_start->format('Y') . ' - ' . optional($enrollment->schoolYear)->sy_end->format('Y') : null,
+                'semester' => optional($enrollment->semester)->name,
+            ];
+        });
 
         $paidFeeIds = DB::table('fee_payment')
             ->join('payments', 'fee_payment.payment_id', '=', 'payments.id')
@@ -122,9 +141,11 @@ class TreasurerCashieringController extends Controller
                 'first_name' => $student->first_name,
                 'last_name' => $student->last_name,
                 'email' => $student->email,
-                'course' => $enrollment?->course->name ?? null,
-                'year_level' => $enrollment?->yearLevel->name ?? null,
-                'section' => $enrollment?->section->name ?? null,
+                'course' => optional($enrollment->course)->name,
+                'year_level' => optional($enrollment->yearLevel)->name,
+                'section' => optional($enrollment->section)->name,
+                'school_year' => optional($enrollment->schoolYear)->sy_start ? optional($enrollment->schoolYear)->sy_start->format('Y') . ' - ' . optional($enrollment->schoolYear)->sy_end->format('Y') : null,
+                'semester' => optional($enrollment->semester)->name,
             ],
             'fees' => $fees,
             'paid_fee_ids' => $paidFeeIds
@@ -139,7 +160,10 @@ class TreasurerCashieringController extends Controller
      */
     public function getPromissoryNotes($studentId)
     {
-        $collegeId = Auth::user()->college_id;
+        $user = Auth::user();
+        abort_unless($user, 403);
+
+        $collegeId = $user->college_id;
         $activeSY = SchoolYear::where('is_active', true)->first();
         $activeSem = Semester::where('is_active', true)->first();
 
@@ -148,16 +172,6 @@ class TreasurerCashieringController extends Controller
         }
 
         $student = Student::findOrFail($studentId);
-
-        // Verify student belongs to this college
-        $enrollment = StudentEnrollment::where('student_id', $student->id)
-            ->where('school_year_id', $activeSY->id)
-            ->where('semester_id', $activeSem->id)
-            ->first();
-
-        if (!$enrollment || $enrollment->college_id !== $collegeId) {
-            return response()->json(null);
-        }
 
         // Fetch settleable PN (ACTIVE, DEFAULT, or BAD_DEBT with balance remaining)
         // Only include promissory fees that belong to this college.
@@ -170,17 +184,29 @@ class TreasurerCashieringController extends Controller
             ->where('remaining_balance', '>', 0)
             ->whereHas('fees', function ($q) use ($collegeId) {
                 $q->where('fee_scope', 'college')
-                  ->where('college_id', $collegeId);
+                  ->where('college_id', $collegeId)
+                  ->whereNull('organization_id')
+                  ->whereHas('creator', function ($q2) {
+                      $q2->whereJsonContains('role', 'student_coordinator');
+                  });
             })
             ->with(['fees' => function ($q) use ($collegeId) {
                 $q->where('fee_scope', 'college')
                   ->where('college_id', $collegeId)
+                  ->whereNull('organization_id')
+                  ->whereHas('creator', function ($q2) {
+                      $q2->whereJsonContains('role', 'student_coordinator');
+                  })
                   ->select('fees.id', 'fees.fee_name');
             }])
             ->orderByDesc('id')
             ->first();
 
         if (!$settleablePN) {
+            return response()->json(null);
+        }
+
+        if (! $settleablePN || ! $settleablePN->enrollment || $settleablePN->enrollment->college_id !== $collegeId) {
             return response()->json(null);
         }
 
@@ -249,6 +275,9 @@ class TreasurerCashieringController extends Controller
      */
     private function collectCashPayment(Request $request)
     {
+        $user = Auth::user();
+        abort_unless($user, 403);
+
         $request->validate([
             'student_id' => 'required|exists:students,id',
             'fee_ids' => 'required|array|min:1',
@@ -256,7 +285,6 @@ class TreasurerCashieringController extends Controller
             'cash_received' => 'required|numeric|min:0',
         ]);
 
-        $user = Auth::user();
         $collegeId = $user->college_id;
 
         if (!$collegeId) {
@@ -272,10 +300,11 @@ class TreasurerCashieringController extends Controller
 
         $student = Student::findOrFail($request->student_id);
 
-        $enrollment = StudentEnrollment::where('student_id', $student->id)
-            ->where('school_year_id', $activeSY->id)
-            ->where('semester_id', $activeSem->id)
-            ->firstOrFail();
+        $enrollment = $this->resolvePaymentEnrollment($student);
+
+        if (! $enrollment) {
+            return response()->json(['message' => 'Student enrollment for payment could not be determined.'], 422);
+        }
 
         // Verify student belongs to this college
         if ($enrollment->college_id !== $collegeId) {
@@ -303,17 +332,21 @@ class TreasurerCashieringController extends Controller
             ], 422);
         }
 
-        $fees = Fee::whereIn('id', $request->fee_ids)->get();
+        $fees = Fee::whereIn('id', $request->fee_ids)
+            ->where('fee_scope', 'college')
+            ->where('college_id', $collegeId)
+            ->whereNull('organization_id')
+            ->whereHas('creator', function ($q) {
+                $q->whereJsonContains('role', 'student_coordinator');
+            })
+            ->get();
 
         if ($fees->count() !== count($request->fee_ids)) {
-            return response()->json(['message' => 'One or more fees do not exist.'], 422);
+            return response()->json(['message' => 'One or more fees do not exist or are not valid for college-level cashiering.'], 422);
         }
 
         // Admin collects only college-level fees (no org fees)
-        $invalidFees = $fees->filter(function ($fee) use ($collegeId) {
-            return $fee->fee_scope !== 'college'
-                || $fee->college_id !== $collegeId;
-        })->pluck('id')->toArray();
+        $invalidFees = [];
 
         if (!empty($invalidFees)) {
             return response()->json([
@@ -345,7 +378,7 @@ class TreasurerCashieringController extends Controller
         }
 
         $college = College::find($collegeId);
-        $collegeCode = ($college?->college_code ?? 'UNK') . '-TRES';
+        $collegeCode = optional($college)->college_code ? optional($college)->college_code . '-TRES' : 'UNK-TRES';
         $dateStr = now()->format('Ymd');
 
         $countToday = Payment::whereHas('enrollment', function ($q) use ($collegeId) {
@@ -363,8 +396,8 @@ class TreasurerCashieringController extends Controller
             'student_id' => $student->id,
             'enrollment_id' => $enrollment->id,
             'organization_id' => null,
-            'school_year_id' => $activeSY->id,
-            'semester_id' => $activeSem->id,
+            'school_year_id' => $enrollment->school_year_id,
+            'semester_id' => $enrollment->semester_id,
             'payment_type' => 'CASH',
             'amount_due' => $totalAmount,
             'cash_received' => $request->cash_received,
@@ -377,7 +410,8 @@ class TreasurerCashieringController extends Controller
             $payment->fees()->attach($fee->id, ['amount_paid' => $fee->amount]);
         }
 
-        $enrollment->refreshFinancialStatus();
+        $applicableFees = $this->getApplicableFeesForEnrollment($enrollment, $collegeId);
+        $enrollment->updatePaymentStatusForApplicableFees($applicableFees);
 
         return response()->json([
             'message' => 'Payment collected successfully.',
@@ -393,17 +427,32 @@ class TreasurerCashieringController extends Controller
         ]);
     }
 
+    private function getApplicableFeesForEnrollment(StudentEnrollment $enrollment, int $collegeId)
+    {
+        return Fee::where('status', 'approved')
+            ->where('fee_scope', 'college')
+            ->where('college_id', $collegeId)
+            ->whereNull('organization_id')
+            ->whereHas('creator', function ($q) {
+                $q->whereJsonContains('role', 'student_coordinator');
+            })
+            ->orderBy('created_at', 'desc')
+            ->get();
+    }
+
     /**
      * Collect promissory note settlement payment
      */
     private function collectPromissoryPayment(Request $request)
     {
+        $user = Auth::user();
+        abort_unless($user, 403);
+
         $rules = (new CollectPromissoryPaymentRequest())->rules();
         $messages = (new CollectPromissoryPaymentRequest())->messages();
         $request->validate($rules, $messages);
 
         try {
-            $user = Auth::user();
             $collegeId = $user->college_id;
 
             if (!$collegeId) {
@@ -421,7 +470,7 @@ class TreasurerCashieringController extends Controller
             }
 
             // Verify enrollment belongs to this college
-            if ($promissoryNote->enrollment->college_id !== $collegeId) {
+            if (! $promissoryNote->enrollment || $promissoryNote->enrollment->college_id !== $collegeId) {
                 return response()->json([
                     'message' => 'Promissory note does not belong to this college.'
                 ], 403);
@@ -430,12 +479,16 @@ class TreasurerCashieringController extends Controller
             $collegeFeeIds = Fee::whereIn('id', $request->selected_fees)
                 ->where('fee_scope', 'college')
                 ->where('college_id', $collegeId)
+                ->whereNull('organization_id')
+                ->whereHas('creator', function ($q) {
+                    $q->whereJsonContains('role', 'student_coordinator');
+                })
                 ->pluck('id')
                 ->toArray();
 
-            if (count($collegeFeeIds) !== count($request->selected_fees)) {
+                if (count($collegeFeeIds) !== count($request->selected_fees)) {
                 return response()->json([
-                    'message' => 'Only college-scoped fees belonging to this college can be settled here.'
+                    'message' => 'Only college fees created by the student coordinator can be settled here.'
                 ], 403);
             }
 
@@ -449,6 +502,9 @@ class TreasurerCashieringController extends Controller
                 $user,
                 false // Not an org payment
             );
+
+            $applicableFees = $this->getApplicableFeesForEnrollment($promissoryNote->enrollment, $collegeId);
+            $promissoryNote->enrollment->updatePaymentStatusForApplicableFees($applicableFees);
 
             return response()->json([
                 'message' => 'Promissory note payment collected successfully.',
@@ -490,6 +546,43 @@ class TreasurerCashieringController extends Controller
                 'message' => 'Unable to process the payment at this time. Please try again later.',
             ], 500);
         }
+    }
+
+    private function resolvePaymentEnrollment(Student $student): ?StudentEnrollment
+    {
+        $activeSY = SchoolYear::where('is_active', true)->first();
+        $activeSem = Semester::where('is_active', true)->first();
+
+        if (! $activeSY || ! $activeSem) {
+            return null;
+        }
+
+        $activeEnrollment = StudentEnrollment::with(['course', 'yearLevel', 'section', 'schoolYear', 'semester'])
+            ->where('student_id', $student->id)
+            ->where('school_year_id', $activeSY->id)
+            ->where('semester_id', $activeSem->id)
+            ->whereIn('status', [StudentEnrollment::FOR_PAYMENT_VALIDATION, StudentEnrollment::ENROLLED])
+            ->first();
+
+        if ($activeEnrollment) {
+            $previousEnrollment = StudentEnrollment::with(['course', 'yearLevel', 'section', 'schoolYear', 'semester'])
+                ->where('student_id', $student->id)
+                ->where('id', '<', $activeEnrollment->id)
+                ->orderByDesc('id')
+                ->first();
+
+            if ($previousEnrollment && !$previousEnrollment->is_void && $previousEnrollment->status === StudentEnrollment::FOR_PAYMENT_VALIDATION) {
+                return $previousEnrollment;
+            }
+
+            return $activeEnrollment;
+        }
+
+        return StudentEnrollment::with(['course', 'yearLevel', 'section', 'schoolYear', 'semester'])
+            ->where('student_id', $student->id)
+            ->where('status', StudentEnrollment::FOR_PAYMENT_VALIDATION)
+            ->latest('id')
+            ->first();
     }
 
     // public function downloadReceipt($paymentId)

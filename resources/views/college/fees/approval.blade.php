@@ -67,6 +67,7 @@
 
                 <div class="flex gap-2 md:gap-3">
                     <a href="{{ route('college.fees.show', $fee->id) }}" class="inline-flex items-center px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">View</a>
+                    <button type="button" data-approve-url="{{ route('college.fees.approve', $fee) }}" class="approve-fee-btn inline-flex items-center px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700">Approve</button>
                 </div>
             </div>
         @empty
@@ -110,4 +111,48 @@
         @endforelse
     @endif
 </div>
+
+<!-- Approval Password Confirmation Modal -->
+<div id="feeApproveModal" class="hidden fixed inset-0 z-50 flex items-center justify-center px-4">
+    <div class="fixed inset-0 bg-black bg-opacity-50"></div>
+    <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full z-10 p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-3">Confirm Approval</h3>
+        <p class="text-sm text-gray-500 mb-5">Enter your password to confirm this fee approval.</p>
+
+        <form id="feeApproveForm" method="POST" action="">
+            @csrf
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1" for="approval_password">Password</label>
+                <input id="approval_password" type="password" name="password" required class="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-600" autocomplete="current-password" />
+                @error('password') <p class="text-red-600 text-sm mt-1">{{ $message }}</p> @enderror
+            </div>
+
+            <div class="flex justify-end gap-2">
+                <button type="button" onclick="closeFeeApproveModal()" class="px-4 py-2 border rounded text-gray-700 hover:bg-gray-100">Cancel</button>
+                <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Confirm Approve</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openFeeApproveModal(actionUrl) {
+    const modal = document.getElementById('feeApproveModal');
+    const form = document.getElementById('feeApproveForm');
+    form.action = actionUrl;
+    modal.classList.remove('hidden');
+}
+
+function closeFeeApproveModal() {
+    document.getElementById('feeApproveModal').classList.add('hidden');
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.approve-fee-btn').forEach(function(button) {
+        button.addEventListener('click', function() {
+            openFeeApproveModal(this.dataset.approveUrl);
+        });
+    });
+});
+</script>
 @endsection
