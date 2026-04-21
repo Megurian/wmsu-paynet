@@ -33,6 +33,7 @@ use Illuminate\Support\Facades\Storage;
 use App\Http\Controllers\OSAReportsController;
 use App\Http\Controllers\UniversityOrgDashboardController;
 use App\Http\Controllers\EmployeeController;
+use App\Http\Controllers\CollegeOrgDashboardController;
 
 Route::get('/test-route', function () {
     return 'Laravel route works!';
@@ -198,9 +199,8 @@ Route::middleware(['auth', 'role:university_org'])->group(function () {
 });
 
 Route::middleware(['auth', 'role:college_org'])->group(function () {
-    Route::get('/college_org/dashboard', function () {
-        return view('college_org.dashboard');
-    })->name('college_org.dashboard');
+    Route::get('/college_org/dashboard', [CollegeOrgDashboardController::class, 'dashboard'])
+    ->name('college_org.dashboard');
 
     
 
