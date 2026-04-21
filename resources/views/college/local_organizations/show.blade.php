@@ -84,52 +84,346 @@
         </div>
     </div>
 
-    <div x-data="{ open: true, showModal: false }" class="bg-white shadow-md rounded-xl w-full mt-4">
-        <div class="flex justify-between items-center px-6 py-4 border-b">
-            <h3 class="font-medium text-gray-800">Organization Officers ({{ $users->count() }})</h3>
-            <button @click="showModal = true" class="px-3 py-1 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition">
-                + Assign Officer
+<div
+    x-data="{
+        showModal: false,
+        listOpen: true,
+
+        search: '',
+        open: false,
+        selectedId: null,
+        selectedStudent: null,
+
+        role: '',
+
+        roles: [
+            'Mayor',
+            'President',
+            'Vice Mayor',
+            'Vice President',
+            'Finance Officer'
+        ],
+
+        students: @js($eligibleStudents),
+        filtered: [],
+
+        init() {
+            this.filtered = this.students;
+        },
+
+        filterStudents() {
+            const q = this.search.toLowerCase().trim();
+
+            this.filtered = this.students.filter(s => {
+                const fullName = `${s.last_name} ${s.first_name}`.toLowerCase();
+
+                return (
+                    fullName.includes(q) ||
+                    (s.student_id ?? '').toLowerCase().includes(q) ||
+                    (s.email ?? '').toLowerCase().includes(q)
+                );
+            });
+        },
+
+        selectStudent(student) {
+            this.search = `${student.last_name}, ${student.first_name}`;
+            this.selectedId = student.id;
+            this.selectedStudent = student;
+            this.open = false;
+        }
+    }"
+    class="bg-white shadow-md rounded-xl w-full mt-4"
+>
+
+    <!-- HEADER -->
+    <div class="flex justify-between items-center px-6 py-4 border-b">
+        <h3 class="font-medium text-gray-800">
+            Organization Officers ({{ $officers->count() }})
+        </h3>
+
+        <button
+            @click="showModal = true"
+            class="px-3 py-1 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition"
+        >
+            + Assign Officer
+        </button>
+    </div>
+
+    <!-- OFFICERS LIST -->
+    <div x-show="listOpen" x-transition class="px-6 py-4 space-y-3">
+
+        @forelse($officers as $officer)
+            <div class="p-4 border rounded-lg flex justify-between items-center bg-gray-50">
+
+                <div>
+                    <p class="font-semibold text-gray-800">
+                        {{ $officer->last_name }}, {{ $officer->first_name }}
+                    </p>
+
+                    <p class="text-xs text-gray-500">
+                        {{ $officer->email }}
+                    </p>
+
+                    <p class="text-xs text-gray-400">
+                        ID: {{ $officer->student_id }}
+                    </p>
+                </div>
+
+                <div class="text-right">
+                    <span class="px-3 py-1 text-xs bg-indigo-100 text-indigo-700 rounded-full">
+                        {{ $officer->role }}
+                    </span>
+
+                    @if($officer->is_active)
+                        <p class="text-[10px] text-green-600 mt-1">Active</p>
+                    @else
+                        <p class="text-[10px] text-gray-400 mt-1">Inactive</p>
+                    @endif
+                </div>
+
+            </div>
+        @empty
+            <div class="text-center py-6 text-gray-400">
+                No officers assigned yet.
+            </div>
+        @endforelse
+
+    </div>
+
+    <!-- MODAL -->
+<div
+    x-show="showModal"
+    x-cloak
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4"
+>
+    <div class="bg-white w-full max-w-5xl rounded-2xl shadow-2xl overflow-hidden">
+
+        <!-- HEADER -->
+        <div class="px-6 py-4 border-b bg-gray-50 flex justify-between items-center">
+            <div>
+                <h2 class="text-lg font-bold text-gray-800">Assign Organization Officer</h2>
+                <p class="text-sm text-gray-500">
+                    Select a student, assign a role, and create officer login credentials.
+                </p>
+            </div>
+
+            <button @click="showModal = false"
+                class="text-gray-500 hover:text-gray-700 text-xl">
+                ✕
             </button>
         </div>
 
-        <div x-show="open" class="px-6 py-4 space-y-2">
-            @forelse($users as $user)
-            <div class="p-4 border border-gray-100 rounded-lg flex justify-between items-center bg-gray-50">
-                <div>
-                    <p class="font-bold text-gray-800">{{ $user->first_name }} {{ $user->last_name }}</p>
-                    <p class="text-xs text-gray-500">{{ $user->email }}</p>
+        <!-- BODY -->
+        <form action="{{ route('college.local_organizations.assign', $org->id) }}" method="POST">
+            @csrf
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-0">
+
+                <!-- LEFT SIDE -->
+                <div class="p-6 border-r space-y-5">
+
+                    <div>
+                        <h3 class="font-semibold text-gray-800 mb-1">1. Select Student</h3>
+                        <p class="text-sm text-gray-500 mb-3">
+                            Search by name, student ID, or email.
+                        </p>
+
+                        <input
+                            type="text"
+                            x-model="search"
+                            @focus="open = true"
+                            @input="filterStudents"
+                            @keydown.escape="open = false"
+                            placeholder="Search student..."
+                            class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none"
+                            autocomplete="off"
+                        >
+
+                        <input type="hidden" name="student_id" x-model="selectedId" required>
+
+                        <!-- DROPDOWN -->
+                        <div
+                            x-show="open && filtered.length"
+                            x-transition
+                            class="absolute z-50 mt-2 w-[45%] bg-white border rounded-xl shadow-lg max-h-64 overflow-y-auto"
+                        >
+                            <template x-for="student in filtered" :key="student.id">
+                                <div
+                                    @mousedown.prevent="selectStudent(student)"
+                                    class="px-4 py-3 hover:bg-indigo-50 cursor-pointer border-b last:border-0"
+                                >
+                                    <div class="font-medium text-gray-800"
+                                         x-text="student.last_name + ', ' + student.first_name"></div>
+
+                                    <div class="text-xs text-gray-500"
+                                         x-text="student.student_id + ' • ' + student.email"></div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- SELECTED STUDENT CARD -->
+                    <template x-if="selectedStudent">
+                        <div class="bg-gray-50 border rounded-xl p-4">
+                            <p class="font-semibold text-gray-700 mb-2">Selected Student</p>
+
+                            <div class="text-sm space-y-1">
+                                <p><span class="text-gray-500">Name:</span>
+                                    <span x-text="selectedStudent.last_name + ', ' + selectedStudent.first_name"></span>
+                                </p>
+                                <p><span class="text-gray-500">ID:</span>
+                                    <span x-text="selectedStudent.student_id"></span>
+                                </p>
+                                <p><span class="text-gray-500">Email:</span>
+                                    <span x-text="selectedStudent.email"></span>
+                                </p>
+                            </div>
+                        </div>
+                    </template>
+
                 </div>
-                <span class="px-2 py-1 text-xs bg-green-100 text-green-700 rounded-full">Active Officer</span>
-            </div>
-            @empty
-            <p class="text-gray-400 text-center py-4">No officers assigned yet.</p>
-            @endforelse
-        </div>
 
-        <div x-show="showModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 px-4" x-cloak>
-            <div class="bg-white rounded-xl shadow-lg max-w-md w-full p-6">
-                <h2 class="text-xl font-bold mb-4">Assign New Officer</h2>
-                <form action="{{ route('college.local_organizations.assign', $org->id) }}" method="POST">
-                    @csrf
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Select Student</label>
-                        <select name="student_id" class="w-full border-gray-300 rounded-lg focus:ring-indigo-500 shadow-sm" required>
-                            <option value="">Select an enrolled student...</option>
-                            @foreach($eligibleStudents as $student)
-                            <option value="{{ $student->id }}">{{ $student->last_name }}, {{ $student->first_name }} ({{ $student->email }})</option>
-                            @endforeach
+                <!-- RIGHT SIDE -->
+                <div class="p-6 space-y-5">
+
+                    <div>
+                        <h3 class="font-semibold text-gray-800 mb-1">2. Assign Role</h3>
+                        <p class="text-sm text-gray-500 mb-3">
+                            Choose the officer position for this student.
+                        </p>
+
+                        <select
+                            name="role"
+                            x-model="role"
+                            class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none"
+                            required
+                        >
+                            <option value="">Select role</option>
+                            <template x-for="r in roles" :key="r">
+                                <option :value="r" x-text="r"></option>
+                            </template>
                         </select>
-                        <p class="mt-2 text-xs text-gray-500">Only students from your college are listed here.</p>
+
+                        <p class="text-xs text-gray-500 mt-2">
+                            Selected:
+                            <span class="font-semibold text-indigo-600" x-text="role || 'None'"></span>
+                        </p>
                     </div>
 
-                    <div class="flex justify-end space-x-3 mt-6">
-                        <button type="button" @click="showModal = false" class="px-4 py-2 text-gray-600 hover:text-gray-800">Cancel</button>
-                        <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium">Confirm Assignment</button>
-                    </div>
-                </form>
+                    <!-- LOGIN SECTION -->
+                    <template x-if="selectedStudent">
+
+                        <div class="pt-4 border-t space-y-4">
+
+                            <div>
+                                <h3 class="font-semibold text-gray-800 mb-1">3. Officer Login Credentials</h3>
+                                <p class="text-sm text-gray-500 mb-3">
+                                    This account will be used by the officer to access the system.
+                                </p>
+                            </div>
+
+                            <div>
+                                <label class="text-sm font-medium text-gray-700">Login Email</label>
+                                <input
+                                    type="email"
+                                    name="secondary_email"
+                                    placeholder="e.g. officer@email.com"
+                                    class="w-full border rounded-lg px-3 py-2 mt-1 focus:ring-2 focus:ring-indigo-500"
+                                    required
+                                >
+                            </div>
+
+                            <div>
+                                <label class="text-sm font-medium text-gray-700">Password</label>
+                                <input
+                                    type="password"
+                                    name="password"
+                                    class="w-full border rounded-lg px-3 py-2 mt-1 focus:ring-2 focus:ring-indigo-500"
+                                    required
+                                >
+                            </div>
+
+                            <div>
+                                <label class="text-sm font-medium text-gray-700">Confirm Password</label>
+                                <input
+                                    type="password"
+                                    name="password_confirmation"
+                                    class="w-full border rounded-lg px-3 py-2 mt-1 focus:ring-2 focus:ring-indigo-500"
+                                    required
+                                >
+                            </div>
+
+                        </div>
+
+                    </template>
+
+                </div>
             </div>
-        </div>
+
+            <!-- FOOTER -->
+            <div class="px-6 py-4 bg-gray-50 border-t flex justify-end gap-3">
+
+                <button
+                    type="button"
+                    @click="showModal = false"
+                    class="px-4 py-2 rounded-lg border hover:bg-gray-100"
+                >
+                    Cancel
+                </button>
+
+                <button
+                    type="submit"
+                    class="px-5 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 shadow"
+                >
+                    Assign Officer
+                </button>
+
+            </div>
+
+        </form>
+
     </div>
+</div>
+
+</div>
 
 </div>
 @endsection
+
+
+
+<script>
+function studentSearch() {
+    return {
+        search: '',
+        open: false,
+        selectedId: null,
+        students: @json($eligibleStudents),
+        filtered: [],
+
+        init() {
+            this.filtered = this.students;
+        },
+
+        filterStudents() {
+            const q = this.search.toLowerCase().trim();
+
+            this.filtered = this.students.filter(s => {
+                const fullName = `${s.last_name} ${s.first_name}`.toLowerCase();
+
+                return (
+                    fullName.includes(q) ||
+                    (s.student_id ?? '').toLowerCase().includes(q) ||
+                    (s.email ?? '').toLowerCase().includes(q)
+                );
+            });
+        },
+
+        selectStudent(student) {
+            this.search = `${student.last_name}, ${student.first_name}`;
+            this.selectedId = student.id;
+            this.open = false;
+        }
+    }
+}
+</script>

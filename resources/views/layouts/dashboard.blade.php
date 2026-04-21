@@ -44,6 +44,7 @@
             animation: fadeIn .2s ease-out;
         }
 
+        /* Add this inside your <style> tag */
         nav::-webkit-scrollbar {
             width: 5px;
         }
@@ -66,7 +67,7 @@
     <div class="flex">
 
         <!-- SIDEBAR -->
-        <aside id="sidebar" class="fixed top-0 left-0 h-screen w-64 bg-red-800 text-white flex flex-col z-40">
+       <aside id="sidebar" class="fixed top-0 left-0 h-screen w-64 bg-red-800 text-white flex flex-col z-40">
             <button onclick="toggleSidebar()" class="text-white focus:outline-none">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"></path>
@@ -307,40 +308,6 @@
                     {{ request()->routeIs('college.dashboard') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
                     <span>Dashboard</span>
                 </a>
-            @endif
-
-             @if(in_array('student_coordinator', $roles))
-
-                <a href="{{ route('college.local_organizations') }}" class="block px-4 py-2 rounded-md transition
-                        {{ request()->routeIs('college.local_organizations') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-                        <span>College Organizations</span>
-                </a>
-                
-                <a href="{{ route('college.fees') }}" class="block px-4 py-2 rounded-md transition
-                    {{ request()->routeIs('college.fees') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-                    <span>Fees</span>
-                </a>
-                <a href="{{ route('college.promissory_notes.index') }}" class="block px-4 py-2 rounded-md transition
-                    {{ request()->routeIs('college.promissory_notes.*') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-                    <span>Promissory Notes</span>
-                </a>
-            @endif
-            
-            @if(in_array('adviser', $roles))
-                <a href="{{ route('college.students.my-upload') }}" class="block px-4 py-2 rounded-md transition
-                    {{ request()->routeIs('college.students.my-upload') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-                    <span>My Students</span>
-                </a>
-            @endif
-
-            @if(in_array('student_coordinator', $roles) || in_array('assessor', $roles))
-                <a href="{{ route('college.students.validate') }}" class="block px-4 py-2 rounded-md transition
-                    {{ request()->routeIs('college.students.validate') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-                    <span>Enrollment Validation</span>
-                </a>
-            @endif
-
-            @if(!empty(array_intersect($roles, ['student_coordinator', 'adviser', 'assessor'])))
 
                 <a href="{{ route('college.students') }}" class="block px-4 py-2 rounded-md transition
                     {{ request()->routeIs('college.students') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
@@ -382,10 +349,44 @@
             @endif
 
 
+            @if(in_array('adviser', $roles))
+                <a href="{{ route('college.students.my-upload') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('college.students.my-upload') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span>My Students</span>
+                </a>
+            @endif
+
+
             @if(in_array('treasurer', $roles))
                 <a href="{{ route('treasurer.cashiering') }}" class="block px-4 py-2 rounded-md transition
                     {{ request()->routeIs('treasurer.cashiering') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
                     <span>Payments</span>
+                </a>
+            @endif
+
+
+            @if(in_array('student_coordinator', $roles) || in_array('assessor', $roles))
+                <a href="{{ route('college.students.validate') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('college.students.validate') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span>Enrollment Validation</span>
+                </a>
+            @endif
+
+
+            @if(in_array('student_coordinator', $roles))
+                <a href="{{ route('college.promissory_notes.index') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('college.promissory_notes.*') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span>Promissory Notes</span>
+                </a>
+
+                <a href="{{ route('college.fees') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('college.fees') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span>Fees</span>
+                </a>
+
+                <a href="{{ route('college.local_organizations') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('college.local_organizations') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span>College Organizations</span>
                 </a>
             @endif
 

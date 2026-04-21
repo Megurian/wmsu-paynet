@@ -264,7 +264,7 @@ Route::middleware(['auth','role:college'])->group(function () {
         ->name('college.fees.reject');
 });
 
-Route::middleware(['auth', 'role:treasurer,college,student_coordinator,adviser,assessor'])->group(function () {
+Route::middleware(['auth', 'role:treasurer,college,student_coordinator,adviser,assessor,college_org'])->group(function () {
     // Route::get('/college/dashboard', function () {
     //     return view('college.dashboard');
     // })->name('college.dashboard');
@@ -397,6 +397,8 @@ Route::middleware(['auth', 'role:treasurer,college,student_coordinator,adviser,a
     Route::get('/employees/template', [EmployeeController::class, 'downloadTemplate'])->name('employees.template');
     Route::post('/employees/import', [EmployeeController::class, 'import'])->name('employees.import');
     Route::post('/employees/preview', [EmployeeController::class, 'previewImport'])->name('employees.preview');
+     Route::post('college/local_organizations/{org}/assign', [LocalOrgsController::class, 'assignOfficer'])
+        ->name('college.local_organizations.assign');
 });
 
 
@@ -460,9 +462,6 @@ Route::middleware(['auth','role:student_coordinator'])->group(function(){
         ->name('college.local_organizations.store');
 
         Route::get('college/local_organizations/{org}', [LocalOrgsController::class, 'show'])->name('college.local_organizations.show');
-
-        Route::post('college/local_organizations/{org}/assign', [LocalOrgsController::class, 'assignOfficer'])
-        ->name('college.local_organizations.assign');
     Route::delete('/college/local_organizations/{org}/cancel', [LocalOrgsController::class, 'cancelSubmission'])->name('college.local_organizations.cancel_submission');
 });
 

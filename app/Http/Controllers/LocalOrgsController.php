@@ -49,8 +49,8 @@ class LocalOrgsController extends Controller
                 ? $request->file('logo')->store('org_logos', 'public')
                 : null;
 
-                $activeSY = \App\Models\SchoolYear::where('is_active', true)->first();
-                $activeSem = \App\Models\Semester::where('is_active', true)->first();
+            $activeSY = \App\Models\SchoolYear::where('is_active', true)->first();
+            $activeSem = \App\Models\Semester::where('is_active', true)->first();
 
             $org = Organization::create([
                 'name' => $request->name,
@@ -61,7 +61,7 @@ class LocalOrgsController extends Controller
                 'status' => 'pending',
                 'logo' => $logoPath,
                 'created_school_year_id' => $activeSY?->id,
-                    'created_semester_id' => $activeSem?->id,
+                'created_semester_id' => $activeSem?->id,
             ]);
 
             User::create([
@@ -83,49 +83,99 @@ class LocalOrgsController extends Controller
 
     public function show(Organization $org)
     {
+        
         $fees = Fee::where('organization_id', $org->id)
             ->where('status', 'approved')
             ->get();
 
         // Get current officers from the pivot/record table
-        $users = User::where('organization_id', $org->id)->get();
+        $officers = DB::table('organization_officers')
+            ->join('students', 'students.id', '=', 'organization_officers.student_id')
+            ->where('organization_officers.organization_id', $org->id)
+            ->where('organization_officers.is_active', true)
+            ->select(
+                'students.id',
+                'students.first_name',
+                'students.last_name',
+                'students.email',
+                'students.student_id',
+                'organization_officers.role',
+                'organization_officers.is_active'
+            )
+            ->get();
+        $activeSY = \App\Models\SchoolYear::where('is_active', true)->first();
+        $activeSem = \App\Models\Semester::where('is_active', true)->first();
 
-        // Pull students from the same college for the "Assign" modal
-        // Meg's logic: Must be a 'student' role
-        $eligibleStudents = User::where('role', 'student')
-            ->where('college_id', Auth::user()->college_id)
+        $eligibleStudents = \App\Models\Student::whereHas('enrollments', function ($q) use ($activeSY, $activeSem) {
+            $q->where('college_id', Auth::user()->college_id)
+                ->where('school_year_id', $activeSY->id)
+                ->where('semester_id', $activeSem->id)
+                ->where('status', 'ENROLLED');
+        })
+            ->select('id', 'student_id', 'last_name', 'first_name', 'email')
             ->get();
 
-        return view('college.local_organizations.show', compact('org', 'fees', 'users', 'eligibleStudents'));
+        return view('college.local_organizations.show', compact('org', 'fees', 'officers', 'eligibleStudents'));
     }
 
     public function assignOfficer(Request $request, Organization $org)
-    {
-        $request->validate([
-            'student_id' => 'required|exists:users,id',
+{
+    $request->validate([
+        'student_id' => 'required|exists:students,id',
+        'role' => 'required|string',
+
+        'secondary_email' => 'required|email|unique:users,email',
+        'password' => 'required|string|min:8|confirmed',
+    ]);
+
+    $student = \App\Models\Student::findOrFail($request->student_id);
+
+    // جلوگیری duplicate role
+    $exists = DB::table('organization_officers')
+        ->where('student_id', $student->id)
+        ->where('organization_id', $org->id)
+        ->where('role', $request->role)
+        ->exists();
+
+    if ($exists) {
+        return back()->with('error', 'This student already has this role.');
+    }
+
+    DB::transaction(function () use ($student, $org, $request) {
+
+        $user = User::create([
+            'first_name' => $student->first_name,
+            'last_name' => $student->last_name,
+            'email' => $request->secondary_email,
+            'password' => Hash::make($request->password),
+
+            'role' => 'college_org',
+            'organization_id' => $org->id,
+            'college_id' => auth()->user()->college_id,
         ]);
 
-        $student = User::findOrFail($request->student_id);
-        
-        // 1. Update Student's Org ID and Role
+        // ✅ UPDATE STUDENT
         $student->update([
             'organization_id' => $org->id,
-            'role' => 'college_org' // Now they have officer permissions
+            'is_officer' => true,
         ]);
 
-        // 2. Create Audit Record (Pivot)
         $activeSem = \App\Models\Semester::where('is_active', true)->first();
+
+        // ✅ SAVE OFFICER RECORD
         DB::table('organization_officers')->insert([
-            'user_id' => $student->id,
+            'student_id' => $student->id, // ✅ FIXED
             'organization_id' => $org->id,
-            'semester_id' => $activeSem->id,
+            'role' => $request->role,
+            'semester_id' => $activeSem?->id,
             'is_active' => true,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+    });
 
-        return redirect()->back()->with('success', 'Officer assigned successfully.');
-    }
+    return back()->with('success', 'Officer assigned with login credentials.');
+}
 
     public function cancelSubmission(Organization $org)
     {
