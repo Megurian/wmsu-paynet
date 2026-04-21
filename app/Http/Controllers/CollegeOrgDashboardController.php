@@ -19,7 +19,6 @@ class CollegeOrgDashboardController extends Controller
 
         $org = Organization::where('id', $orgId)
             ->where('college_id', $collegeId)
-            ->whereNull('mother_organization_id')
             ->firstOrFail();
 
         // Payments for THIS college org only
