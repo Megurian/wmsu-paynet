@@ -15,12 +15,20 @@
         <p class="break-words text-lg font-semibold text-gray-900">{{ $student->student_id }}</p>
     </div>
     <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+        <p class="text-gray-500 text-sm">Student Name</p>
+        <p class="break-words text-lg font-semibold text-gray-900">{{ $student->full_name }}</p>
+    </div>
+    <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
         <p class="text-gray-500 text-sm">Current Enrollment</p>
         @if($currentEnrollment)
             <p class="text-lg font-semibold text-gray-900">{{ $currentEnrollment->course->name ?? '-' }}</p>
             <p class="mt-1 text-xs text-gray-500">{{ $currentEnrollment->yearLevel->name ?? '-' }} · {{ $currentEnrollment->section->name ?? '-' }}</p>
+            <p class="mt-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Status</p>
+            <p class="text-base font-semibold text-gray-900">{{ str_replace('_', ' ', ucfirst(strtoupper($currentEnrollment->status))) }}</p>
         @else
             <p class="text-lg font-semibold text-gray-900">Not currently enrolled</p>
+            <p class="mt-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Status</p>
+            <p class="text-base font-semibold text-gray-900">Not enrolled</p>
         @endif
     </div>
     {{-- @if(auth('student')->user()->hasOrganizationAccess())
