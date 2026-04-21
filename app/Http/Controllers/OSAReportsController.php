@@ -20,7 +20,14 @@ class OSAReportsController extends Controller
         $activeSem = $activeSY ? $activeSY->semesters()->where('is_active', true)->first() : null;
 
         $selectedSYId = $request->input('school_year_id', $activeSY->id ?? null);
-        $selectedSemId = $request->input('semester_id', $activeSem->id ?? null);
+        $selectedSemId = $request->input('semester_id');
+
+        $schoolYears = SchoolYear::orderBy('sy_start', 'desc')->get();
+        $semesters = $selectedSYId ? Semester::where('school_year_id', $selectedSYId)->get() : collect();
+
+        if (!$selectedSemId || !$semesters->pluck('id')->contains((int) $selectedSemId)) {
+            $selectedSemId = $semesters->first()?->id ?? $activeSem->id ?? null;
+        }
 
         $colleges = College::withCount('users')->get();
 
@@ -41,9 +48,6 @@ class OSAReportsController extends Controller
             $college->local_orgs_count = $orgQuery[$college->id]->local_orgs_count ?? 0;
             $college->child_orgs_count = $orgQuery[$college->id]->child_orgs_count ?? 0;
         }
-
-        $schoolYears = SchoolYear::orderBy('sy_start', 'desc')->get();
-        $semesters = $selectedSYId ? Semester::where('school_year_id', $selectedSYId)->get() : collect();
 
         $motherOrgsQuery = Organization::whereNull('college_id')
             ->whereNull('mother_organization_id')
