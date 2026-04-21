@@ -49,6 +49,14 @@
                             <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Email</p>
                             <p id="cardEmail" class="truncate font-semibold text-slate-900"></p>
                         </div>
+                        <div>
+                            <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">School Year</p>
+                            <p id="cardSchoolYear" class="truncate font-semibold text-slate-900"></p>
+                        </div>
+                        <div>
+                            <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Semester</p>
+                            <p id="cardSemester" class="truncate font-semibold text-slate-900"></p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -231,6 +239,8 @@ function loadStudentDetails(studentId) {
             document.getElementById('cardYearSection').textContent =
                 `${data.student.year_level ?? '—'} - ${data.student.section ?? '—'}`;
             document.getElementById('cardEmail').textContent = data.student.email ?? '—';
+            document.getElementById('cardSchoolYear').textContent = data.student.school_year ?? '—';
+            document.getElementById('cardSemester').textContent = data.student.semester ?? '—';
 
             studentCard.classList.remove('hidden');
             resultsList.classList.add('hidden');
@@ -286,14 +296,21 @@ function renderRegularFees() {
         const checkedAttr = isMandatory && !isPaid ? 'checked' : '';
         const disabledAttr = isPaid ? 'disabled' : '';
 
+        const periodLabel = fee.school_year || fee.semester
+            ? ` <span class="text-xs text-slate-500">[${fee.school_year ?? 'General'}${fee.semester ? ' · ' + fee.semester : ''}]</span>`
+            : '';
+
         const div = document.createElement('div');
         div.className = 'flex items-center justify-between text-sm';
         div.innerHTML = `
             <label class="flex items-center gap-2 ${isPaid ? 'text-gray-400 ' : ''}">
                 <input type="checkbox" data-id="${fee.id}" data-amount="${amount}" class="regularFeeCheckbox"
                     ${checkedAttr} ${disabledAttr}>
-                ${fee.fee_name}
-                <span class="text-xs text-gray-400">(${fee.requirement_level})</span>
+                <span>
+                    ${fee.fee_name}
+                    <span class="text-xs text-gray-400">(${fee.requirement_level})</span>
+                    ${periodLabel}
+                </span>
                 ${isPaid ? '<span class="text-xs text-green-600 font-semibold ml-1">(PAID)</span>' : ''}
             </label>
             <span>₱ ${amount.toFixed(2)}</span>

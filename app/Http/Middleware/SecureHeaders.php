@@ -42,7 +42,7 @@ class SecureHeaders
         
         // ... rest of your security headers ...
         $response->headers->set('Permissions-Policy', 'geolocation=(), microphone=(), camera=(), payment=(), usb=(), gyroscope=(), accelerometer=(), fullscreen=(), sync-xhr=()');
-        $response->headers->set('X-Frame-Options', 'DENY');
+        //$response->headers->set('X-Frame-Options', 'DENY');
         $response->headers->set('X-Content-Type-Options', 'nosniff');
         $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
 
