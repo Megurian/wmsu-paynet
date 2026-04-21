@@ -41,8 +41,8 @@ class UniversityOrgFeesController extends Controller
             abort(403);
         }
 
-        // load appeals for display if needed
-        $fee->load('appeals', 'organization');
+        // load appeals and creator for display
+        $fee->load('appeals', 'organization', 'user');
 
         return view('university_org.fee-details', compact('organization', 'fee'));
     }
