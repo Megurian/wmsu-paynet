@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Fee;
+use App\Models\OrganizationOfficer;
+use Illuminate\Validation\ValidationException;
 
 use App\Models\Payment;
 
@@ -88,7 +90,6 @@ class LocalOrgsController extends Controller
             ->where('status', 'approved')
             ->get();
 
-        // Get current officers from the pivot/record table
         $officers = DB::table('organization_officers')
             ->join('students', 'students.id', '=', 'organization_officers.student_id')
             ->where('organization_officers.organization_id', $org->id)
@@ -118,63 +119,49 @@ class LocalOrgsController extends Controller
         return view('college.local_organizations.show', compact('org', 'fees', 'officers', 'eligibleStudents'));
     }
 
-    public function assignOfficer(Request $request, Organization $org)
+
+public function assignOfficer(Request $request, $orgId)
 {
     $request->validate([
         'student_id' => 'required|exists:students,id',
         'role' => 'required|string',
-
-        'secondary_email' => 'required|email|unique:users,email',
-        'password' => 'required|string|min:8|confirmed',
     ]);
 
-    $student = \App\Models\Student::findOrFail($request->student_id);
-
-    // جلوگیری duplicate role
-    $exists = DB::table('organization_officers')
-        ->where('student_id', $student->id)
-        ->where('organization_id', $org->id)
-        ->where('role', $request->role)
+    $activeSY = \App\Models\SchoolYear::where('is_active', true)->first();
+$activeSem = \App\Models\Semester::where('is_active', true)->first();
+    $exists = OrganizationOfficer::where('organization_id', $orgId)
+        ->where('student_id', $request->student_id)
         ->exists();
 
     if ($exists) {
-        return back()->with('error', 'This student already has this role.');
+        throw ValidationException::withMessages([
+            'student_id' => 'This student is already assigned as an officer in this organization.',
+        ]);
     }
 
-    DB::transaction(function () use ($student, $org, $request) {
+    $roleTaken = OrganizationOfficer::where('organization_id', $orgId)
+        ->where('student_id', $request->student_id)
+        ->whereNotNull('role')
+        ->exists();
 
-        $user = User::create([
-            'first_name' => $student->first_name,
-            'last_name' => $student->last_name,
-            'email' => $request->secondary_email,
-            'password' => Hash::make($request->password),
-
-            'role' => 'college_org',
-            'organization_id' => $org->id,
-            'college_id' => auth()->user()->college_id,
+    if ($roleTaken) {
+        throw ValidationException::withMessages([
+            'student_id' => 'A student can only hold one officer role per organization.',
         ]);
+    }
 
-        // ✅ UPDATE STUDENT
-        $student->update([
-            'organization_id' => $org->id,
-            'is_officer' => true,
-        ]);
+    OrganizationOfficer::create([
+        'organization_id' => $orgId,
+        'student_id' => $request->student_id,
+        'role' => $request->role,
+        'secondary_email' => $request->secondary_email,
+        'password' => bcrypt($request->password),
+        'is_active' => true,
+         'school_year_id' => $activeSY?->id,
+    'semester_id' => $activeSem?->id,
+    ]);
 
-        $activeSem = \App\Models\Semester::where('is_active', true)->first();
-
-        // ✅ SAVE OFFICER RECORD
-        DB::table('organization_officers')->insert([
-            'student_id' => $student->id, // ✅ FIXED
-            'organization_id' => $org->id,
-            'role' => $request->role,
-            'semester_id' => $activeSem?->id,
-            'is_active' => true,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-    });
-
-    return back()->with('success', 'Officer assigned with login credentials.');
+    return back()->with('success', 'Officer assigned successfully.');
 }
 
     public function cancelSubmission(Organization $org)
