@@ -107,15 +107,19 @@ class OSAReportsController extends Controller
             })
             ->get()
             ->map(function ($fee) use ($selectedSYId, $selectedSemId) {       
-                $inheritingOrgs = Organization::where('inherits_osa_fees', true)
-                    ->get();
+                $parentOrgs = Organization::where('inherits_osa_fees', true)->get();
+                $childOrgIds = Organization::whereIn('mother_organization_id', $parentOrgs->pluck('id'))->pluck('id')->toArray();
+                $inheritingOrgIds = array_merge($parentOrgs->pluck('id')->toArray(), $childOrgIds);
 
-                $fee->totalPayments = Payment::whereIn('organization_id', $inheritingOrgs->pluck('id'))
-                    ->where('school_year_id', $selectedSYId)
-                    ->where('semester_id', $selectedSemId)
-                    ->sum('amount_due');
+                $fee->totalPayments = DB::table('fee_payment')
+                    ->join('payments', 'payments.id', '=', 'fee_payment.payment_id')
+                    ->where('fee_payment.fee_id', $fee->id)
+                    ->whereIn('payments.organization_id', $inheritingOrgIds)
+                    ->where('payments.school_year_id', $selectedSYId)
+                    ->where('payments.semester_id', $selectedSemId)
+                    ->sum('fee_payment.amount_paid');
 
-                $fee->inheritedBy = $inheritingOrgs->pluck('name')->join(', ');
+                $fee->inheritedBy = $parentOrgs->pluck('name')->join(', ');
 
                 return $fee;
             });

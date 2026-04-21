@@ -35,15 +35,34 @@ class CoordinatorController extends Controller
             'voided' => PromissoryNote::STATUS_VOIDED,
         ];
 
+        $context = $this->resolveReportingContext($request, false);
+        $schoolYears = $context['schoolYears'];
+        $semesters = $context['semesters'];
+        $selectedSchoolYear = $context['selectedSchoolYear'];
+        $selectedSemester = $context['selectedSemester'];
+
+        $search = trim((string) $request->get('search', ''));
+        $documentFilter = $request->get('document_filter', 'all');
+
         $baseQuery = PromissoryNote::with([
             'student',
             'enrollment.course',
             'enrollment.yearLevel',
             'enrollment.section',
+            'enrollment.schoolYear',
+            'enrollment.semester',
             'issuedBy',
             'fees.organization',
-        ])->whereHas('enrollment', function ($query) use ($collegeId) {
+        ])->whereHas('enrollment', function ($query) use ($collegeId, $selectedSchoolYear, $selectedSemester) {
             $query->where('college_id', $collegeId);
+
+            if ($selectedSchoolYear) {
+                $query->where('school_year_id', $selectedSchoolYear->id);
+            }
+
+            if ($selectedSemester) {
+                $query->where('semester_id', $selectedSemester->id);
+            }
         });
 
         $counts = [];
@@ -56,12 +75,42 @@ class CoordinatorController extends Controller
             $query->where('status', $statusMap[$tab]);
         }
 
+        if ($search !== '') {
+            $query->where(function ($query) use ($search) {
+                $query->where('id', $search)
+                    ->orWhere('student_id', 'like', "%{$search}%")
+                    ->orWhere('notes', 'like', "%{$search}%")
+                    ->orWhereHas('student', function ($query) use ($search) {
+                        $query->where('student_id', 'like', "%{$search}%")
+                            ->orWhere('first_name', 'like', "%{$search}%")
+                            ->orWhere('last_name', 'like', "%{$search}%")
+                            ->orWhere('middle_name', 'like', "%{$search}%");
+                    });
+            });
+        }
+
+        if ($documentFilter === 'has_document') {
+            $query->whereNotNull('document_path');
+        } elseif ($documentFilter === 'no_document') {
+            $query->whereNull('document_path');
+        }
+
         $notes = $query
             ->latest('created_at')
             ->paginate(12)
             ->withQueryString();
 
-        return view('college.promissory_notes_approval', compact('notes', 'tab', 'counts'));
+        return view('college.promissory_notes_approval', compact(
+            'notes',
+            'tab',
+            'counts',
+            'search',
+            'documentFilter',
+            'schoolYears',
+            'semesters',
+            'selectedSchoolYear',
+            'selectedSemester'
+        ));
     }
 
     public function dashboard(Request $request, PromissoryNoteReportingService $reportingService)
@@ -194,24 +243,25 @@ class CoordinatorController extends Controller
         abort_unless((int) $note->enrollment->college_id === (int) $user->college_id, 403);
     }
 
-    private function resolveReportingContext(Request $request): array
+    private function resolveReportingContext(Request $request, bool $defaultToActive = true): array
     {
         $schoolYears = SchoolYear::orderBy('sy_start', 'desc')->get();
 
-        $selectedSchoolYear = $request->filled('school_year_id')
-            ? SchoolYear::findOrFail((int) $request->input('school_year_id'))
-            : SchoolYear::where('is_active', true)->first() ?? SchoolYear::orderByDesc('sy_start')->first();
+        $selectedSchoolYear = null;
+        if ($request->filled('school_year_id')) {
+            $selectedSchoolYear = SchoolYear::findOrFail((int) $request->input('school_year_id'));
+        } elseif ($defaultToActive) {
+            $selectedSchoolYear = SchoolYear::where('is_active', true)->first() ?? SchoolYear::orderByDesc('sy_start')->first();
+        }
 
-        $semesters = $selectedSchoolYear
-            ? Semester::where('school_year_id', $selectedSchoolYear->id)->orderBy('id')->get()
-            : collect();
+        $semesters = Semester::when($selectedSchoolYear, function ($query) use ($selectedSchoolYear) {
+            $query->where('school_year_id', $selectedSchoolYear->id);
+        })->orderBy('school_year_id', 'desc')->orderBy('id')->get();
 
         $selectedSemester = null;
-
-        if ($request->filled('semester_id') && $selectedSchoolYear) {
-            $selectedSemester = Semester::where('school_year_id', $selectedSchoolYear->id)
-                ->findOrFail((int) $request->input('semester_id'));
-        } elseif ($selectedSchoolYear) {
+        if ($request->filled('semester_id')) {
+            $selectedSemester = Semester::findOrFail((int) $request->input('semester_id'));
+        } elseif ($defaultToActive && $selectedSchoolYear) {
             $selectedSemester = $semesters->firstWhere('is_active', true) ?? $semesters->first();
         }
 
