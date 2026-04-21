@@ -33,6 +33,7 @@ use Illuminate\Support\Facades\Storage;
 use App\Http\Controllers\OSAReportsController;
 use App\Http\Controllers\UniversityOrgDashboardController;
 use App\Http\Controllers\EmployeeController;
+use App\Http\Controllers\CollegeOrgDashboardController;
 
 Route::get('/test-route', function () {
     return 'Laravel route works!';
@@ -198,9 +199,8 @@ Route::middleware(['auth', 'role:university_org'])->group(function () {
 });
 
 Route::middleware(['auth', 'role:college_org'])->group(function () {
-    Route::get('/college_org/dashboard', function () {
-        return view('college_org.dashboard');
-    })->name('college_org.dashboard');
+    Route::get('/college_org/dashboard', [CollegeOrgDashboardController::class, 'dashboard'])
+    ->name('college_org.dashboard');
 
     
 
@@ -274,7 +274,7 @@ Route::middleware(['auth','role:college'])->group(function () {
         ->name('college.fees.reject');
 });
 
-Route::middleware(['auth', 'role:treasurer,college,student_coordinator,adviser,assessor'])->group(function () {
+Route::middleware(['auth', 'role:treasurer,college,student_coordinator,adviser,assessor,college_org'])->group(function () {
     // Route::get('/college/dashboard', function () {
     //     return view('college.dashboard');
     // })->name('college.dashboard');
@@ -400,8 +400,15 @@ Route::middleware(['auth', 'role:treasurer,college,student_coordinator,adviser,a
     ->name('college.roles.bulkAssign');
     Route::post('/employees/{employee}/toggle', [EmployeeController::class, 'toggle'])
     ->name('employees.toggle');
-    Route::get('/college/roles/history', [\App\Http\Controllers\CollegeUserController::class, 'roleHistory'])
+    Route::get('/college/roles/history', [CollegeUserController::class, 'roleHistory'])
     ->name('college.roles.history');
+    Route::get('/employees/template', [EmployeeController::class, 'downloadTemplate'])
+    ->name('employees.template');
+    Route::get('/employees/template', [EmployeeController::class, 'downloadTemplate'])->name('employees.template');
+    Route::post('/employees/import', [EmployeeController::class, 'import'])->name('employees.import');
+    Route::post('/employees/preview', [EmployeeController::class, 'previewImport'])->name('employees.preview');
+     Route::post('college/local_organizations/{org}/assign', [LocalOrgsController::class, 'assignOfficer'])
+        ->name('college.local_organizations.assign');
 });
 
 

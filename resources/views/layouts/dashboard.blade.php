@@ -44,6 +44,21 @@
             animation: fadeIn .2s ease-out;
         }
 
+        /* Add this inside your <style> tag */
+        nav::-webkit-scrollbar {
+            width: 5px;
+        }
+        nav::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        nav::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+        }
+        nav::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.4);
+        }
+
     </style>
 </head>
 
@@ -52,7 +67,7 @@
     <div class="flex">
 
         <!-- SIDEBAR -->
-        <aside id="sidebar" class="fixed top-0 left-0 h-screen w-64 bg-red-800 text-white flex flex-col z-40">
+       <aside id="sidebar" class="fixed top-0 left-0 h-screen w-64 bg-red-800 text-white flex flex-col z-40">
             <button onclick="toggleSidebar()" class="text-white focus:outline-none">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"></path>
@@ -179,7 +194,7 @@
             </div>
 
            <!-- NAVIGATION -->
-            <nav class="flex-1 px-2 py-4 space-y-2">
+            <nav class="flex-1 px-2 py-4 space-y-2 overflow-y-auto transition-all duration-300">
             @php
                 $user = Auth::user();
 

@@ -52,6 +52,7 @@ class AdviserStudentUploadController extends Controller
     $adviserId = $adviser->id;
     $collegeId = $adviser->college_id;
     $adviserCourseId = $adviser->course_id;
+    $adviser = Auth::user()->loadMissing('course');
 
     $activeSY = SchoolYear::where('is_active', true)->first();
     $activeSem = Semester::where('is_active', true)->first();
@@ -152,7 +153,8 @@ class AdviserStudentUploadController extends Controller
         'previousEnrollments',
         'activeSY',
         'activeSem',
-        'activeSemesterName'
+        'activeSemesterName',
+       'adviser'
     ));
 }
 

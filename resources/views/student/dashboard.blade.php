@@ -14,7 +14,6 @@
         <p class="text-gray-500 text-sm">Student ID</p>
         <p class="break-words text-lg font-semibold text-gray-900">{{ $student->student_id }}</p>
     </div>
-
     <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
         <p class="text-gray-500 text-sm">Current Enrollment</p>
         @if($currentEnrollment)
@@ -24,6 +23,14 @@
             <p class="text-lg font-semibold text-gray-900">Not currently enrolled</p>
         @endif
     </div>
+    {{-- @if(auth('student')->user()->hasOrganizationAccess())
+    <form method="POST" action="{{ route('student.switch.org') }}">
+        @csrf
+        <button class="bg-blue-600 text-white px-3 py-1 rounded">
+            Switch to Organization
+        </button>
+    </form>
+@endif --}}
 
     <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
         <p class="text-gray-500 text-sm">Active Period</p>

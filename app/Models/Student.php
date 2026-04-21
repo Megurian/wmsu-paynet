@@ -23,7 +23,9 @@ class Student extends Authenticatable
         'password',
         'is_graduated',
     ];
-
+protected $casts = [
+    'is_officer' => 'boolean',
+];
     protected $hidden = [
         'password',
         'remember_token',
@@ -113,4 +115,19 @@ class Student extends Authenticatable
                 ->where('remaining_balance', '>', 0);
         });
     }
+
+    public function isOfficer(): bool
+{
+    return $this->is_officer === true;
+}
+
+public function organizationOfficers()
+{
+    return $this->hasMany(OrganizationOfficer::class, 'user_id');
+}
+
+public function hasOrganizationAccess(): bool
+{
+    return $this->organizationOfficers()->exists();
+}
 }

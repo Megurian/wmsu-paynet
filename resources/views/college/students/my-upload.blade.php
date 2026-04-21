@@ -408,27 +408,17 @@
 
                 {{-- Course / Year / Section --}}
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                   @if(Auth::user()->role === 'adviser')
-                        <div>
-                            <label class="text-sm font-medium">Course</label>
-                            <select class="w-full border rounded px-3 py-2 text-sm bg-gray-100" disabled>
-                                <option value="{{ Auth::user()->course_id }}" selected>
-                                    {{ Auth::user()->course?->name ?? 'No course assigned' }}
-                                </option>
-                            </select>
-                            <input type="hidden" name="course_id" value="{{ Auth::user()->course_id }}">
-                        </div>
-                    @else
-                        <div>
-                            <label class="text-sm font-medium">Course <span class="text-red-500">*</span></label>
-                            <select name="course_id" required class="w-full border rounded px-3 py-2 text-sm">
-                                <option value="">Select Course</option>
-                                @foreach($courses as $course)
-                                <option value="{{ $course->id }}">{{ $course->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                    @endif        
+                   <div>
+                        <label class="text-sm font-medium">Course</label>
+
+                        <select class="w-full border rounded px-3 py-2 text-sm bg-gray-100" disabled>
+                            <option value="{{ Auth::user()->course_id }}">
+                                {{ Auth::user()->course?->name ?? 'No course assigned' }}
+                            </option>
+                        </select>
+
+                        <input type="hidden" name="course_id" value="{{ Auth::user()->course_id }}">
+                    </div>      
                     <div>
                         <label class="text-sm font-medium">Year Level <span class="text-red-500">*</span></label>
                         <select name="year_level_id" required class="w-full border rounded px-3 py-2 text-sm">
