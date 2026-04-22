@@ -5,16 +5,27 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use App\Models\OrganizationOfficer;
+
 
 class CollegeOrgManagementController extends Controller
 {
+
     public function index()
     {
         $organization = Auth::user()->organization;
 
-        return view('college_org.organization_management.index', compact('organization'));
-    }
+        $officers = OrganizationOfficer::with([
+            'student.latestEnrollment.course',
+            'student.latestEnrollment.yearLevel',
+            'student.latestEnrollment.section'
+        ])
+        ->where('organization_id', $organization->id)
+        ->where('is_active', true)
+        ->get();
 
+        return view('college_org.organization_management.index', compact('organization', 'officers'));
+    }
 
     public function updateLogo(Request $request)
     {
