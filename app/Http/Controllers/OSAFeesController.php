@@ -35,8 +35,13 @@ class OSAFeesController extends Controller
 
 
         $approvedFees = Fee::with(['organization', 'user'])
-            ->whereIn('status', ['approved', 'disabled'])
+            ->where('status', 'approved')
             ->orderByDesc('approved_at')
+            ->get();
+
+        $disabledFees = Fee::with(['organization', 'user'])
+            ->where('status', 'disabled')
+            ->orderByDesc('updated_at')
             ->get();
 
         $status = $request->get('status', 'approved');
@@ -92,7 +97,7 @@ class OSAFeesController extends Controller
 
         $organizations = Organization::orderBy('name')->get();
 
-        return view('osa.fees', compact('pendingFees', 'filteredFees', 'organizations', 'status', 'approvedFees'));
+        return view('osa.fees', compact('pendingFees', 'filteredFees', 'disabledFees', 'organizations', 'status', 'approvedFees'));
     }
 
     public function create()

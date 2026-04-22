@@ -32,10 +32,15 @@
                     {{ $pendingFees->count() }}
                 </span>
             </a>
+            <a href="{{ route('osa.fees', ['status' => 'disabled']) }}"
+                class="px-4 py-2 rounded-full font-medium text-sm transition
+                {{ $status === 'disabled' ? 'bg-red-800 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300' }}">
+                Disabled Fees
+            </a>
             <a href="{{ route('osa.fees', ['status' => 'approved']) }}"
             class="px-4 py-2 rounded-full font-medium text-sm transition
             {{ $status === 'approved' ? 'bg-red-800 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300' }}">
-                All
+                Approved Fees
             </a>
         </div>
    
@@ -75,42 +80,66 @@
                     Submitted on: {{ $fee->created_at->format('M d, Y') }}
                 </p>
 
-                @if($fee->status === 'disabled')
-                    <div class="mt-2 p-2 bg-red-100 text-red-800 rounded text-sm font-semibold">
-                        Disabled
-                    </div>
-                @endif
+                
 
             </div>
 
-           <div class="flex gap-2 md:gap-3">
-
-            @if($fee->disable_status === 'pending')
-                <button
-                    type="button"
-                    onclick="openDisableReviewModal({{ $fee->id }}, `{{ addslashes($fee->disable_reason) }}`)"
-                    class="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700"
-                >
-                    View Pending Disable Request
+            <form method="GET" action="{{ route('osa.fees.show', $fee->id) }}">
+                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-green-700 transition">
+                    View Details
                 </button>
-            @else
-                <form method="GET" action="{{ route('osa.fees.show', $fee->id) }}">
-                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-green-700 transition">
-                        View Details
-                    </button>
-                </form>
-            @endif
-
+            </form>
         </div>
         </div>
 
         <br>
+        @empty
+            <div class="text-center text-gray-500 py-6">
+                No pending fees to review.
+            </div>
+        @endforelse
 
-    @empty
-        <div class="text-center text-gray-500 py-6">
-            No pending fees to review.
-        </div>
-    @endforelse
+    @elseif ($status === 'disabled')
+    <div class="mt-8">
+        <h3 class="text-xl font-semibold mb-4">Disabled Fees</h3>
+
+        @forelse($disabledFees as $fee)
+            <div class="bg-white shadow rounded-lg p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div class="flex-1">
+                    <h3 class="text-lg font-semibold text-gray-800">
+                        {{ $fee->fee_name }}
+                        <span class="ml-2 px-2 py-1 text-xs font-bold bg-red-100 text-red-800 rounded">
+                            DISABLED
+                        </span>
+                    </h3>
+
+                    <p class="text-sm text-gray-500">
+                        <span class="capitalize font-medium">{{ $fee->requirement_level }}</span>
+                    </p>
+
+                    <p class="text-sm text-gray-400 mt-1">
+                      {{ $fee->disable_approved_at 
+                            ? \Carbon\Carbon::parse($fee->disable_approved_at)->format('M d, Y') 
+                            : '-' 
+                        }}
+                    </p>
+                </div>
+
+                <div class="flex gap-2 md:gap-3">
+                    <form method="GET" action="{{ route('osa.fees.show', $fee->id) }}">
+                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                            View
+                        </button>
+                    </form>
+                </div>
+            </div>
+            <br>
+        @empty
+            <div class="text-center text-gray-500 py-6">
+                No disabled fees.
+            </div>
+        @endforelse
+    </div>
 
     @elseif ($status === 'approved')
     <!-- Approved Fees Section -->
