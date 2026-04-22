@@ -95,12 +95,12 @@
         selectedStudent: null,
 
         role: '',
+        secondary_email: '',
 
         roles: [
             'Mayor',
-            'President',
             'Vice Mayor',
-            'Vice President',
+            'Councilor',
             'Finance Officer'
         ],
 
@@ -129,6 +129,7 @@
             this.search = `${student.last_name}, ${student.first_name}`;
             this.selectedId = student.id;
             this.selectedStudent = student;
+            this.secondary_email = student.email || '';
             this.open = false;
         }
     }"
@@ -157,24 +158,32 @@
 
                 <div>
                     <p class="font-semibold text-gray-800">
-                        {{ $officer->last_name }}, {{ $officer->first_name }}
+                        {{ $officer->student->last_name }}, {{ $officer->student->first_name }}
                     </p>
 
                     <p class="text-xs text-gray-500">
-                        {{ $officer->email }}
+                        {{ $officer->user?->email ?? 'No email' }}
                     </p>
 
                     <p class="text-xs text-gray-400">
-                        ID: {{ $officer->student_id }}
+                        ID: {{ $officer->student->student_id }}
                     </p>
                 </div>
 
-                <div class="text-right">
+                <div class="text-right space-y-2">
                     <span class="px-3 py-1 text-xs bg-indigo-100 text-indigo-700 rounded-full">
                         {{ $officer->role }}
                     </span>
 
-                    @if($officer->is_active)
+                    @if($officer->user && $officer->user->invitation_pending)
+                        <p class="text-[10px] text-yellow-700 mt-1">Invitation Pending</p>
+                    @elseif($officer->user && $officer->user->invitation_expired)
+                        <p class="text-[10px] text-red-600 mt-1">Invitation Expired</p>
+                        <form action="{{ route('college.local_organizations.officers.resendInvite', $officer->id) }}" method="POST" class="mt-2">
+                            @csrf
+                            <button type="submit" class="text-[10px] px-2 py-1 bg-red-50 text-red-700 rounded-full hover:bg-red-100">Resend Invitation</button>
+                        </form>
+                    @elseif($officer->is_active)
                         <p class="text-[10px] text-green-600 mt-1">Active</p>
                     @else
                         <p class="text-[10px] text-gray-400 mt-1">Inactive</p>
@@ -322,35 +331,20 @@
                                 </p>
                             </div>
 
-                            <div>
-                                <label class="text-sm font-medium text-gray-700">Login Email</label>
-                                <input
-                                    type="email"
-                                    name="secondary_email"
-                                    placeholder="e.g. officer@email.com"
-                                    class="w-full border rounded-lg px-3 py-2 mt-1 focus:ring-2 focus:ring-indigo-500"
-                                    required
-                                >
-                            </div>
+<div class="space-y-3">
+                        <p class="text-sm font-medium text-gray-700">Login Email</p>
+                        <input
+                            type="email"
+                            name="secondary_email"
+                            x-model="secondary_email"
+                            placeholder="e.g. officer@email.com"
+                            class="w-full border rounded-lg px-3 py-2 mt-1 focus:ring-2 focus:ring-indigo-500"
+                            required
+                        >
 
-                            <div>
-                                <label class="text-sm font-medium text-gray-700">Password</label>
-                                <input
-                                    type="password"
-                                    name="password"
-                                    class="w-full border rounded-lg px-3 py-2 mt-1 focus:ring-2 focus:ring-indigo-500"
-                                    required
-                                >
-                            </div>
-
-                            <div>
-                                <label class="text-sm font-medium text-gray-700">Confirm Password</label>
-                                <input
-                                    type="password"
-                                    name="password_confirmation"
-                                    class="w-full border rounded-lg px-3 py-2 mt-1 focus:ring-2 focus:ring-indigo-500"
-                                    required
-                                >
+                        <p class="text-xs text-gray-500">
+                            The officer will receive an invitation email with a secure link to set their password.
+                        </p>
                             </div>
 
                         </div>

@@ -10,3 +10,4 @@ Artisan::command('inspire', function () {
 
 Schedule::command('promissory-notes:check-signature-deadline')->daily();
 Schedule::command('promissory-notes:process-delinquency')->daily();
+Schedule::command('semesters:auto-transition')->dailyAt('00:05');

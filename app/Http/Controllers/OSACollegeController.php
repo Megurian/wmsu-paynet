@@ -6,17 +6,19 @@ use Illuminate\Http\Request;
 use App\Models\College;
 use App\Models\User;
 use App\Models\Organization;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Str;
 use App\Models\Course;
 use App\Models\YearLevel;
 use App\Models\Section;
+use App\Notifications\CollegeAdminInvitationNotification;
 
 class OSACollegeController extends Controller
 {
     public function index()
     {
-        $colleges = College::all();
+        $colleges = College::with('users')->get();
         return view('osa.college', compact('colleges'));
     }
 
@@ -53,7 +55,6 @@ class OSACollegeController extends Controller
             'admin_middle_name' => 'nullable|string|max:255',
             'admin_suffix' => 'nullable|string|max:255',
             'admin_email' => 'required|email|unique:users,email',
-            'admin_password' => 'required|string|min:8|confirmed',
             'courses' => 'nullable|array',
             'courses.*' => 'nullable|string|max:255',
             'years' => 'nullable|array',
@@ -75,16 +76,24 @@ class OSACollegeController extends Controller
                 'logo' => $logoPath,
             ]);
 
-            User::create([
+            $user = User::create([
                 'last_name' => $request->admin_last_name,
                 'first_name' => $request->admin_first_name,
                 'middle_name' => $request->admin_middle_name,
                 'suffix' => $request->admin_suffix,
                 'email' => $request->admin_email,
-                'password' => Hash::make($request->admin_password),
+                'password' => Str::random(64),
                 'role' => 'college',
                 'college_id' => $college->id,
+                'invitation_sent_at' => now(),
             ]);
+
+            $token = Password::broker()->createToken($user);
+            $user->notify(new CollegeAdminInvitationNotification(
+                $token,
+                'college administrator',
+                $college->name
+            ));
 
             if ($request->has('courses')) {
                 foreach ($request->courses as $course) {
@@ -119,7 +128,7 @@ class OSACollegeController extends Controller
         });
 
             return redirect()->route('osa.college')
-                ->with('status', 'College and initial admin created successfully!');
+                ->with('status', 'College created and invitation email sent to the college admin.');
         } catch (\Exception $e) {
             return back()->withErrors('Failed to create college. Please try again.');
         }
@@ -164,6 +173,25 @@ class OSACollegeController extends Controller
         $exists = User::where('email', $request->input('admin_email'))->exists();
 
         return response()->json(['available' => !$exists]);
+    }
+
+    public function resendInvite(College $college)
+    {
+        $admin = $college->users->first(fn ($user) => in_array('college', (array) $user->role));
+
+        if (! $admin || $admin->invitation_active) {
+            return back()->with('status', 'No pending college admin invitation found.');
+        }
+
+        $token = Password::broker()->createToken($admin);
+        $admin->update(['invitation_sent_at' => now()]);
+        $admin->notify(new CollegeAdminInvitationNotification(
+            $token,
+            'college administrator',
+            $college->name
+        ));
+
+        return back()->with('status', 'Invitation link resent successfully.');
     }
 
 }

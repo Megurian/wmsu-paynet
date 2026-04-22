@@ -121,28 +121,11 @@
                 <label class="block font-medium mb-1">Admin Email</label>
                 <input id="admin_email_input" type="email" name="admin_email" value="" placeholder="Enter Admin Email" class="w-full border border-gray-300 px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400" required>
                 <p id="emailFeedback" class="text-xs mt-1"></p>
-            </div>
-
-            <div class="mb-4">
-                <label class="block font-medium mb-1">Password</label>
-                <div class="relative">
-                    <input id="admin_password" type="password" name="admin_password" placeholder="Enter Password" class="w-full border border-gray-300 px-4 py-2 pr-10 rounded focus:outline-none focus:ring-2 focus:ring-blue-400" required>
-                    <button type="button" class="toggle-password-btn absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500" aria-label="Toggle password visibility" onclick="togglePassword('admin_password', this)">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>
-                    </button>
+                <div class="text-sm text-gray-600">
+                    The admin will receive an invitation email and can set their own password when they activate the account.
                 </div>
             </div>
 
-            <div class="mb-6">
-                <label class="block font-medium mb-1">Confirm Password</label>
-                <div class="relative">
-                    <input id="admin_password_confirmation" type="password" name="admin_password_confirmation" placeholder="Confirm Password" class="w-full border border-gray-300 px-4 py-2 pr-10 rounded focus:outline-none focus:ring-2 focus:ring-blue-400" required>
-                    <button type="button" class="toggle-password-btn absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500" aria-label="Toggle confirm password visibility" onclick="togglePassword('admin_password_confirmation', this)">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>
-                    </button>
-                </div>
-                <p id="passwordFeedback" class="text-xs mt-1 text-red-600"></p>
-            </div>
 
             <div class="flex justify-between">
                 <button type="button" class="bg-gray-400 text-white px-6 py-2 rounded hover:bg-gray-500 transition" onclick="prevStep()">Back</button>
@@ -261,7 +244,6 @@ function prevStep() {
 let codeTimeout = null, emailTimeout = null;
 let codeAvailable = null, emailAvailable = null;
 let codePending = false, emailPending = false;
-let passwordMismatch = false;
 
 const csrfMeta = document.querySelector('meta[name="csrf-token"]');
 const csrfToken = csrfMeta ? csrfMeta.getAttribute('content') : null;
@@ -274,7 +256,7 @@ function setFeedback(el, msg, colorClass) {
 }
 
 function toggleCreateDisabled() {
-    const shouldDisable = (codeAvailable === false || emailAvailable === false || codePending || emailPending || passwordMismatch);
+    const shouldDisable = (codeAvailable === false || emailAvailable === false || codePending || emailPending);
     const openPreviewBtn = document.getElementById('openPreviewBtn');
     const nextBtnStep1 = document.querySelector('#step-1 button[type="button"]');
 
@@ -407,17 +389,11 @@ function validateStep(step) {
     if (step === 3) {
         const adminLastName = document.querySelector('input[name="admin_last_name"]')?.value.trim() || '';
         const adminFirstName = document.querySelector('input[name="admin_first_name"]')?.value.trim() || '';
-        const adminMiddleName = document.querySelector('input[name="admin_middle_name"]')?.value.trim() || '';
-        const adminSuffix = document.querySelector('input[name="admin_suffix"]')?.value.trim() || '';
         const adminEmail = document.getElementById('admin_email_input')?.value.trim() || '';
-        const pw = document.getElementById('admin_password')?.value || '';
-        const pwc = document.getElementById('admin_password_confirmation')?.value || '';
 
         if (!adminLastName) { document.querySelector('input[name="admin_last_name"]').focus(); return false; }
         if (!adminFirstName) { document.querySelector('input[name="admin_first_name"]').focus(); return false; }
         if (!adminEmail) { document.getElementById('admin_email_input')?.focus(); setFeedback(emailFeedback, 'Required', 'text-red-600'); return false; }
-        if (!pw || !pwc) { document.getElementById('admin_password')?.focus(); return false; }
-        if (pw !== pwc) { setFeedback(pwFeedback, 'Passwords do not match', 'text-red-600'); return false; }
 
         if (emailAvailable === false) { setFeedback(emailFeedback, 'Already taken', 'text-red-600'); document.getElementById('admin_email_input')?.focus(); return false; }
 
@@ -450,7 +426,6 @@ function openPreview() {
     // Combine for display in preview
     const adminFullName = `${adminLastName}, ${adminFirstName}${adminMiddleName ? ' ' + adminMiddleName : ''}${adminSuffix ? ', ' + adminSuffix : ''}`;
     const adminEmail = document.getElementById('admin_email_input')?.value || '';
-    const adminPassword = document.getElementById('admin_password')?.value || '';
 
     // If the current user is a university org, the form carries the mother org name as a data attribute
     const motherName = (form && form.dataset && form.dataset.motherName) ? form.dataset.motherName : '';
@@ -460,8 +435,6 @@ function openPreview() {
     if (logoPreviewEl && !logoPreviewEl.classList.contains('hidden') && logoPreviewEl.src) {
         logoHtml = `<img src="${logoPreviewEl.src}" alt="Logo" class="w-32 h-32 object-cover rounded border" />`;
     }
-
-    const maskedPassword = adminPassword ? '•'.repeat(Math.max(4, adminPassword.length)) + `  (length: ${adminPassword.length})` : '<span class="text-gray-500">Not set</span>';
 
     const html = `
         <div class="space-y-3">
@@ -479,7 +452,7 @@ function openPreview() {
                 <div class="mt-1 text-sm">
                     <div><strong>Name:</strong> ${escapeHtml(adminFullName)}</div>
                     <div><strong>Email:</strong> ${escapeHtml(adminEmail)}</div>
-                    <div><strong>Password:</strong> ${maskedPassword}</div>
+                    <div class="text-sm text-gray-600 mt-2">An invitation email will be sent so the admin can set their password and activate the account.</div>
                 </div>
             </div>
         </div>
@@ -616,53 +589,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Password match
-    const pwInput = document.getElementById('admin_password');
-    const pwcInput = document.getElementById('admin_password_confirmation');
-
-    function checkPasswordMatch() {
-        const pv = pwInput ? pwInput.value : '';
-        const pvc = pwcInput ? pwcInput.value : '';
-        const pwFeedback = document.getElementById('passwordFeedback');
-        if (!pv && !pvc) {
-            passwordMismatch = false;
-            if (pwFeedback) pwFeedback.textContent = '';
-            toggleCreateDisabled();
-            return;
-        }
-        if (pv !== pvc) {
-            passwordMismatch = true;
-            if (pwFeedback) pwFeedback.textContent = 'Passwords do not match';
-        } else {
-            passwordMismatch = false;
-            if (pwFeedback) pwFeedback.textContent = '';
-        }
-        toggleCreateDisabled();
-    }
-
-    if (pwInput && pwcInput) {
-        pwInput.addEventListener('input', checkPasswordMatch);
-        pwcInput.addEventListener('input', checkPasswordMatch);
-    }
-});
-
-function togglePassword(inputId, btn) {
-    const input = document.getElementById(inputId);
-    if (!input) return;
-    const isPassword = input.type === 'password';
-    input.type = isPassword ? 'text' : 'password';
-    // swap icon
-    btn.innerHTML = isPassword ? getEyeOffIcon() : getEyeIcon();
-    btn.setAttribute('aria-pressed', isPassword ? 'true' : 'false');
-}
-
-function getEyeIcon() {
-    return `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>`;
-}
-
-function getEyeOffIcon() {
-    return `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 2l20 20"/><path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a21.45 21.45 0 0 1 5.06-7.06"/></svg>`;
-}
+    });
 
 function escapeHtml(unsafe) {
     if (!unsafe) return '';

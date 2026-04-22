@@ -129,6 +129,7 @@ class OSASetupController extends Controller
                         'starts_at' => $semesterData['starts_at'],
                         'will_end_at' => $semesterData['will_end_at'],
                         'is_active' => false,
+                        'is_auto' => false,
                         'started_at' => null,
                     ]);
                 }
@@ -138,7 +139,7 @@ class OSASetupController extends Controller
             return back()->withErrors(['db' => 'Failed to create new school year. Please try again.'])->withInput();
         }
 
-        return redirect()->back()->with('status', 'New School Year added and activated successfully!');
+        return redirect()->route('osa.setup')->with('status', 'New School Year added and activated successfully!');
     }
 
     public function addSemester(Request $request, $schoolYearId)
@@ -205,6 +206,7 @@ class OSASetupController extends Controller
                     'starts_at' => $request->starts_at,
                     'will_end_at' => $request->will_end_at,
                     'is_active' => true,
+                    'is_auto' => false,
                 ]);
                 $schoolYear->update(['is_active' => true]);
             });
@@ -302,6 +304,16 @@ class OSASetupController extends Controller
         }
 
         return back()->with('status', 'Semester started successfully.');
+    }
+
+    public function toggleSemesterAuto(SchoolYear $schoolYear)
+    {
+        $semesters = $schoolYear->semesters;
+        $enableAuto = !$semesters->every(fn ($semester) => $semester->is_auto);
+
+        $schoolYear->semesters()->update(['is_auto' => $enableAuto]);
+
+        return back()->with('status', 'Auto transition '.($enableAuto ? 'enabled' : 'disabled').' for academic year '.$schoolYear->sy_start.'–'.$schoolYear->sy_end.'.');
     }
 
     private function isFinalSemester(SchoolYear $schoolYear, Semester $semester): bool

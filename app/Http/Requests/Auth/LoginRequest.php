@@ -5,6 +5,7 @@ namespace App\Http\Requests\Auth;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -53,17 +54,34 @@ class LoginRequest extends FormRequest
     {
         $this->ensureIsNotRateLimited();
 
-        if (! Auth::guard('web')->attempt($this->only('email', 'password'), $this->boolean('remember'))
-            && ! Auth::guard('student')->attempt($this->only('email', 'password'), $this->boolean('remember')))
-        {
-            RateLimiter::hit($this->throttleKey(), 900);
+        $credentials = $this->only('email', 'password');
+        $remember = $this->boolean('remember');
 
-            throw ValidationException::withMessages([
-                'email' => __('Invalid credentials.'),
+        $webValid = Auth::guard('web')->validate($credentials);
+        $studentValid = Auth::guard('student')->validate($credentials);
+
+        if ($webValid && $studentValid) {
+            session()->put('auth.portal_choice', [
+                'email' => $this->string('email'),
+                'password' => Crypt::encryptString($this->string('password')),
+                'remember' => $remember,
             ]);
+
+            RateLimiter::clear($this->throttleKey());
+            return;
         }
 
-        RateLimiter::clear($this->throttleKey());
+        if (Auth::guard('web')->attempt($credentials, $remember)
+            || Auth::guard('student')->attempt($credentials, $remember)) {
+            RateLimiter::clear($this->throttleKey());
+            return;
+        }
+
+        RateLimiter::hit($this->throttleKey(), 900);
+
+        throw ValidationException::withMessages([
+            'email' => __('Invalid credentials.'),
+        ]);
     }
 
     public function email(): string

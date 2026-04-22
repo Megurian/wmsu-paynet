@@ -14,7 +14,7 @@ class OrganizationOfficer extends Model
         'role',
         'semester_id',
         'is_active',
-        'user_id'
+        'user_id',
     ];
 
     public function student()

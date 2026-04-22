@@ -25,6 +25,7 @@ class OSASystemMaintenanceController extends Controller
     protected array $availableCommands = [
         'promissory-notes:check-signature-deadline' => 'Check promissory note signature deadlines',
         'promissory-notes:process-delinquency' => 'Process promissory note delinquency',
+        'semesters:auto-transition' => 'Perform auto semester transitions',
         'cache:clear' => 'Clear application cache',
         'config:clear' => 'Clear configuration cache',
         'route:clear' => 'Clear route cache',
@@ -82,7 +83,7 @@ class OSASystemMaintenanceController extends Controller
 
         $arguments = [];
 
-        if ($validated['command'] === 'promissory-notes:process-delinquency' && filled($validated['as_of'])) {
+        if (in_array($validated['command'], ['promissory-notes:process-delinquency', 'semesters:auto-transition'], true) && filled($validated['as_of'])) {
             $arguments['--as-of'] = $validated['as_of'];
         }
 

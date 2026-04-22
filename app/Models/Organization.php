@@ -17,7 +17,12 @@ class Organization extends Model
     public function orgAdmin()
     {
         return $this->hasOne(User::class, 'organization_id')
-                    ->whereIn('role', ['university_org', 'college_org']);
+                    ->where(function ($query) {
+                        $query->where('role', 'university_org')
+                              ->orWhere('role', 'college_org')
+                              ->orWhereJsonContains('role', 'university_org')
+                              ->orWhereJsonContains('role', 'college_org');
+                    });
     }
 
     /**

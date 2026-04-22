@@ -50,7 +50,7 @@
                 <div id="asOfContainer" class="hidden">
                     <label for="as_of" class="block text-sm font-medium text-gray-700">As of date</label>
                     <input id="as_of" name="as_of" type="date" value="{{ old('as_of') }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-700 focus:ring-red-700" />
-                    <p class="text-xs text-gray-500 mt-1">Optional for <code>promissory-notes:process-delinquency</code> backfill/testing.</p>
+                    <p class="text-xs text-gray-500 mt-1">Optional for <code>promissory-notes:process-delinquency</code> or <code>semesters:auto-transition</code> backfill/testing.</p>
                     @error('as_of')<p class="text-sm text-red-600 mt-1">{{ $message }}</p>@enderror
                 </div>
 
@@ -141,7 +141,8 @@
     const asOfContainer = document.getElementById('asOfContainer');
 
     function updateAsOfVisibility() {
-        asOfContainer.classList.toggle('hidden', commandSelect.value !== 'promissory-notes:process-delinquency');
+        const asOfCommands = ['promissory-notes:process-delinquency', 'semesters:auto-transition'];
+        asOfContainer.classList.toggle('hidden', !asOfCommands.includes(commandSelect.value));
     }
 
     commandSelect.addEventListener('change', updateAsOfVisibility);
