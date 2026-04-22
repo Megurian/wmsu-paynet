@@ -31,13 +31,19 @@ class CollegeFeeApprovalController extends Controller
             })
             ->orderByDesc('created_at')
             ->get();
-
-        // Base approved college fees
-        $allFees = (clone $baseQuery)
-        ->whereIn('status', ['approved', 'pending'])
-        ->orderByDesc('updated_at')
-        ->get();
-
+        $pendingRequests = FeeRequest::with(['fee.organization', 'requestedBy'])
+            ->where('status', 'pending')
+            ->latest()
+            ->get();
+            
+       $approvedFees = (clone $baseQuery)
+            ->where('status', 'approved')
+            ->whereDoesntHave('feeRequests', function ($q) {
+                $q->where('status', 'pending')
+                ->whereIn('type', ['disable', 'enable']);
+            })
+            ->orderByDesc('approved_at')
+            ->get();
         $disabledFees = (clone $baseQuery)
         ->where('status', 'disabled')
         ->orderByDesc('disable_approved_at')
@@ -54,8 +60,12 @@ class CollegeFeeApprovalController extends Controller
         $inheritedFees = collect();
 
         if (!empty($motherOrgIds)) {
-            $inheritedFees = \App\Models\Fee::with(['organization.motherOrganization'])
+           $inheritedFees = \App\Models\Fee::with(['organization.motherOrganization'])
                 ->where('status', 'approved')
+                ->whereDoesntHave('feeRequests', function ($q) {
+                    $q->where('status', 'pending')
+                    ->whereIn('type', ['disable', 'enable']);
+                })
                 ->whereIn('organization_id', $motherOrgIds)
                 ->get();
 
@@ -66,6 +76,10 @@ class CollegeFeeApprovalController extends Controller
                 if ($osaId) {
                     $osaFees = \App\Models\Fee::with(['organization.motherOrganization'])
                         ->where('status', 'approved')
+                        ->whereDoesntHave('feeRequests', function ($q) {
+                            $q->where('status', 'pending')
+                            ->whereIn('type', ['disable', 'enable']);
+                        })
                         ->where('organization_id', $osaId)
                         ->get();
 
@@ -75,9 +89,9 @@ class CollegeFeeApprovalController extends Controller
         }
 
         // Merge, dedupe and order by approved_at (desc)
-        $allFees = $allFees->merge($inheritedFees)->unique('id')->sortByDesc('approved_at')->values();
+        $approvedFees = $approvedFees->merge($inheritedFees)->unique('id')->sortByDesc('approved_at')->values();
 
-        return view('college.fees.approval', compact('pendingFees','disabledFees', 'allFees', 'tab'));
+        return view('college.fees.approval', compact('pendingFees', 'approvedFees', 'pendingRequests','disabledFees', 'tab'));
     }
 
     /**

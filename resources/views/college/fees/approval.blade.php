@@ -30,7 +30,37 @@
 </div>
 
 <div class="space-y-6">
-    @if($tab === 'pending')
+   @if($tab === 'pending')
+
+    {{-- ✅ FEE REQUESTS FIRST --}}
+    @forelse($pendingRequests as $request)
+        <div class="bg-yellow-50 border border-yellow-200 shadow rounded-lg p-4 flex justify-between items-center">
+
+            <div>
+                <h3 class="font-semibold text-yellow-800">
+                    {{ strtoupper($request->type) }} REQUEST
+                </h3>
+
+                <p class="text-sm text-gray-700">
+                    Fee: <strong>{{ $request->fee->fee_name }}</strong>
+                </p>
+
+                <p class="text-sm text-gray-600">
+                    Reason: {{ $request->reason }}
+                </p>
+
+                <p class="text-xs text-gray-400">
+                    Requested at: {{ \Carbon\Carbon::parse($request->requested_at)->format('M d, Y') }}
+                </p>
+            </div>
+
+            <span class="px-3 py-1 text-xs bg-yellow-200 text-yellow-800 rounded">
+                Pending OSA Approval
+            </span>
+        </div>
+    @empty
+    @endforelse
+    
         @forelse($pendingFees as $fee)
             <div class="bg-white shadow rounded-lg p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <!-- Fee Info -->
@@ -100,17 +130,25 @@
 
                 <p class="text-sm text-gray-400 mt-1">
                     Disabled on:
-                    {{ $fee->disable_approved_at 
-                        ? \Carbon\Carbon::parse($fee->disable_approved_at)->format('M d, Y')
-                        : '-' 
-                    }}
+                     {{ optional($fee->feeRequests->first()?->disable_approved_at)
+                        ? \Carbon\Carbon::parse($fee->feeRequests->first()->disable_approved_at)->format('M d, Y')
+                        : '-' }}
                 </p>
             </div>
 
-            <a href="{{ route('college.fees.show', $fee->id) }}"
-               class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">
-                View
-            </a>
+           <div class="flex gap-2">
+                <button
+                    type="button"
+                    onclick="openEnableModal({{ $fee->id }})"
+                    class="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700">
+                    Enable
+                </button>
+
+                <a href="{{ route('college.fees.show', $fee->id) }}"
+                class="px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600">
+                    View
+                </a>
+            </div>
         </div>
         @empty
             <div class="text-center text-gray-500 py-6">
@@ -119,7 +157,7 @@
         @endforelse
 
     @elseif($tab === 'approved')
-        @forelse($allFees as $fee)
+        @forelse($approvedFees as $fee)
             <div class="bg-white shadow rounded-lg p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div class="flex-1">
                     <h3 class="text-lg font-semibold text-gray-800">{{ $fee->fee_name }}</h3>
@@ -176,6 +214,11 @@
                         Disable
                     </button>
                 @endif
+
+                <a href="{{ route('college.fees.show', $fee->id) }}"
+                class="px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600">
+                    View
+                </a>
                 </div>
             </div>
         @empty
