@@ -730,6 +730,13 @@ class OrganizationPaymentController extends Controller
         $activeSY = SchoolYear::where('is_active', true)->first() ?? SchoolYear::orderByDesc('sy_start')->first();
         $activeSYId = $activeSY?->id;
 
+        $feeId = $request->input('fee_id');
+        $feeRecurrence = $request->input('fee_recurrence');
+        $requirementLevel = $request->input('requirement_level');
+        $courseId = $request->input('course_id');
+        $yearLevelId = $request->input('year_level_id');
+        $sectionId = $request->input('section_id');
+
         $activeSem = $activeSY
             ? $activeSY->semesters()->where('is_active', true)->first() ?? $activeSY->semesters()->orderBy('id')->first()
             : Semester::orderByDesc('id')->first();
@@ -737,6 +744,8 @@ class OrganizationPaymentController extends Controller
 
         $schoolYearId = $request->input('school_year_id', $activeSYId);
         $semesterId = $request->input('semester_id', $activeSemId);
+
+        
 
         $students = Student::whereHas('enrollments', function ($q) use ($collegeId, $schoolYearId, $semesterId) {
             $q->where('college_id', $collegeId);
@@ -755,7 +764,14 @@ class OrganizationPaymentController extends Controller
         }, 'enrollments.course', 'enrollments.yearLevel', 'enrollments.section'])
         ->get();
 
-        $paymentsQuery = Payment::with(['student', 'fees', 'enrollment.course', 'collector', 'enrollment.yearLevel', 'enrollment.section'])
+        $paymentsQuery = Payment::with([
+                'student',
+                'fees',
+                'enrollment.course',
+                'enrollment.yearLevel',
+                'enrollment.section',
+                'collector'
+            ])
             ->where('organization_id', $organization->id)
             ->where('school_year_id', $schoolYearId)
             ->where('semester_id', $semesterId);
@@ -763,37 +779,39 @@ class OrganizationPaymentController extends Controller
 
        $today = now()->endOfDay();
 
-        $dateFrom = $request->filled('date_from')
-            ? \Carbon\Carbon::parse($request->date_from)->startOfDay()
-            : null;
+        $paymentsQuery->where('created_at', '<=', $today);
 
-        $dateTo = $request->filled('date_to')
-            ? \Carbon\Carbon::parse($request->date_to)->endOfDay()
-            : $today;
-
-        if ($dateTo->greaterThan($today)) {
-            $dateTo = $today;
-        }
-        if ($dateFrom && $dateFrom->greaterThan($today)) {
-            $dateFrom = $today->copy()->startOfDay();
+        if ($request->filled('date_from')) {
+            $paymentsQuery->where('created_at', '>=', \Carbon\Carbon::parse($request->date_from)->startOfDay());
         }
 
-        if (!$request->filled('date_from') && !$request->filled('date_to')) {
-            $dateFrom = $today->copy()->startOfDay();
-            $dateTo = $today;
+        if ($request->filled('date_to')) {
+            $paymentsQuery->where('created_at', '<=', \Carbon\Carbon::parse($request->date_to)->endOfDay());
         }
-
-        if ($dateFrom) {
-            $paymentsQuery->where('created_at', '>=', $dateFrom);
-        }
-
-        $paymentsQuery->where('created_at', '<=', $dateTo);
         if ($request->filled('search')) {
             $query = $request->input('search');
             $paymentsQuery->whereHas('student', function ($q) use ($query) {
                 $q->where('student_id', 'like', "%{$query}%")
                     ->orWhere('first_name', 'like', "%{$query}%")
                     ->orWhere('last_name', 'like', "%{$query}%");
+            });
+        }
+
+        if ($courseId) {
+            $paymentsQuery->whereHas('enrollment.course', function ($q) use ($courseId) {
+                $q->where('id', $courseId);
+            });
+        }
+
+        if ($yearLevelId) {
+            $paymentsQuery->whereHas('enrollment.yearLevel', function ($q) use ($yearLevelId) {
+                $q->where('id', $yearLevelId);
+            });
+        }
+
+        if ($sectionId) {
+            $paymentsQuery->whereHas('enrollment.section', function ($q) use ($sectionId) {
+                $q->where('id', $sectionId);
             });
         }
 
@@ -809,6 +827,13 @@ class OrganizationPaymentController extends Controller
 
             foreach ($studentPayments as $payment) {
                 foreach ($payment->fees as $fee) {
+                    if ($feeId && $fee->id != $feeId) {
+                        continue;
+                    }
+
+                    if ($requirementLevel && $fee->requirement_level !== $requirementLevel) {
+                        continue;
+                    }
                     $studentsWithPayments[] = [
                         'student' => $student,
                         'enrollment' => $enrollment,
@@ -828,11 +853,25 @@ class OrganizationPaymentController extends Controller
                 if ($osaId) $organizationIds[] = $osaId;
             }
 
-            $allFees = Fee::where('status', 'approved')->whereIn('organization_id', $organizationIds)->get();
-            $paidFeeIds = $studentPayments->pluck('fees.*.id')->flatten()->unique()->toArray();
+           $allFeesQuery = Fee::where('status', 'approved')
+                ->whereIn('organization_id', $organizationIds);
+
+            if ($feeId) {
+                $allFeesQuery->where('id', $feeId);
+            }
+
+            $allFees = $allFeesQuery->get();        
+             $paidFeeIds = $studentPayments->pluck('fees.*.id')->flatten()->unique()->toArray();
             $pendingFees = $allFees->whereNotIn('id', $paidFeeIds)->values();
 
             foreach ($pendingFees as $fee) {
+                if ($requirementLevel && $fee->requirement_level !== $requirementLevel) {
+                    continue;
+                }
+
+                if ($feeRecurrence && $fee->recurrence !== $feeRecurrence) {
+                    continue;
+                }
                 $studentsWithPayments[] = [
                     'student' => $student,
                     'enrollment' => $enrollment,
@@ -913,6 +952,8 @@ class OrganizationPaymentController extends Controller
             });
         }
 
+        
+
         $fees = $fees->orderBy('created_at', 'desc')->get();
         $courses = \App\Models\Course::where('college_id', $collegeId)->get();
         $yearLevels = \App\Models\YearLevel::where('college_id', $collegeId)->get();
@@ -951,6 +992,14 @@ class OrganizationPaymentController extends Controller
         $schoolYearId = $request->input('school_year_id', $activeSYId);
         $semesterId = $request->input('semester_id', $activeSemId);
 
+        $dateFrom = $request->filled('date_from')
+            ? \Carbon\Carbon::parse($request->date_from)->startOfDay()
+            : null;
+
+        $dateTo = $request->filled('date_to')
+            ? \Carbon\Carbon::parse($request->date_to)->endOfDay()
+            : now()->endOfDay();
+
         $students = Student::whereHas('enrollments', function ($q) use ($organization, $schoolYearId, $semesterId) {
             $q->where('college_id', $organization->college_id)
                 ->where('school_year_id', $schoolYearId)
@@ -962,11 +1011,49 @@ class OrganizationPaymentController extends Controller
                 ->whereIn('status', ['FOR_PAYMENT_VALIDATION', 'ENROLLED']);
         }, 'enrollments.course', 'enrollments.yearLevel', 'enrollments.section'])->get();
 
-        $payments = Payment::with(['fees', 'student'])
+        $paymentsQuery = Payment::with(['fees', 'student', 'collector'])
             ->where('organization_id', $organization->id)
             ->where('school_year_id', $schoolYearId)
-            ->where('semester_id', $semesterId)
-            ->get();
+            ->where('semester_id', $semesterId);
+
+        if ($dateFrom) {
+            $paymentsQuery->where('created_at', '>=', $dateFrom);
+        }
+
+        if ($dateTo) {
+            $paymentsQuery->where('created_at', '<=', $dateTo);
+        }
+
+        if ($request->filled('payment_status')) {
+            if ($request->payment_status === 'paid') {
+                $paymentsQuery->whereNotNull('id'); 
+            }
+        }
+
+        if ($request->filled('course_id')) {
+            $students = $students->where(function ($q) use ($request) {
+                $q->whereHas('enrollments.course', function ($q2) use ($request) {
+                    $q2->where('id', $request->course_id);
+                });
+            });
+        }
+
+        if ($request->filled('year_level_id')) {
+            $students = $students->where(function ($q) use ($request) {
+                $q->whereHas('enrollments.yearLevel', function ($q2) use ($request) {
+                    $q2->where('id', $request->year_level_id);
+                });
+            });
+        }
+
+        if ($request->filled('section_id')) {
+            $students = $students->where(function ($q) use ($request) {
+                $q->whereHas('enrollments.section', function ($q2) use ($request) {
+                    $q2->where('id', $request->section_id);
+                });
+            });
+        }
+        $payments = $paymentsQuery->get();
 
         $studentsWithPayments = $students->map(function ($student) use ($payments, $organization) {
             $enrollment = $student->enrollments->first();

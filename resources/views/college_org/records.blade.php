@@ -135,9 +135,9 @@
                             <label class="block text-gray-700 mb-1">Fee Recurrence</label>
                             <select name="fee_recurrence" class="w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500">
                                 <option value="">Any</option>
-                                <option value="one_time" {{ request('recurrence') == 'one_time' ? 'selected' : '' }}>One Time</option>
-                                <option value="semestrial" {{ request('recurrence') == 'semestrial' ? 'selected' : '' }}>Semestrial</option>
-                                <option value="annual" {{ request('recurrence') == 'annual' ? 'selected' : '' }}>Annual</option>
+                                <option value="one_time" {{ request('fee_recurrence') == 'one_time' ? 'selected' : '' }}>One Time</option>
+                                <option value="semestrial" {{ request('fee_recurrence') == 'semestrial' ? 'selected' : '' }}>Semestrial</option>
+                                <option value="annual" {{ request('fee_recurrence') == 'annual' ? 'selected' : '' }}>Annual</option>
                             </select>
                         </div>
 
