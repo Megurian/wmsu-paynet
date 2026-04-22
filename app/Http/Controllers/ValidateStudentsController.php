@@ -103,7 +103,6 @@ class ValidateStudentsController extends Controller
             }
         }
 
-        // sort the paginated collection so advised students appear first
         $students->setCollection(
             $students->getCollection()->sortByDesc('isAdvised')
         );

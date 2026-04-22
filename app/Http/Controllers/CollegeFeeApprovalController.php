@@ -141,6 +141,30 @@ class CollegeFeeApprovalController extends Controller
             'approved_at' => now(),
         ]);
 
+        log_activity(
+            'Fee Forwarded to OSA',
+            "Dean forwarded fee '{$fee->name}' to OSA for final approval",
+            null,
+            [
+                'fee_id' => $fee->id,
+                'college_id' => $fee->college_id,
+                'approval_level' => 'osa',
+                'approved_by' => $user->id,
+            ]
+        );
+
+        log_activity(
+            'Fee Approved',
+            "Approved fee '{$fee->name}'",
+            null,
+            [
+                'fee_id' => $fee->id,
+                'college_id' => $fee->college_id,
+                'approved_by' => $user->id,
+                'approved_at' => now(),
+            ]
+        );
+
         return back()->with('success', 'Fee approved.');
     }
 
@@ -165,6 +189,18 @@ class CollegeFeeApprovalController extends Controller
             'requested_at' => now(),
         ]);
 
+        log_activity(
+            'Requested Fee Disable',
+            "Requested to disable fee '{$fee->name}'",
+            null,
+            [
+                'fee_id' => $fee->id,
+                'college_id' => $fee->college_id,
+                'reason' => $request->reason,
+                'requested_by' => $user->id,
+            ]
+        );
+
         return back()->with('success', 'Disable request sent to OSA.');
     }
 
@@ -188,6 +224,18 @@ class CollegeFeeApprovalController extends Controller
             'requested_by' => $user->id,
             'requested_at' => now(),
         ]);
+
+        log_activity(
+            'Requested Fee Enable',
+            "Requested to enable fee '{$fee->name}'",
+            null,
+            [
+                'fee_id' => $fee->id,
+                'college_id' => $fee->college_id,
+                'reason' => $request->reason,
+                'requested_by' => $user->id,
+            ]
+        );
 
         return back()->with('success', 'Enable request sent to OSA.');
     }

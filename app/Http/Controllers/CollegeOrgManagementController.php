@@ -40,6 +40,8 @@ class CollegeOrgManagementController extends Controller
 
         $organization = auth()->user()->organization;
 
+           $oldLogo = $organization->logo;
+
         if ($request->hasFile('organization_logo')) {
 
             if ($organization->logo && Storage::disk('public')->exists($organization->logo)) {
@@ -53,6 +55,18 @@ class CollegeOrgManagementController extends Controller
             ]);
         }
 
+        log_activity(
+                'Update Organization Logo',
+                "Updated logo for organization {$organization->name}",
+                $organization->id,
+                [
+                    'old_logo' => $oldLogo,
+                    'new_logo' => $path,
+                    'updated_by' => Auth::id(),
+                    'role' => Auth::user()->role,
+                ]
+            );
+
         return back()->with('status', 'Organization logo updated successfully.');
     }
 
@@ -63,10 +77,22 @@ class CollegeOrgManagementController extends Controller
         ]);
 
         $organization = auth()->user()->organization;
-
+        $oldName = $organization->name;
         $organization->update([
             'name' => $request->organization_name
         ]);
+
+        log_activity(
+            'Update Organization Name',
+            "Changed organization name from {$oldName} to {$organization->name}",
+            $organization->id,
+            [
+                'old_name' => $oldName,
+                'new_name' => $organization->name,
+                'updated_by' => Auth::id(),
+                'role' => Auth::user()->role,
+            ]
+        );
 
         return back()->with('status', 'Organization name updated successfully.');
     }
