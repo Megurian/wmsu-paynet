@@ -40,18 +40,38 @@ class CollegeOrgManagementController extends Controller
 
         $organization = auth()->user()->organization;
 
-        if ($request->hasFile('organization_logo')) {
+        $oldLogo = $organization->logo;
+        $path = null;
+
+        if ($request->file('organization_logo')) {
 
             if ($organization->logo && Storage::disk('public')->exists($organization->logo)) {
                 Storage::disk('public')->delete($organization->logo);
             }
 
-            $path = $request->file('organization_logo')->store('organization_logos', 'public');
+            $path = $request->file('organization_logo')
+                ->store('organization_logos', 'public');
 
             $organization->update([
                 'logo' => $path
             ]);
         }
+
+        log_activity(
+            'Update Organization Logo',
+            "Updated logo for organization {$organization->name}",
+            null,
+            null,
+            null,
+            [
+                'organization_id' => $organization->id,
+                'organization_name' => $organization->name,
+                'old_logo' => $oldLogo,
+                'new_logo' => $path,
+                'updated_by' => Auth::id(),
+                'role' => Auth::user()->role,
+            ]
+        );
 
         return back()->with('status', 'Organization logo updated successfully.');
     }
@@ -63,10 +83,25 @@ class CollegeOrgManagementController extends Controller
         ]);
 
         $organization = auth()->user()->organization;
-
+        $oldName = $organization->name;
         $organization->update([
             'name' => $request->organization_name
         ]);
+
+        log_activity(
+            'Update Organization Name',
+            "Changed organization name from {$oldName} to {$organization->name}",
+            null,
+            null,
+            null,
+            [
+                'organization_id' => $organization->id,
+                'old_name' => $oldName,
+                'new_name' => $organization->name,
+                'updated_by' => Auth::id(),
+                'role' => Auth::user()->role,
+            ]
+        );
 
         return back()->with('status', 'Organization name updated successfully.');
     }

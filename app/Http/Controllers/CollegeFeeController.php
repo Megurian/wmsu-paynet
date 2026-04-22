@@ -58,6 +58,7 @@ class CollegeFeeController extends Controller
     public function create()
     {
         return view('college.fees.create');
+
     }
 
     public function store(Request $request)
@@ -77,7 +78,7 @@ class CollegeFeeController extends Controller
         $activeSY = SchoolYear::where('is_active', true)->first();
         $activeSem = Semester::where('is_active', true)->first();
 
-        Fee::create([
+        $fee = Fee::create([
             ...$data,
             'recurrence' => $data['recurrence'] ?? 'one_time',
             'fee_scope' => 'college',
@@ -89,7 +90,25 @@ class CollegeFeeController extends Controller
         'created_semester_id' => $activeSem?->id,
         ]);
 
-
+        log_activity(
+        'Created Fee',
+        "Fee '{$fee->fee_name}' created and submitted for dean approval",
+        null, null, null,
+        [
+            'fee_id' => $fee->id,
+            'college_id' => $user->college_id,
+            'fee_scope' => 'college',
+            'amount' => $fee->amount,
+            'requirement_level' => $fee->requirement_level,
+            'recurrence' => $fee->recurrence,
+            'status' => 'pending',
+            'approval_level' => 'dean',
+            'school_year_id' => $activeSY?->id,
+            'semester_id' => $activeSem?->id,
+            'created_by' => $user->id,
+            'action_by' => $user->id,
+        ]
+    );
         return redirect()->route('college.fees')
             ->with('success', 'Fee submitted for dean approval.');
     }

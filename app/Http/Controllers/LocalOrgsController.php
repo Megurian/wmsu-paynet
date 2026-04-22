@@ -101,8 +101,21 @@ class LocalOrgsController extends Controller
                 'college_id' => $user->college_id,
                 'organization_id' => $org->id,
             ]);
-        });
 
+             log_activity(
+        'Create Organization',
+        "Created organization {$org->name} ({$org->org_code})",
+        null,
+        null,
+        null,
+        [
+            'organization_id' => $org->id,
+            'created_by' => $user->id,
+            'status' => 'pending'
+        ]
+    );
+
+        });
         return redirect()->route('college.local_organizations')
             ->with('success', 'Organization submitted for dean approval and initial admin created.');
     }
@@ -201,6 +214,20 @@ class LocalOrgsController extends Controller
                 'school_year_id' => $activeSY->id,
                 'semester_id' => $activeSem->id,
             ]);
+
+            log_activity(
+    'Assign Organization Officer',
+    "Assigned {$student->first_name} {$student->last_name} as {$request->role} in organization ID {$orgId}",
+    $request->student_id,
+    null,
+    null,
+    [
+        'organization_id' => $orgId,
+        'role' => $request->role,
+        'secondary_email' => $request->secondary_email,
+        'assigned_by' => Auth::id(),
+    ]
+);
         });
 
         return back()->with('success', 'Officer assigned and invitation email sent successfully.');
@@ -237,6 +264,17 @@ class LocalOrgsController extends Controller
         abort_unless($org->college_id === $user->college_id, 403);
 
         if ($org->status === 'pending') {
+             log_activity(
+        'Cancel Organization Submission',
+        "Canceled organization submission: {$org->name}",
+        null,
+        null,
+        null,
+        [
+            'organization_id' => $org->id,
+            'canceled_by' => Auth::id(),
+        ]
+    );
             $org->delete();
             return redirect()->route('college.local_organizations')->with('status', 'Submission canceled successfully.');
         }

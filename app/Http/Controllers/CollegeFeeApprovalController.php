@@ -141,6 +141,32 @@ class CollegeFeeApprovalController extends Controller
             'approved_at' => now(),
         ]);
 
+        log_activity(
+        'Fee Forwarded to OSA',
+            "Fee '{$fee->fee_name}' forwarded to OSA for final approval",
+            null, null, null,
+            [
+                'fee_id' => $fee->id,
+                'college_id' => $fee->college_id,
+                'from_level' => 'dean',
+                'to_level' => 'osa',
+                'action_by' => $user->id,
+            ]
+        );
+
+        log_activity(
+            'Fee Approved',
+            "Fee '{$fee->fee_name}' approved by dean",
+            null, null, null,
+            [
+                'fee_id' => $fee->id,
+                'college_id' => $fee->college_id,
+                'approved_by' => $user->id,
+                'approved_at' => now(),
+                'final_status' => 'approved',
+            ]
+        );
+
         return back()->with('success', 'Fee approved.');
     }
 
@@ -165,6 +191,19 @@ class CollegeFeeApprovalController extends Controller
             'requested_at' => now(),
         ]);
 
+        log_activity(
+            'Requested Fee Disable',
+            "Disable request submitted for fee '{$fee->fee_name}'",
+            null, null, null,
+            [
+                'fee_id' => $fee->id,
+                'college_id' => $fee->college_id,
+                'reason' => $request->reason,
+                'requested_by' => $user->id,
+                'status' => 'pending',
+            ]
+        );
+
         return back()->with('success', 'Disable request sent to OSA.');
     }
 
@@ -188,6 +227,19 @@ class CollegeFeeApprovalController extends Controller
             'requested_by' => $user->id,
             'requested_at' => now(),
         ]);
+
+        log_activity(
+            'Requested Fee Enable',
+            "Enable request submitted for fee '{$fee->fee_name}'",
+            null, null, null,
+            [
+                'fee_id' => $fee->id,
+                'college_id' => $fee->college_id,
+                'reason' => $request->reason,
+                'requested_by' => $user->id,
+                'status' => 'pending',
+            ]
+        );
 
         return back()->with('success', 'Enable request sent to OSA.');
     }

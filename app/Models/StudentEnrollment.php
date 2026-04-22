@@ -4,9 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
+use App\Traits\LogsActivity;
 
 class StudentEnrollment extends Model
 {
+     use LogsActivity;
     const NOT_ENROLLED = 'NOT_ENROLLED';
     const FOR_PAYMENT_VALIDATION = 'FOR_PAYMENT_VALIDATION';
     const PAID = 'PAID';
@@ -260,4 +262,6 @@ class StudentEnrollment extends Model
     {
         return $query->where('financial_status', self::FINANCIAL_DEFERRED);
     }
+
+    
 }

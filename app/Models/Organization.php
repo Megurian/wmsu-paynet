@@ -3,10 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-
+use App\Traits\LogsActivity;
 class Organization extends Model
 {
     // Allow assigning a mother organization when creating an office
+    use LogsActivity;
     protected $fillable = ['name', 'org_code', 'role', 'status', 'college_id', 'logo', 'mother_organization_id', 'inherits_osa_fees','created_school_year_id',
                     'created_semester_id'];
 

@@ -208,7 +208,7 @@ class CollegeOrgFeesController extends Controller
             $data['supporting_document_id'] = $document->id;
         }
 
-        \App\Models\Fee::create($data);
+        $fee = Fee::create($data);
 
         // For college organization submissions the workflow is: Dean → OSA
         return redirect()->route('college_org.fees')->with('success', 'Fee created successfully and is pending Dean approval (then OSA).');
@@ -312,6 +312,18 @@ class CollegeOrgFeesController extends Controller
 
         $fee->save();
 
+        $oldData = $fee->toArray();
+
+        $fee->update($request->only([
+            'fee_name',
+            'purpose',
+            'description',
+            'amount',
+            'requirement_level',
+            'recurrence'
+        ]));
+
+
         return redirect()->route('college_org.fees')->with('success', 'Fee updated successfully.');
     }
 
@@ -376,6 +388,8 @@ class CollegeOrgFeesController extends Controller
             'supporting_files' => $files ?: null,
             'status' => 'pending',
         ]);
+
+        
 
         return back()->with('success', 'Appeal submitted. OSA will review and respond soon.');
     }
