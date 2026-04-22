@@ -7,6 +7,7 @@
 @php
     $statusCounts = [
         'PENDING_SIGNATURE' => $promissoryNotes->where('status', 'PENDING_SIGNATURE')->count(),
+        'PENDING_ADVISER_VERIFICATION' => $promissoryNotes->where('status', 'PENDING_ADVISER_VERIFICATION')->count(),
         'PENDING_VERIFICATION' => $promissoryNotes->where('status', 'PENDING_VERIFICATION')->count(),
         'ACTIVE' => $promissoryNotes->where('status', 'ACTIVE')->count(),
         'VOIDED' => $promissoryNotes->where('status', 'VOIDED')->count(),
@@ -17,6 +18,7 @@
 
     $badgeClasses = [
         'PENDING_SIGNATURE' => 'bg-amber-100 text-amber-800 border-amber-200',
+        'PENDING_ADVISER_VERIFICATION' => 'bg-indigo-100 text-indigo-800 border-indigo-200',
         'PENDING_VERIFICATION' => 'bg-sky-100 text-sky-800 border-sky-200',
         'ACTIVE' => 'bg-emerald-100 text-emerald-800 border-emerald-200',
         'VOIDED' => 'bg-slate-100 text-slate-700 border-slate-200',
@@ -119,10 +121,15 @@
                                 <p class="font-semibold text-amber-900">Action required</p>
                                 <p class="mt-1 text-sm text-amber-800">Download the template, sign it, and upload the signed copy before the deadline.</p>
                             </div>
+                        @elseif($note->status === 'PENDING_ADVISER_VERIFICATION')
+                            <div class="rounded-xl border border-sky-200 bg-sky-50 p-4">
+                                <p class="font-semibold text-sky-900">Awaiting adviser review</p>
+                                <p class="mt-1 text-sm text-sky-800">Your signed note has been uploaded. Your adviser will review it before it reaches the coordinator.</p>
+                            </div>
                         @elseif($note->status === 'PENDING_VERIFICATION')
                             <div class="rounded-xl border border-sky-200 bg-sky-50 p-4">
                                 <p class="font-semibold text-sky-900">Awaiting coordinator review</p>
-                                <p class="mt-1 text-sm text-sky-800">Your signed note has been uploaded. No further action is needed until review is complete.</p>
+                                <p class="mt-1 text-sm text-sky-800">Your signed note has been approved by the adviser and is now waiting for coordinator review.</p>
                             </div>
                         @elseif(in_array($note->status, ['DEFAULT', 'BAD_DEBT']))
                             <div class="rounded-xl border border-red-200 bg-red-50 p-4">
@@ -157,7 +164,16 @@
                                     Uploaded on {{ optional($note->signed_at)->format('M d, Y h:i A') ?? '—' }}.
                                 </div>
                                 <div class="rounded-xl border border-dashed border-gray-300 bg-white p-4 text-sm text-gray-600">
-                                    The coordinator is reviewing your submission.
+                                    The adviser has approved your submission and the coordinator is now reviewing it.
+                                </div>
+                            </div>
+                        @elseif($note->status === 'PENDING_ADVISER_VERIFICATION')
+                            <div class="space-y-3">
+                                <div class="rounded-xl border border-sky-200 bg-white p-4 text-sm text-sky-900">
+                                    Uploaded on {{ optional($note->signed_at)->format('M d, Y h:i A') ?? '—' }}.
+                                </div>
+                                <div class="rounded-xl border border-dashed border-gray-300 bg-white p-4 text-sm text-gray-600">
+                                    Your adviser is reviewing your submission.
                                 </div>
                             </div>
                         @else

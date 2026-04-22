@@ -13,12 +13,14 @@ class PromissoryNote extends Model
 
     public const OPEN_STATUSES = [
         self::STATUS_PENDING_SIGNATURE,
+        self::STATUS_PENDING_ADVISER_VERIFICATION,
         self::STATUS_PENDING_VERIFICATION,
         self::STATUS_ACTIVE,
     ];
 
     // Status constants
     const STATUS_PENDING_SIGNATURE = 'PENDING_SIGNATURE';
+    const STATUS_PENDING_ADVISER_VERIFICATION = 'PENDING_ADVISER_VERIFICATION';
     const STATUS_PENDING_VERIFICATION = 'PENDING_VERIFICATION';
     const STATUS_ACTIVE = 'ACTIVE';
     const STATUS_VOIDED = 'VOIDED';
@@ -38,6 +40,9 @@ class PromissoryNote extends Model
         'signed_at',
         'signed_by',
         'document_path',
+        'adviser_reviewed_by',
+        'adviser_reviewed_at',
+        'adviser_review_notes',
         'default_date',
         'notes',
     ];
@@ -46,6 +51,7 @@ class PromissoryNote extends Model
         'due_date' => 'date',
         'signature_deadline' => 'datetime',
         'signed_at' => 'datetime',
+        'adviser_reviewed_at' => 'datetime',
         'default_date' => 'datetime',
         'original_amount' => 'decimal:2',
         'remaining_balance' => 'decimal:2',
@@ -131,6 +137,14 @@ class PromissoryNote extends Model
     }
 
     /**
+     * Check if PN is awaiting adviser verification/approval
+     */
+    public function isPendingAdviserVerification(): bool
+    {
+        return $this->status === self::STATUS_PENDING_ADVISER_VERIFICATION;
+    }
+
+    /**
      * Check if PN is awaiting coordinator verification/approval
      */
     public function isPendingVerification(): bool
@@ -212,6 +226,14 @@ class PromissoryNote extends Model
     public function scopePending($query)
     {
         return $query->where('status', self::STATUS_PENDING_SIGNATURE);
+    }
+
+    /**
+     * Get pending adviser verification PNs
+     */
+    public function scopePendingAdviserVerification($query)
+    {
+        return $query->where('status', self::STATUS_PENDING_ADVISER_VERIFICATION);
     }
 
     /**

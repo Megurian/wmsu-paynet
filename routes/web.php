@@ -14,6 +14,7 @@ use App\Http\Controllers\CollegeDashboardController;
 use App\Http\Controllers\CollegeHistoryController;
 use App\Http\Controllers\ValidateStudentsController;
 use App\Http\Controllers\CoordinatorController;
+use App\Http\Controllers\AdviserPromissoryNoteController;
 use App\Http\Controllers\UniversityOrgFeesController;
 use App\Http\Controllers\UniversityOrgReportsController;
 use App\Http\Controllers\UniversityOrgOfficesController;
@@ -472,6 +473,16 @@ Route::middleware(['auth', 'role:treasurer,college,student_coordinator,adviser,a
             ->name('college.promissory_notes.reject');
     });
 
+    Route::middleware(['auth', 'role:adviser'])->group(function () {
+        Route::get('/college/promissory-notes/adviser', [AdviserPromissoryNoteController::class, 'index'])
+            ->name('adviser.promissory_notes.index');
+        Route::get('/college/promissory-notes/adviser/{note}/document', [AdviserPromissoryNoteController::class, 'viewDocument'])
+            ->name('adviser.promissory_notes.document');
+        Route::post('/college/promissory-notes/adviser/{note}/approve-signature', [AdviserPromissoryNoteController::class, 'approveSignature'])
+            ->name('adviser.promissory_notes.approve');
+        Route::post('/college/promissory-notes/adviser/{note}/reject-signature', [AdviserPromissoryNoteController::class, 'rejectSignature'])
+            ->name('adviser.promissory_notes.reject');
+    });
 
 
 Route::middleware(['auth', 'role:treasurer'])->group(function () {

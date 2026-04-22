@@ -79,8 +79,8 @@ class PromissoryNoteIssuanceService
                 throw new \RuntimeException('This promissory note can no longer be signed.');
             }
 
-            if ($lockedNote->isPendingVerification()) {
-                throw new \RuntimeException('This promissory note is already awaiting coordinator review.');
+            if ($lockedNote->isPendingAdviserVerification() || $lockedNote->isPendingVerification()) {
+                throw new \RuntimeException('This promissory note is already awaiting review.');
             }
 
             if (! $lockedNote->isPending()) {
@@ -95,7 +95,7 @@ class PromissoryNoteIssuanceService
                 'signed_at' => now(),
                 'signed_by' => $student->id,
                 'document_path' => $signatureFilePath,
-                'status' => PromissoryNote::STATUS_PENDING_VERIFICATION,
+                'status' => PromissoryNote::STATUS_PENDING_ADVISER_VERIFICATION,
                 'open_student_id' => $student->id,
                 'updated_at' => now(),
             ]);

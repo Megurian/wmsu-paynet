@@ -374,6 +374,11 @@
                     {{ request()->routeIs('college.students.my-upload') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
                     <span>My Students</span>
                 </a>
+
+                <a href="{{ route('adviser.promissory_notes.index') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('adviser.promissory_notes.*') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span>Promissory Notes</span>
+                </a>
             @endif
 
 

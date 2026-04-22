@@ -263,7 +263,7 @@ class StudentPortalController extends Controller
             ]);
         }
 
-        return back()->with('status', 'Signed promissory note uploaded. Awaiting coordinator review.');
+        return back()->with('status', 'Signed promissory note uploaded. Awaiting adviser review.');
     }
 
     private function authorizePromissoryNote($student, PromissoryNote $note): void
@@ -273,7 +273,22 @@ class StudentPortalController extends Controller
 
     private function notifyReviewers(PromissoryNote $note): void
     {
-        $note->loadMissing(['student', 'enrollment']);
+        $note->loadMissing(['student', 'enrollment.adviser', 'fees']);
+
+        $adviser = $note->enrollment?->adviser;
+        if ($adviser && $adviser->hasRole('adviser')) {
+            $adviser->notify(new PromissoryNoteSignaturePendingNotification(
+                $note->fresh(['student', 'enrollment', 'fees']),
+                route('adviser.promissory_notes.index', ['tab' => 'pending_adviser_verification']),
+                'Promissory note awaiting adviser review',
+                'A signed promissory note has been uploaded and is waiting for your review.'
+            ));
+            return;
+        }
+
+        if ($note->status !== PromissoryNote::STATUS_PENDING_VERIFICATION) {
+            $note->update(['status' => PromissoryNote::STATUS_PENDING_VERIFICATION]);
+        }
 
         $reviewers = User::where('role', 'student_coordinator')
             ->where('college_id', $note->enrollment->college_id)
@@ -283,13 +298,19 @@ class StudentPortalController extends Controller
         foreach ($reviewers as $reviewer) {
             $sent = true;
             $reviewer->notify(new PromissoryNoteSignaturePendingNotification(
-                $note->fresh(['student', 'enrollment', 'fees'])
+                $note->fresh(['student', 'enrollment', 'fees']),
+                route('college.promissory_notes.index', ['tab' => 'pending_verification']),
+                'Promissory note awaiting coordinator review',
+                'A signed promissory note has been uploaded and is waiting for coordinator review.'
             ));
         }
 
         if (! $sent && $note->issuedBy) {
             $note->issuedBy->notify(new PromissoryNoteSignaturePendingNotification(
-                $note->fresh(['student', 'enrollment', 'fees'])
+                $note->fresh(['student', 'enrollment', 'fees']),
+                route('college.promissory_notes.index', ['tab' => 'pending_verification']),
+                'Promissory note awaiting coordinator review',
+                'A signed promissory note has been uploaded and is waiting for coordinator review.'
             ));
         }
     }
