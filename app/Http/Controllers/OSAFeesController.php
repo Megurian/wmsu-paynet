@@ -14,22 +14,23 @@ class OSAFeesController extends Controller
 {
     public function index(Request $request)
     {
-        // show pending fees for OSA to review (includes fees with pending appeals)
         $pendingFees = Fee::with(['organization', 'user', 'appeals'])
             ->where(function ($q) {
+
                 $q->where(function ($q2) {
-                    // Fees specifically pending for OSA (organization or university-wide)
                     $q2->whereIn('fee_scope', ['organization', 'university-wide'])
                         ->where('status', 'pending');
                 })
                     ->orWhere(function ($q3) {
-                        // College fees assigned to OSA
                         $q3->where('fee_scope', 'college')
                             ->where('approval_level', 'osa')
                             ->where('status', 'pending');
                     })
                     ->orWhereHas('appeals', function ($q4) {
                         $q4->where('status', 'pending');
+                    })
+                    ->orWhere(function ($q5) {
+                        $q5->where('disable_status', 'pending');
                     });
             })
             ->orderBy('created_at', 'desc')
@@ -37,7 +38,10 @@ class OSAFeesController extends Controller
 
 
         $approvedFees = Fee::with(['organization', 'user'])
-            ->where('status', 'approved')
+            ->where(function ($q) {
+                $q->where('status', 'approved')
+                ->orWhere('status', 'disabled');
+            })
             ->orderByDesc('approved_at')
             ->get();
 
@@ -45,12 +49,9 @@ class OSAFeesController extends Controller
         // Status filter (default to approved)
         $status = $request->get('status', 'approved');
 
-        // Show university-wide fees and college-organization fees (exclude college-local/student-coordinator entries)
         $filteredQuery = Fee::with(['organization', 'user'])
             ->where(function ($q) {
-                // university-wide fees (OSA and university orgs)
                 $q->where('fee_scope', 'university-wide')
-                    // college fees that are tied to a college organization (organization_id NOT NULL)
                     ->orWhere(function ($q2) {
                         $q2->where('fee_scope', 'college')
                             ->whereNotNull('organization_id');
@@ -58,20 +59,23 @@ class OSAFeesController extends Controller
             });
 
         if ($status === 'approved') {
-            $filteredQuery->where('status', 'approved')
-                ->whereDoesntHave('appeals', function ($q) {
-                    $q->where('status', 'pending');
-                });
+            $filteredQuery->where('status', 'approved');
+
         } elseif ($status === 'pending') {
             $filteredQuery->where(function ($q) {
                 $q->where('status', 'pending')
-                    ->orWhereHas('appeals', function ($q2) {
-                        $q2->where('status', 'pending');
-                    });
+                ->orWhere('disable_status', 'pending');
             });
+
         } elseif ($status === 'disabled') {
             $filteredQuery->where('status', 'disabled');
-        } // 'all' or any other value will not apply a status filter
+
+        } else {
+            $filteredQuery->where(function ($q) {
+                $q->whereIn('status', ['approved', 'pending', 'disabled'])
+                ->orWhereNotNull('disable_status');
+            });
+        }
 
         // Other filters
         if ($request->filled('organization_id')) {
@@ -157,7 +161,7 @@ class OSAFeesController extends Controller
             // OSA-created fees are auto-approved
             'status' => 'approved',
         ];
-      
+
         $data['created_school_year_id'] = $activeSY->id;
         $data['created_semester_id'] = $activeSem->id;
 
@@ -320,5 +324,50 @@ class OSAFeesController extends Controller
         $fee->save();
 
         return redirect()->route('osa.fees')->with('success', 'Fee has been disabled.');
+    }
+
+    public function approveDisable(Request $request, Fee $fee)
+    {
+        $request->validate([
+            'password' => 'required|string',
+        ]);
+
+        $user = auth()->user();
+
+        if (!\Illuminate\Support\Facades\Hash::check($request->password, $user->password)) {
+            return back()->withErrors(['password' => 'Incorrect password.']);
+        }
+
+        if ($fee->disable_status !== 'pending') {
+            return back()->with('error', 'No pending disable request.');
+        }
+
+        $fee->update([
+            'status' => 'disabled',
+            'disable_status' => 'approved',
+            'disable_approved_by' => $user->id,
+            'disable_approved_at' => now(),
+        ]);
+
+        return back()->with('success', 'Fee disabled successfully.');
+    }
+
+    public function rejectDisable(Request $request, Fee $fee)
+    {
+        $request->validate([
+            'password' => 'required|string',
+        ]);
+
+        $user = auth()->user();
+
+        if (!\Illuminate\Support\Facades\Hash::check($request->password, $user->password)) {
+            return back()->withErrors(['password' => 'Incorrect password.']);
+        }
+
+        $fee->update([
+            'disable_status' => 'rejected',
+        ]);
+
+        return back()->with('success', 'Disable request rejected.');
     }
 }

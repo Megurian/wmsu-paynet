@@ -4,6 +4,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\OSASetupController;
 use App\Http\Controllers\OSACollegeController;
 use App\Http\Controllers\OSADashController;
+use App\Http\Controllers\OSAFeesController;
 use App\Http\Controllers\OSARemittanceController;
 use App\Http\Controllers\OSAOrganizationsController;
 use App\Http\Controllers\OSASystemMaintenanceController;
@@ -144,6 +145,12 @@ Route::middleware(['auth', 'role:osa', CheckActiveSchoolYear::class])->group(fun
 Route::post('/osa/remittance/confirm',
     [OSARemittanceController::class,'confirm'])
     ->name('osa.remittance.confirm');
+
+    Route::post('/osa/fees/{fee}/disable/approve', [OSAFeesController::class, 'approveDisable'])
+    ->name('osa.fees.disable.approve');
+
+Route::post('/osa/fees/{fee}/disable/reject', [OSAFeesController::class, 'rejectDisable'])
+    ->name('osa.fees.disable.reject');
 });
 
 Route::middleware(['auth', 'role:university_org'])->group(function () {
@@ -279,7 +286,14 @@ Route::middleware(['auth','role:college'])->group(function () {
     Route::post('/college/fees/{fee}/reject', [CollegeFeeApprovalController::class, 'reject'])
         ->whereNumber('fee')
         ->name('college.fees.reject');
-});
+
+    Route::post('/college/fees/{fee}/request-disable', [CollegeFeeApprovalController::class,'requestDisable'])->name('college.fees.request-disable');
+Route::post('/college/fees/{fee}/request-disable', [CollegeFeeController::class, 'requestDisable'])
+    ->name('college.fees.request-disable');
+
+
+
+    });
 
 Route::middleware(['auth', 'role:treasurer,college,student_coordinator,adviser,assessor,college_org'])->group(function () {
     // Route::get('/college/dashboard', function () {

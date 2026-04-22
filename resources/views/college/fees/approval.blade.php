@@ -53,7 +53,7 @@
                             @else
                                 <span class="font-semibold">
                                     {{ $fee->organization->name }}
-                                </span>
+                                </span>a
                             @endif
 
                         @else
@@ -69,6 +69,7 @@
                     <a href="{{ route('college.fees.show', $fee->id) }}" class="inline-flex items-center px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">View</a>
                     <button type="button" data-approve-url="{{ route('college.fees.approve', $fee) }}" class="approve-fee-btn inline-flex items-center px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700">Approve</button>
                 </div>
+
             </div>
         @empty
             <div class="text-center text-gray-500 py-6">
@@ -85,7 +86,13 @@
                     <p class="text-sm text-gray-600 mt-1">
                         @if($fee->organization)
                             @if($fee->organization && $fee->organization->motherOrganization)
-                                <span class="font-semibold">{{ $fee->organization->name }}</span>
+                                <span class="font-semibold">{{ $fee->organization->name }}
+                                    @if($fee->status === 'disabled')
+                                        <span class="inline-block mt-1 px-2 py-1 text-xs font-bold bg-red-100 text-red-700 rounded">
+                                            DISABLED
+                                        </span>
+                                    @endif
+                                </span>
                                 <span class="text-gray-400">(Office under {{ $fee->organization->motherOrganization->name }})</span>
                             @elseif($fee->organization)
                                 <span class="font-semibold">{{ $fee->organization->name }}</span>
@@ -102,6 +109,26 @@
                     <p class="text-sm text-gray-400 mt-1">
                         Approved on: {{ optional(\Illuminate\Support\Carbon::parse($fee->approved_at))->format('M d, Y') }}
                     </p>
+
+                    @if($fee->disable_status === 'pending')
+                        <p class="text-xs text-yellow-600 mt-1">
+                            Disable request pending OSA approval
+                        </p>
+                    @elseif($fee->disable_status === 'approved')
+                        <p class="text-xs text-red-600 mt-1">
+                            Fee disabled
+                        </p>
+                    @endif
+
+                    @if($fee->status === 'approved' && !$fee->disable_status)
+                    <button
+                        type="button"
+                        onclick="openDisableModal({{ $fee->id }})"
+                        class="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
+                    >
+                        Disable
+                    </button>
+                @endif
                 </div>
             </div>
         @empty
@@ -135,6 +162,35 @@
     </div>
 </div>
 
+<div id="disableFeeModal" class="hidden fixed inset-0 z-50 flex items-center justify-center px-4">
+    <div class="fixed inset-0 bg-black/50"></div>
+
+    <div class="bg-white w-full max-w-md rounded-lg shadow-lg p-6 relative z-10">
+        <h3 class="text-lg font-semibold mb-3">Request Fee Disable</h3>
+
+        <form id="disableFeeForm" method="POST" action="">
+            @csrf
+
+            <textarea
+                name="reason"
+                required
+                placeholder="Enter reason for disabling this fee..."
+                class="w-full border rounded p-2 mb-4"
+            ></textarea>
+
+            <div class="flex justify-end gap-2">
+                <button type="button" onclick="closeDisableModal()" class="px-4 py-2 border rounded">
+                    Cancel
+                </button>
+
+                <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded">
+                    Send Request
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
 function openFeeApproveModal(actionUrl) {
     const modal = document.getElementById('feeApproveModal');
@@ -154,5 +210,17 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+
+function openDisableModal(feeId) {
+    const modal = document.getElementById('disableFeeModal');
+    const form = document.getElementById('disableFeeForm');
+
+    form.action = `/college/fees/${feeId}/request-disable`;
+    modal.classList.remove('hidden');
+}
+
+function closeDisableModal() {
+    document.getElementById('disableFeeModal').classList.add('hidden');
+}
 </script>
 @endsection

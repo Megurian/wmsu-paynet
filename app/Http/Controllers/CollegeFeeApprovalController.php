@@ -32,9 +32,9 @@ class CollegeFeeApprovalController extends Controller
 
         // Base approved college fees
         $allFees = (clone $baseQuery)
-            ->where('status', 'approved')
-            ->orderByDesc('approved_at')
-            ->get();
+        ->whereIn('status', ['approved', 'disabled', 'pending'])
+        ->orderByDesc('updated_at')
+        ->get();
 
         // Include fees inherited by child organizations under this college
         $childOrgs = \App\Models\Organization::where('college_id', $collegeId)
@@ -146,4 +146,31 @@ class CollegeFeeApprovalController extends Controller
 
         return back()->with('success', 'Fee rejected.');
     }
+
+    public function requestDisable(Request $request, Fee $fee)
+    {
+        $user = auth()->user();
+        abort_unless($user, 403);
+
+        $request->validate([
+            'reason' => 'required|string|max:1000',
+        ]);
+
+        abort_unless($fee->college_id === $user->college_id, 403);
+
+        if ($fee->disable_status === 'pending') {
+            return back()->with('error', 'Disable request already pending.');
+        }
+
+        $fee->update([
+            'disable_status' => 'pending',
+            'disable_reason' => $request->reason,
+            'disable_requested_at' => now(),
+            'disable_requested_by' => $user->id,
+        ]);
+
+        return back()->with('success', 'Disable request sent to OSA for approval.');
+    }
+
+  
 }

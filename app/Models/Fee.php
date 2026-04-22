@@ -29,7 +29,13 @@ class Fee extends Model
         'approved_by',
         'approved_at',
          'created_school_year_id',
-    'created_semester_id',
+        'created_semester_id',
+        'disable_status',
+        'disable_reason',
+        'disable_requested_at',
+        'disable_requested_by',
+        'disable_approved_at',
+        'disable_approved_by',
     ];
 
     /**
@@ -99,5 +105,16 @@ class Fee extends Model
 
 public function createdSemester() {
     return $this->belongsTo(Semester::class, 'created_semester_id');
+}
+
+public function disableRequestedBy()
+{
+    return $this->belongsTo(User::class, 'disable_requested_by');
+}
+
+
+public function disableApprovedBy()
+{
+    return $this->belongsTo(User::class, 'disable_approved_by');
 }
 }

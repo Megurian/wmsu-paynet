@@ -38,49 +38,92 @@
                 All
             </a>
         </div>
-        
+   
+
         @if($status === 'pending')
     <h3 class="text-xl font-semibold mb-4">Pending Fees</h3>
     <p class="text-gray-500 italic">Pending fee approval requests for every organization will appear here.</p> <br>
 
     @forelse($pendingFees as $fee)
-            <div class="bg-white shadow rounded-lg p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <!-- Fee Info -->
-                <div class="flex-1">
-                    <h3 class="text-lg font-semibold text-gray-800">{{ $fee->fee_name }} 
-                        @if($fee->appeals->where('status','pending')->count() > 0)
-                        <span class="ml-2 inline-block px-2 py-0.5 text-xs font-semibold bg-yellow-100 text-yellow-800 rounded">Appeal Pending</span>
-                    @endif
-                    </h3>
-                    <p class="text-sm text-gray-500">
-                        <span class="capitalize font-medium">{{ $fee->requirement_level }}</span>
-                    </p>
 
-                    {{-- SOURCE DISPLAY --}}
-                    <p class="text-sm text-gray-600 mt-1">
-                        From:
-                        <span class="font-semibold">
-                                {{ $fee->organization->name }} ({{ $fee->organization->org_code }})
+        <div class="bg-white shadow rounded-lg p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+
+            <!-- Fee Info -->
+            <div class="flex-1">
+                <h3 class="text-lg font-semibold text-gray-800">
+                    {{ $fee->fee_name }}
+
+                    @if($fee->appeals->where('status','pending')->count() > 0)
+                        <span class="ml-2 inline-block px-2 py-0.5 text-xs font-semibold bg-yellow-100 text-yellow-800 rounded">
+                            Appeal Pending
                         </span>
-                    </p>
-                    <p class="text-sm text-gray-400 mt-1">Submitted on: {{ $fee->created_at->format('M d, Y') }}</p>
-                </div>
+                    @endif
+                </h3>
 
-                <div class="flex gap-2 md:gap-3">
-                    <form method="GET" action="{{ route('osa.fees.show', $fee->id) }}">
-                        @csrf
-                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-green-700 transition">
-                            View Details
-                        </button>
-                    </form>
-                </div>
+                <p class="text-sm text-gray-500">
+                    <span class="capitalize font-medium">{{ $fee->requirement_level }}</span>
+                </p>
+
+                <p class="text-sm text-gray-600 mt-1">
+                    From:
+                    <span class="font-semibold">
+                        {{ $fee->organization->name }} ({{ $fee->organization->org_code }})
+                    </span>
+                </p>
+
+                <p class="text-sm text-gray-400 mt-1">
+                    Submitted on: {{ $fee->created_at->format('M d, Y') }}
+                </p>
+
+                @if($fee->status === 'disabled')
+                    <div class="mt-2 p-2 bg-red-100 text-red-800 rounded text-sm font-semibold">
+                        Disabled
+                    </div>
+                @endif
+
+                @if($fee->disable_status === 'pending')
+                    <div class="mt-2 p-2 bg-yellow-100 text-yellow-800 rounded text-sm">
+                        Disable request pending approval
+                    </div>
+
+                    <div class="flex gap-2 mt-2">
+                        <form method="POST" action="{{ route('osa.fees.disable.approve', $fee->id) }}">
+                            @csrf
+                            <input type="password" name="password" placeholder="Password" class="border p-1">
+                            <button class="bg-green-600 text-white px-3 py-1 rounded">
+                                Approve Disable
+                            </button>
+                        </form>
+
+                        <form method="POST" action="{{ route('osa.fees.disable.reject', $fee->id) }}">
+                            @csrf
+                            <input type="password" name="password" placeholder="Password" class="border p-1">
+                            <button class="bg-red-600 text-white px-3 py-1 rounded">
+                                Reject
+                            </button>
+                        </form>
+                    </div>
+                @endif
+
             </div>
-            <br>
-        @empty
-            <div class="text-center text-gray-500 py-6">
-                No pending fees to review.
+
+            <div class="flex gap-2 md:gap-3">
+                <form method="GET" action="{{ route('osa.fees.show', $fee->id) }}">
+                    @csrf
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-green-700 transition">
+                        View Details
+                    </button>
+                </form>
             </div>
-        @endforelse
+        </div>
+
+        <br>
+
+    @empty
+        <div class="text-center text-gray-500 py-6">
+            No pending fees to review.
+        </div>
+    @endforelse
 
     @elseif ($status === 'approved')
     <!-- Approved Fees Section -->
@@ -89,7 +132,13 @@
             @forelse($approvedFees as $fee)
             <div class="bg-white shadow rounded-lg p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div class="flex-1">
-                    <h3 class="text-lg font-semibold text-gray-800">{{ $fee->fee_name }}</h3>
+                    <h3 class="text-lg font-semibold text-gray-800">{{ $fee->fee_name }}
+                        @if($fee->status === 'disabled')
+                            <span class="ml-2 px-2 py-1 text-xs font-bold bg-red-100 text-red-800 rounded">
+                                DISABLED
+                            </span>
+                        @endif
+                    </h3>
                     <p class="text-sm text-gray-500"> 
                         <span class="capitalize font-medium">{{ $fee->requirement_level }}</span>
                     </p>
