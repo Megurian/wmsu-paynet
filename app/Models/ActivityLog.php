@@ -14,6 +14,8 @@ class ActivityLog extends Model
         'college_id',
         'description',
         'student_id',
+         'employee_id',
+    'officer_id',
         'meta',
     ];
 

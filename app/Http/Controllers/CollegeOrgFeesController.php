@@ -210,18 +210,6 @@ class CollegeOrgFeesController extends Controller
 
         $fee = Fee::create($data);
 
-        log_activity(
-            'Create Org Fee',
-            "Created fee {$fee->fee_name}",
-            $fee->id,
-            [
-                'organization_id' => $organization->id,
-                'amount' => $fee->amount,
-                'requirement_level' => $fee->requirement_level,
-                'created_by_role' => Auth::user()->role,
-            ]
-        );
-
         // For college organization submissions the workflow is: Dean → OSA
         return redirect()->route('college_org.fees')->with('success', 'Fee created successfully and is pending Dean approval (then OSA).');
     }
@@ -335,17 +323,6 @@ class CollegeOrgFeesController extends Controller
             'recurrence'
         ]));
 
-        log_activity(
-            'Update Org Fee',
-            "Updated fee {$fee->fee_name}",
-            $fee->id,
-            [
-                'organization_id' => $organization->id,
-                'old' => $oldData,
-                'new' => $fee->toArray(),
-                'updated_by_role' => Auth::user()->role,
-            ]
-        );
 
         return redirect()->route('college_org.fees')->with('success', 'Fee updated successfully.');
     }
@@ -374,17 +351,6 @@ class CollegeOrgFeesController extends Controller
         }
 
         $fee->delete();
-
-         log_activity(
-            'Delete Org Fee',
-            "Deleted fee {$fee->fee_name}",
-            $fee->id,
-            [
-                'organization_id' => $organization->id,
-                'amount' => $fee->amount,
-                'deleted_by_role' => Auth::user()->role,
-            ]
-        );
 
         return redirect()->route('college_org.fees')->with('success', 'Fee deleted successfully.');
     }
@@ -423,16 +389,7 @@ class CollegeOrgFeesController extends Controller
             'status' => 'pending',
         ]);
 
-        log_activity(
-            'Submit Fee Appeal',
-            "Submitted appeal for fee {$fee->fee_name}",
-            $fee->id,
-            [
-                'appeal_id' => $appeal->id,
-                'reason' => $request->reason,
-                'submitted_by_role' => Auth::user()->role,
-            ]
-        );
+        
 
         return back()->with('success', 'Appeal submitted. OSA will review and respond soon.');
     }

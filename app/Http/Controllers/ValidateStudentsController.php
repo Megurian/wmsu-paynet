@@ -166,6 +166,8 @@ class ValidateStudentsController extends Controller
             'Validated Student',
             "Assessed and enrolled student {$student->student_id}",
             $student->id,
+            null,
+            null,
             [
                 'action_by_role' => Auth::user()->role,
                 'course_id' => $request->course_id[$student->id],
@@ -228,6 +230,8 @@ class ValidateStudentsController extends Controller
                 'Bulk Validate Student',
                 "Validated student ID: {$studentId}",
                 $studentId,
+                null,
+                null,
                 [
                     'assessed_by_role' => Auth::user()->role,
                     'course_id' => $request->course_id[$studentId],
@@ -284,6 +288,8 @@ class ValidateStudentsController extends Controller
         log_activity(
             'Imported Students',
             'Imported students via Excel file',
+            null,
+            null,
             null,
             [
                 'created' => $result['created'],
@@ -392,6 +398,8 @@ class ValidateStudentsController extends Controller
             'Marked Payment Completed',
             "Marked student {$student->student_id} as paid",
             $student->id,
+            null,
+            null,
             [
                 'enrollment_id' => $enrollment->id,
                 'performed_by' => Auth::id(),
@@ -448,11 +456,13 @@ class ValidateStudentsController extends Controller
 
             if ($clearanceAudit) {
                 log_activity(
-                        'Cleared Student for Enrollment',
-                        "Student {$student->student_id} cleared for enrollment",
-                        $student->id,
-                        $clearanceAudit
-                    );
+                    'Cleared Student for Enrollment',
+                    "Student {$student->student_id} cleared for enrollment",
+                    $student->id,
+                    null,
+                    null,
+                    $clearanceAudit
+                );
             }
         } catch (\RuntimeException $e) {
             if ($e->getMessage() === 'financial_not_clearable') {
@@ -596,16 +606,18 @@ class ValidateStudentsController extends Controller
             });
 
             log_activity(
-                'Issued Promissory Note',
-                "Issued promissory note for student {$student->student_id}",
-                $student->id,
-                [
-                    'promissory_note_id' => $note->id,
-                    'enrollment_id' => $note->enrollment_id,
-                    'issued_by' => Auth::id(),
-                    'original_amount' => $note->original_amount,
-                ]
-            );
+            'Issued Promissory Note',
+            "Issued promissory note for student {$student->student_id}",
+            $student->id,
+            null,
+            null,
+            [
+                'promissory_note_id' => $note->id,
+                'enrollment_id' => $note->enrollment_id,
+                'issued_by' => Auth::id(),
+                'original_amount' => $note->original_amount,
+            ]
+        );
         } catch (\RuntimeException $exception) {
             return back()->withErrors([
                 'promissory_note' => $exception->getMessage(),

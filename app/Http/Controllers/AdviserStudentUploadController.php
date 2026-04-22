@@ -227,18 +227,20 @@ class AdviserStudentUploadController extends Controller
         }
 
         log_activity(
-                'Added/Updated Student Enrollment',
-                "Adviser advised student {$student->full_name}",
-                $student->id,
-                [
-                    'adviser_id' => $adviserId,
-                    'course_id' => $courseId,
-                    'year_level_id' => $request->year_level_id,
-                    'section_id' => $request->section_id,
-                    'school_year_id' => $activeSY?->id,
-                    'semester_id' => $activeSem?->id,
-                ]
-            );
+            action: 'Added/Updated Student Enrollment',
+            description: "Adviser advised student {$student->full_name}",
+            studentId: $student->id,
+            employeeId: null,
+            officerId: null,
+            meta: [
+                'adviser_id' => $adviserId,
+                'course_id' => $courseId,
+                'year_level_id' => $request->year_level_id,
+                'section_id' => $request->section_id,
+                'school_year_id' => $activeSY?->id,
+                'semester_id' => $activeSem?->id,
+            ]
+        );
 
         return back()->with('status', 'Student uploaded successfully.');
     }
@@ -302,14 +304,16 @@ public function reAddOldStudent(Request $request, $studentId)
     }
 
     log_activity(
-    'Re-added Student',
-    "Adviser Advised student ID {$studentId}",
-    $studentId,
-    [
-        'year_level_id' => $yearLevelId ?? null,
-        'section_id' => $sectionId ?? null,
-    ]
-);
+        action: 'Re-added Student',
+        description: "Adviser re-advised student ID {$studentId}",
+        studentId: $studentId,
+        employeeId: null,
+        officerId: null,
+        meta: [
+            'year_level_id' => $yearLevelId ?? null,
+            'section_id' => $sectionId ?? null,
+        ]
+    );
 
     return back()->with('status', 'Student added successfully. Student may now proceed to payment');
 }
@@ -389,11 +393,14 @@ public function reAddBulk(Request $request)
     }
 
     log_activity(
-        'Bulk Re-added Student',
-        "Student Advised in bulk",
-        $studentId,
-        [
+        action: 'Bulk Re-added Student',
+        description: "Bulk adviser re-added students",
+        studentId: null,
+        employeeId: null,
+        officerId: null,
+        meta: [
             'adviser_id' => $adviserId,
+            'total_students' => count($request->students),
         ]
     );
 
@@ -462,10 +469,10 @@ public function updateField(Request $request, $id)
     $enrollment->save();
 
     log_activity(
-        'Updated Student Field',
-        "Updated {$request->field} for student {$student->student_id}",
-        $student->id,
-        [
+        action: 'Updated Student Field',
+        description: "Updated {$request->field} for student {$student->student_id}",
+        studentId: $student->id,
+        meta: [
             'field' => $request->field,
             'value' => $request->value,
         ]
@@ -620,13 +627,14 @@ public function promotionExecute()
         $updated++;
     }
 
-    log_activity(
-        'Promoted Student',
-        "Student promoted to year level {$nextYear->id}",
-        $student->id,
+        log_activity(
+        'Promoted Students',
+        "Bulk promotion executed for {$updated} students",
+        null,
+        null,
+        null,
         [
-            'from_year' => $enrollment->year_level_id,
-            'to_year' => $nextYear->id,
+            'total_promoted' => $updated,
         ]
     );
 

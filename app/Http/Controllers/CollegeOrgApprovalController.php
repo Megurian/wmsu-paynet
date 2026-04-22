@@ -43,86 +43,101 @@ class CollegeOrgApprovalController extends Controller
     return view('college.local_organizations.approvals', compact('orgs', 'tab', 'pendingCount'));
 }
 
-    public function approve(Organization $organization)
-    {
-        $user = Auth::user();
-        abort_unless($user, 403);
+   public function approve(Organization $organization)
+{
+    $user = Auth::user();
+    abort_unless($user, 403);
 
-        if ($organization->college_id === $user->college_id && $organization->status === 'pending' && is_null($organization->mother_organization_id)) {
-            $organization->update([
-                'status' => 'approved',
-                'approved_at' => now(),
-            ]);
-            return back()->with('success', 'Organization approved.');
-        }
+    $isValid = (
+        $organization->college_id === $user->college_id &&
+        $organization->status === 'pending' &&
+        is_null($organization->mother_organization_id)
+    );
 
-        $organization->update([
-            'status' => 'approved',
-            'approved_at' => now(),
-        ]);
-
+    if (! $isValid) {
         log_activity(
-            'Approved Organization',
-            "Approved organization '{$organization->name}'",
-            null,
-            [
-                'organization_id' => $organization->id,
-                'college_id' => $organization->college_id,
-                'approved_by' => $user->id,
-                'approved_at' => now(),
-            ]
-        );
-
-        log_activity(
-            'Organization Approval Failed',
-            "Failed attempt to approve organization '{$organization->name}'",
-            null,
+            'Organization Approval Blocked',
+            "Blocked approval attempt for organization '{$organization->name}'",
+            null, null, null,
             [
                 'organization_id' => $organization->id,
                 'college_id' => $organization->college_id,
                 'attempted_by' => $user->id,
                 'status' => $organization->status,
+                'reason' => 'Invalid approval conditions',
             ]
         );
 
         return back()->with('error', 'Only pending student-coordinator organizations can be approved.');
     }
 
+    $organization->update([
+        'status' => 'approved',
+        'approved_at' => now(),
+    ]);
+
+    log_activity(
+        'Approved Organization',
+        "Approved organization '{$organization->name}'",
+        null, null, null,
+        [
+            'organization_id' => $organization->id,
+            'college_id' => $organization->college_id,
+            'approved_by' => $user->id,
+            'approved_at' => now(),
+            'previous_status' => 'pending',
+            'new_status' => 'approved',
+        ]
+    );
+
+    return back()->with('success', 'Organization approved.');
+}
     public function reject(Organization $organization)
-    {
-        $user = Auth::user();
-        abort_unless($user, 403);
+{
+    $user = Auth::user();
+    abort_unless($user, 403);
 
-        if ($organization->college_id === $user->college_id && $organization->status === 'pending' && is_null($organization->mother_organization_id)) {
-            $organization->update(['status' => 'rejected']);
-            return back()->with('success', 'Organization rejected.');
-        }
+    $isValid = (
+        $organization->college_id === $user->college_id &&
+        $organization->status === 'pending' &&
+        is_null($organization->mother_organization_id)
+    );
 
-        $organization->update(['status' => 'rejected']);
-
+    if (! $isValid) {
         log_activity(
-            'Rejected Organization',
-            "Rejected organization '{$organization->name}'",
-            null,
-            [
-                'organization_id' => $organization->id,
-                'college_id' => $organization->college_id,
-                'rejected_by' => $user->id,
-            ]
-        );
-
-        log_activity(
-            'Organization Rejection Failed',
-            "Failed attempt to reject organization '{$organization->name}'",
-            null,
+            'Organization Rejection Blocked',
+            "Blocked rejection attempt for organization '{$organization->name}'",
+            null, null, null,
             [
                 'organization_id' => $organization->id,
                 'college_id' => $organization->college_id,
                 'attempted_by' => $user->id,
                 'status' => $organization->status,
+                'reason' => 'Invalid rejection conditions',
             ]
         );
 
         return back()->with('error', 'Only pending student-coordinator organizations can be rejected.');
     }
+
+    $organization->update([
+        'status' => 'rejected',
+        'approved_at' => now(),
+    ]);
+
+    log_activity(
+        'Rejected Organization',
+        "Rejected organization '{$organization->name}'",
+        null, null, null,
+        [
+            'organization_id' => $organization->id,
+            'college_id' => $organization->college_id,
+            'rejected_by' => $user->id,
+            'previous_status' => 'pending',
+            'new_status' => 'rejected',
+        ]
+    );
+
+    return back()->with('success', 'Organization rejected.');
+}
 }

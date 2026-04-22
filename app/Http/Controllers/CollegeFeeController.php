@@ -91,22 +91,24 @@ class CollegeFeeController extends Controller
         ]);
 
         log_activity(
-            'Created Fee',
-            "Created fee '{$fee->fee_name}' for approval",
-            null,
-            [
-                'fee_id' => $fee->id,
-                'college_id' => $user->college_id,
-                'amount' => $fee->amount,
-                'requirement_level' => $fee->requirement_level,
-                'recurrence' => $fee->recurrence,
-                'school_year_id' => $activeSY?->id,
-                'semester_id' => $activeSem?->id,
-                'created_by' => $user->id,
-            ]
-);
-
-
+        'Created Fee',
+        "Fee '{$fee->fee_name}' created and submitted for dean approval",
+        null, null, null,
+        [
+            'fee_id' => $fee->id,
+            'college_id' => $user->college_id,
+            'fee_scope' => 'college',
+            'amount' => $fee->amount,
+            'requirement_level' => $fee->requirement_level,
+            'recurrence' => $fee->recurrence,
+            'status' => 'pending',
+            'approval_level' => 'dean',
+            'school_year_id' => $activeSY?->id,
+            'semester_id' => $activeSem?->id,
+            'created_by' => $user->id,
+            'action_by' => $user->id,
+        ]
+    );
         return redirect()->route('college.fees')
             ->with('success', 'Fee submitted for dean approval.');
     }

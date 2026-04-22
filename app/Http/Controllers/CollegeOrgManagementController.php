@@ -40,15 +40,17 @@ class CollegeOrgManagementController extends Controller
 
         $organization = auth()->user()->organization;
 
-           $oldLogo = $organization->logo;
+        $oldLogo = $organization->logo;
+        $path = null;
 
-        if ($request->hasFile('organization_logo')) {
+        if ($request->file('organization_logo')) {
 
             if ($organization->logo && Storage::disk('public')->exists($organization->logo)) {
                 Storage::disk('public')->delete($organization->logo);
             }
 
-            $path = $request->file('organization_logo')->store('organization_logos', 'public');
+            $path = $request->file('organization_logo')
+                ->store('organization_logos', 'public');
 
             $organization->update([
                 'logo' => $path
@@ -56,16 +58,20 @@ class CollegeOrgManagementController extends Controller
         }
 
         log_activity(
-                'Update Organization Logo',
-                "Updated logo for organization {$organization->name}",
-                $organization->id,
-                [
-                    'old_logo' => $oldLogo,
-                    'new_logo' => $path,
-                    'updated_by' => Auth::id(),
-                    'role' => Auth::user()->role,
-                ]
-            );
+            'Update Organization Logo',
+            "Updated logo for organization {$organization->name}",
+            null,
+            null,
+            null,
+            [
+                'organization_id' => $organization->id,
+                'organization_name' => $organization->name,
+                'old_logo' => $oldLogo,
+                'new_logo' => $path,
+                'updated_by' => Auth::id(),
+                'role' => Auth::user()->role,
+            ]
+        );
 
         return back()->with('status', 'Organization logo updated successfully.');
     }
@@ -85,8 +91,11 @@ class CollegeOrgManagementController extends Controller
         log_activity(
             'Update Organization Name',
             "Changed organization name from {$oldName} to {$organization->name}",
-            $organization->id,
+            null,
+            null,
+            null,
             [
+                'organization_id' => $organization->id,
                 'old_name' => $oldName,
                 'new_name' => $organization->name,
                 'updated_by' => Auth::id(),

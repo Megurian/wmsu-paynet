@@ -142,26 +142,28 @@ class CollegeFeeApprovalController extends Controller
         ]);
 
         log_activity(
-            'Fee Forwarded to OSA',
-            "Dean forwarded fee '{$fee->name}' to OSA for final approval",
-            null,
+        'Fee Forwarded to OSA',
+            "Fee '{$fee->fee_name}' forwarded to OSA for final approval",
+            null, null, null,
             [
                 'fee_id' => $fee->id,
                 'college_id' => $fee->college_id,
-                'approval_level' => 'osa',
-                'approved_by' => $user->id,
+                'from_level' => 'dean',
+                'to_level' => 'osa',
+                'action_by' => $user->id,
             ]
         );
 
         log_activity(
             'Fee Approved',
-            "Approved fee '{$fee->name}'",
-            null,
+            "Fee '{$fee->fee_name}' approved by dean",
+            null, null, null,
             [
                 'fee_id' => $fee->id,
                 'college_id' => $fee->college_id,
                 'approved_by' => $user->id,
                 'approved_at' => now(),
+                'final_status' => 'approved',
             ]
         );
 
@@ -191,13 +193,14 @@ class CollegeFeeApprovalController extends Controller
 
         log_activity(
             'Requested Fee Disable',
-            "Requested to disable fee '{$fee->name}'",
-            null,
+            "Disable request submitted for fee '{$fee->fee_name}'",
+            null, null, null,
             [
                 'fee_id' => $fee->id,
                 'college_id' => $fee->college_id,
                 'reason' => $request->reason,
                 'requested_by' => $user->id,
+                'status' => 'pending',
             ]
         );
 
@@ -227,13 +230,14 @@ class CollegeFeeApprovalController extends Controller
 
         log_activity(
             'Requested Fee Enable',
-            "Requested to enable fee '{$fee->name}'",
-            null,
+            "Enable request submitted for fee '{$fee->fee_name}'",
+            null, null, null,
             [
                 'fee_id' => $fee->id,
                 'college_id' => $fee->college_id,
                 'reason' => $request->reason,
                 'requested_by' => $user->id,
+                'status' => 'pending',
             ]
         );
 

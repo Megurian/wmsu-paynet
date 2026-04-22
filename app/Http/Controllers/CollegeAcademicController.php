@@ -67,7 +67,7 @@ class CollegeAcademicController extends Controller
         log_activity(
             'Added Course(s)',
             'Added course(s): ' . $newNames->implode(', '),
-            null,
+             null,null,null,
             [
                 'college_id' => $collegeId,
                 'added' => $newNames->values(),
@@ -118,7 +118,7 @@ class CollegeAcademicController extends Controller
         log_activity(
             'Added Year Level(s)',
             'Added year level(s): ' . $newNames->implode(', '),
-            null,
+             null,null,null,
             [
                 'college_id' => $collegeId,
                 'added' => $newNames->values(),
@@ -169,7 +169,7 @@ class CollegeAcademicController extends Controller
         log_activity(
             'Added Section(s)',
             'Added section(s): ' . $newNames->implode(', '),
-            null,
+             null,null,null,
             [
                 'college_id' => $collegeId,
                 'added' => $newNames->values(),
@@ -224,7 +224,7 @@ class CollegeAcademicController extends Controller
         log_activity(
             'Deleted Course',
             "Deleted course: {$course->name}",
-            null,
+             null,null,null,
             [
                 'course_id' => $course->id,
                 'college_id' => $course->college_id,
@@ -256,7 +256,7 @@ class CollegeAcademicController extends Controller
         log_activity(
             'Deleted Year Level',
             "Deleted year level: {$yearLevel->name}",
-            null,
+             null,null,null,
             [
                 'year_level_id' => $yearLevel->id,
                 'college_id' => $yearLevel->college_id,
@@ -288,7 +288,7 @@ class CollegeAcademicController extends Controller
         log_activity(
             'Deleted Section',
             "Deleted section: {$section->name}",
-            null,
+            null,null,null,
             [
                 'section_id' => $section->id,
                 'college_id' => $section->college_id,

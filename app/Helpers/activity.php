@@ -7,15 +7,22 @@ if (!function_exists('log_activity')) {
         string $action,
         ?string $description = null,
         ?int $studentId = null,
+        ?int $employeeId = null,
+        ?int $officerId = null,
         array $meta = []
     ) {
         ActivityLog::create([
-            'user_id' => auth()->id(),
-            'action' => $action,
-            'college_id' => auth()->user()?->college_id, 
+            'user_id'     => auth()->id(),
+            'college_id'  => auth()->user()?->college_id,
+
+            'action'      => $action,
             'description' => $description,
-            'student_id' => $studentId,
-            'meta' => $meta,
+
+            'student_id'  => $studentId,
+            'employee_id' => $employeeId,
+            'officer_id'  => $officerId,
+
+            'meta'        => $meta,
         ]);
     }
 }

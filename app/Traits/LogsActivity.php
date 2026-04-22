@@ -30,7 +30,7 @@ trait LogsActivity
             'user_id' => Auth::id(),
             'action' => ucfirst(class_basename($model)) . " {$action}",
             'description' => ucfirst(class_basename($model)) . " {$action}",
-            'student_id' => $model->id ?? null,
+            'student_id' => $model instanceof \App\Models\Student ? $model->id : null,
             'meta' => [
                 'model' => get_class($model),
                 'model_id' => $model->id,

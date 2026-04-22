@@ -58,6 +58,22 @@ function switchTab(tab) {
     activeTab.classList.add('border-red-700', 'text-red-700');
     activeTab.classList.remove('border-transparent', 'text-gray-500');
 }
+
+function confirmLogoUpdate(input) {
+    if (!input.files || !input.files[0]) return;
+
+    openConfirmModal({
+        title: 'Update Logo',
+        message: 'Do you want to update the organization logo?',
+        confirmText: 'Upload',
+        onConfirm: () => {
+            document.getElementById('logoForm').submit();
+        },
+        onCancel: () => {
+            input.value = ""; // reset file input if cancelled
+        }
+    });
+}
 </script>
 
 @endsection
