@@ -173,10 +173,13 @@ public function assignOfficer(Request $request, $orgId)
 
     DB::transaction(function () use ($request, $orgId, $activeSY, $activeSem) {
 
+        $student = \App\Models\Student::findOrFail($request->student_id);
+
         User::create([
-            'first_name' => '',
-            'middle_name' => null,
-            'last_name' => '',
+            'first_name' => $student->first_name,
+            'middle_name' => $student->middle_name,
+            'last_name' => $student->last_name,
+            'suffix' => $student->suffix ?? null,
             'email' => $request->secondary_email,
             'password' => Hash::make($request->password),
             'role' => 'college_org',

@@ -755,12 +755,39 @@ class OrganizationPaymentController extends Controller
         }, 'enrollments.course', 'enrollments.yearLevel', 'enrollments.section'])
         ->get();
 
-        $paymentsQuery = Payment::with(['student', 'fees', 'enrollment.course', 'enrollment.yearLevel', 'enrollment.section'])
+        $paymentsQuery = Payment::with(['student', 'fees', 'enrollment.course', 'collector', 'enrollment.yearLevel', 'enrollment.section'])
             ->where('organization_id', $organization->id)
             ->where('school_year_id', $schoolYearId)
             ->where('semester_id', $semesterId);
 
 
+       $today = now()->endOfDay();
+
+        $dateFrom = $request->filled('date_from')
+            ? \Carbon\Carbon::parse($request->date_from)->startOfDay()
+            : null;
+
+        $dateTo = $request->filled('date_to')
+            ? \Carbon\Carbon::parse($request->date_to)->endOfDay()
+            : $today;
+
+        if ($dateTo->greaterThan($today)) {
+            $dateTo = $today;
+        }
+        if ($dateFrom && $dateFrom->greaterThan($today)) {
+            $dateFrom = $today->copy()->startOfDay();
+        }
+
+        if (!$request->filled('date_from') && !$request->filled('date_to')) {
+            $dateFrom = $today->copy()->startOfDay();
+            $dateTo = $today;
+        }
+
+        if ($dateFrom) {
+            $paymentsQuery->where('created_at', '>=', $dateFrom);
+        }
+
+        $paymentsQuery->where('created_at', '<=', $dateTo);
         if ($request->filled('search')) {
             $query = $request->input('search');
             $paymentsQuery->whereHas('student', function ($q) use ($query) {
@@ -789,6 +816,7 @@ class OrganizationPaymentController extends Controller
                         'status' => 'Paid',
                         'amount' => $payment->pivot->amount_paid ?? $fee->amount,
                         'payment_date' => $payment->created_at,
+                        'collector' => $payment->collector,
                     ];
                 }
             }
@@ -816,14 +844,26 @@ class OrganizationPaymentController extends Controller
             }
         }
 
-        if ($request->filled('payment_status')) {
-            $status = $request->input('payment_status');
-            if ($status === 'paid') {
-                $studentsWithPayments = collect($studentsWithPayments)->filter(fn($s) => $s['status'] === 'Paid')->values();
-            }
-            if ($status === 'pending') {
-                $studentsWithPayments = collect($studentsWithPayments)->filter(fn($s) => $s['status'] === 'Pending')->values();
-            }
+        $studentsWithPayments = collect($studentsWithPayments);
+
+        $status = $request->input('payment_status');
+
+        if (!$request->filled('payment_status')) {
+            $studentsWithPayments = $studentsWithPayments
+                ->where('status', 'Paid')
+                ->values();
+        }
+
+        if ($status === 'paid') {
+            $studentsWithPayments = $studentsWithPayments
+                ->where('status', 'Paid')
+                ->values();
+        }
+
+        if ($status === 'pending') {
+            $studentsWithPayments = $studentsWithPayments
+                ->where('status', 'Pending')
+                ->values();
         }
 
         $totalTransactions = $payments->count();

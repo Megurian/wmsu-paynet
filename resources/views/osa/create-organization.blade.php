@@ -32,7 +32,7 @@
                 <select name="role" id="org-role" class="w-full border border-gray-300 px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400">
                     <option value="">-- Select Type --</option>
                     <option value="university_org" {{ old('role')=='university_org'?'selected':'' }}>University-wide</option>
-                    <option value="college_org" {{ old('role')=='college_org'?'selected':'' }}>Under a College</option>
+                    <option value="college_org" {{ old('role')=='college_org'?'selected':'' }}> College Based</option>
                 </select>
                 <p id="roleFeedback" class="text-xs mt-1 text-red-600"></p>
             </div>

@@ -67,7 +67,7 @@
 
             {{-- Courses --}}
            <div class="mb-6">
-                <label class="font-medium block mb-2">Courses</label>
+                <label class="font-medium block mb-2">Program</label>
 
                 <div class="flex gap-2 mb-3">
                     <input id="courseInput" type="text"
