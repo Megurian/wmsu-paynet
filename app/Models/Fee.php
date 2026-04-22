@@ -120,8 +120,8 @@ public function disableApprovedBy()
 
 // App\Models\Fee.php
 
-public function requests()
+public function feeRequests()
 {
-    return $this->hasMany(\App\Models\FeeRequest::class);
+    return $this->hasMany(FeeRequest::class);
 }
 }

@@ -171,10 +171,9 @@
                     </p>
 
                     <p class="text-sm text-gray-400 mt-1">
-                      {{ $fee->disable_approved_at 
-                            ? \Carbon\Carbon::parse($fee->disable_approved_at)->format('M d, Y') 
-                            : '-' 
-                        }}
+                      {{ optional($fee->feeRequests->first()?->disable_approved_at)
+                        ? \Carbon\Carbon::parse($fee->feeRequests->first()->disable_approved_at)->format('M d, Y')
+                        : '-' }}
                     </p>
                 </div>
 
@@ -316,7 +315,7 @@ function openDisableReviewModal(feeId, reason) {
     document.getElementById('disableReasonText').innerText = reason;
 
     const form = document.getElementById('disableReviewForm');
-    form.dataset.feeRequestId = feeId; // FIXED
+    form.dataset.feeRequestId = feeId; 
 }
 
 function closeDisableReviewModal() {

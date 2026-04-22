@@ -51,10 +51,18 @@ class OSAFeesController extends Controller
             ->where('status', 'pending')
             ->orderByDesc('created_at')
             ->get();
-        $disabledFees = Fee::with(['organization', 'user'])
-            ->where('status', 'disabled')
-            ->orderByDesc('updated_at')
-            ->get();
+        $disabledFees = Fee::with([
+            'organization',
+            'user',
+            'feeRequests' => function ($q) {
+                $q->where('type', 'disable')
+                ->where('status', 'approved')
+                ->latest();
+            }
+        ])
+        ->where('status', 'disabled')
+        ->orderByDesc('updated_at')
+        ->get();
 
         $status = $request->get('status', 'approved');
 
@@ -352,21 +360,32 @@ class OSAFeesController extends Controller
         $fee = $feeRequest->fee;
 
         if ($feeRequest->type === 'disable') {
+
             $fee->status = 'disabled';
+            $fee->save();
+
+            $feeRequest->update([
+                'status' => 'approved',
+                'reviewed_by' => $user->id,
+                'reviewed_at' => now(),
+                'review_note' => $request->note,
+                'disable_approved_at' => now(), // ✅ ADD THIS
+            ]);
         }
 
         if ($feeRequest->type === 'enable') {
+
             $fee->status = 'approved';
+            $fee->save();
+
+            $feeRequest->update([
+                'status' => 'approved',
+                'reviewed_by' => $user->id,
+                'reviewed_at' => now(),
+                'review_note' => $request->note,
+                'enable_approved_at' => now(), // ✅ ADD THIS
+            ]);
         }
-
-        $fee->save();
-
-        $feeRequest->update([
-            'status' => 'approved',
-            'reviewed_by' => $user->id,
-            'reviewed_at' => now(),
-            'review_note' => $request->note,
-        ]);
 
         return back()->with('success', 'Request approved.');
     }

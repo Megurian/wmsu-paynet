@@ -16,6 +16,8 @@ class FeeRequest extends Model
         'reviewed_by',
         'reviewed_at',
         'review_note',
+        'disable_approved_at',
+        'enable_approved_at'
     ];
 
     public function fee()
