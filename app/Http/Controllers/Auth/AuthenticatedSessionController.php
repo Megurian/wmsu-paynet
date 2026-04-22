@@ -8,6 +8,7 @@ use App\Models\Student;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Password;
 use Illuminate\View\View;
 
@@ -38,17 +39,18 @@ class AuthenticatedSessionController extends Controller
 
         $request->authenticate();
 
+        if ($request->session()->has('auth.portal_choice')
+            && ! Auth::guard('web')->check()
+            && ! auth('student')->check()) {
+            return redirect()->route('login.choice');
+        }
+
         $request->session()->regenerate();
 
         if (Auth::guard('web')->check()) {
             $user = Auth::guard('web')->user();
 
-            return match ($user->role) {
-                'osa' => redirect()->route('osa.dashboard'),
-                'university_org' => redirect()->route('university_org.dashboard'),
-                'college_org' => redirect()->route('college_org.dashboard'),
-                default => redirect()->route('college.dashboard'),
-            };
+            return $this->redirectWebUser($user);
         }
 
         if (auth('student')->check()) {
@@ -61,6 +63,75 @@ class AuthenticatedSessionController extends Controller
     /**
      * Destroy an authenticated session.
      */
+    public function showPortalChoice(Request $request): View
+    {
+        if (! $request->session()->has('auth.portal_choice')) {
+            return view('auth.login');
+        }
+
+        return view('auth.portal-choice', [
+            'email' => $request->session()->get('auth.portal_choice.email'),
+        ]);
+    }
+
+    public function choosePortal(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'portal' => ['required', 'in:web,student'],
+        ]);
+
+        $choice = $request->session()->pull('auth.portal_choice');
+        if (! $choice) {
+            return redirect()->route('login');
+        }
+
+        try {
+            $password = Crypt::decryptString($choice['password']);
+        } catch (\Throwable $e) {
+            return redirect()->route('login')->withErrors([
+                'email' => 'Unable to continue. Please log in again.',
+            ]);
+        }
+
+        $credentials = [
+            'email' => $choice['email'],
+            'password' => $password,
+        ];
+
+        if (! Auth::guard($request->portal)->attempt($credentials, $choice['remember'] ?? false)) {
+            return redirect()->route('login')->withErrors([
+                'email' => 'Unable to log in to the selected portal. Please try again.',
+            ]);
+        }
+
+        $request->session()->regenerate();
+
+        if ($request->portal === 'web') {
+            $user = Auth::guard('web')->user();
+
+            return $this->redirectWebUser($user);
+        }
+
+        return redirect()->route('student.dashboard');
+    }
+
+    private function redirectWebUser($user): RedirectResponse
+    {
+        if ($user->hasRole('osa')) {
+            return redirect()->route('osa.dashboard');
+        }
+
+        if ($user->hasRole('university_org')) {
+            return redirect()->route('university_org.dashboard');
+        }
+
+        if ($user->hasRole('college_org')) {
+            return redirect()->route('college_org.dashboard');
+        }
+
+        return redirect()->route('college.dashboard');
+    }
+
     public function destroy(Request $request): RedirectResponse
     {
         Auth::guard('web')->logout();

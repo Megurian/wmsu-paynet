@@ -6,10 +6,13 @@ use App\Models\Organization;
 use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 use App\Models\Fee;
 use App\Models\OrganizationOfficer;
+use App\Notifications\CollegeAdminInvitationNotification;
 use Illuminate\Validation\ValidationException;
 
 use App\Models\Payment;
@@ -114,19 +117,9 @@ class LocalOrgsController extends Controller
                 ->where('status', 'approved')
                 ->get();
 
-        $officers = DB::table('organization_officers')
-            ->join('students', 'students.id', '=', 'organization_officers.student_id')
-            ->where('organization_officers.organization_id', $org->id)
-            ->where('organization_officers.is_active', true)
-            ->select(
-                'students.id',
-                'students.first_name',
-                'students.last_name',
-                'students.email',
-                'students.student_id',
-                'organization_officers.role',
-                'organization_officers.is_active'
-            )
+        $officers = OrganizationOfficer::with(['student', 'user'])
+            ->where('organization_id', $org->id)
+            ->where('is_active', true)
             ->get();
         $activeSY = \App\Models\SchoolYear::where('is_active', true)->first();
         $activeSem = \App\Models\Semester::where('is_active', true)->first();
@@ -152,8 +145,7 @@ class LocalOrgsController extends Controller
         $request->validate([
             'student_id' => 'required|exists:students,id',
             'role' => 'required|string',
-            'secondary_email' => 'required|email',
-            'password' => 'required|string|min:8|confirmed',
+            'secondary_email' => 'required|email|unique:users,email',
         ]);
 
         $activeSY = \App\Models\SchoolYear::where('is_active', true)->first();
@@ -175,33 +167,67 @@ class LocalOrgsController extends Controller
 
             $student = \App\Models\Student::findOrFail($request->student_id);
 
-
             $userAccount = User::create([
                 'first_name' => $student->first_name,
                 'middle_name' => $student->middle_name,
                 'last_name' => $student->last_name,
                 'suffix' => $student->suffix ?? null,
                 'email' => $request->secondary_email,
-                'password' => Hash::make($request->password),
+                'password' => Hash::make(Str::random(64)),
                 'role' => 'college_org',
                 'college_id' => Auth::user()->college_id,
                 'organization_id' => $orgId,
+                'invitation_sent_at' => now(),
             ]);
+
+            $roleLabel = ucwords(str_replace('_', ' ', $request->role));
+
+            $token = Password::broker()->createToken($userAccount);
+            $userAccount->notify(new CollegeAdminInvitationNotification(
+                $token,
+                $roleLabel,
+                Organization::find($orgId)?->name ?? 'Organization'
+            ));
+
+            $student->is_officer = true;
+            $student->save();
 
             OrganizationOfficer::create([
                 'organization_id' => $orgId,
                 'student_id' => $request->student_id,
-                'user_id' => $userAccount->id, 
+                'user_id' => $userAccount->id,
                 'role' => $request->role,
-                'secondary_email' => $request->secondary_email,
-                'password' => Hash::make($request->password),
                 'is_active' => true,
                 'school_year_id' => $activeSY->id,
                 'semester_id' => $activeSem->id,
             ]);
         });
 
-        return back()->with('success', 'Officer assigned and account created successfully.');
+        return back()->with('success', 'Officer assigned and invitation email sent successfully.');
+    }
+
+    public function resendOfficerInvite(OrganizationOfficer $officer)
+    {
+        $user = Auth::user();
+        abort_unless($user, 403);
+        abort_unless($officer->organization->college_id === $user->college_id, 403);
+
+        $account = $officer->user;
+        if (! $account || $account->invitation_active) {
+            return back()->with('status', 'No pending invitation found.');
+        }
+
+        $token = Password::broker()->createToken($account);
+        $account->update(['invitation_sent_at' => now()]);
+
+        $roleLabel = ucwords(str_replace('_', ' ', $officer->role));
+        $account->notify(new CollegeAdminInvitationNotification(
+            $token,
+            $roleLabel,
+            $officer->organization->name ?? 'Organization'
+        ));
+
+        return back()->with('success', 'Invitation link resent successfully.');
     }
 
     public function cancelSubmission(Organization $org)

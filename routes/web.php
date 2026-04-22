@@ -438,6 +438,8 @@ Route::middleware(['auth', 'role:treasurer,college,student_coordinator,adviser,a
     Route::post('/employees/preview', [EmployeeController::class, 'previewImport'])->name('employees.preview');
      Route::post('college/local_organizations/{org}/assign', [LocalOrgsController::class, 'assignOfficer'])
         ->name('college.local_organizations.assign');
+    Route::post('college/local_organizations/officers/{officer}/resend-invite', [LocalOrgsController::class, 'resendOfficerInvite'])
+        ->name('college.local_organizations.officers.resendInvite');
     Route::get('/college/logs', [CollegeLogController::class, 'index'])
         ->name('college.logs');
     Route::get('/college/logs', [CollegeLogController::class, 'index'])
