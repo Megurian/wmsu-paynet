@@ -17,15 +17,50 @@
             {{ $pendingFees->count() }}
         </span>
     </a>
+    <a href="{{ route('college.fees.approval', ['tab' => 'disabled']) }}"
+    class="px-4 py-2 rounded-full font-medium text-sm transition
+    {{ $tab === 'disabled' ? 'bg-red-800 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300' }}">
+        Disabled Fees
+    </a>
     <a href="{{ route('college.fees.approval', ['tab' => 'approved']) }}"
        class="px-4 py-2 rounded-full font-medium text-sm transition
        {{ $tab === 'approved' ? 'bg-red-800 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300' }}">
-        All
+        Approved Fees
     </a>
 </div>
 
 <div class="space-y-6">
-    @if($tab === 'pending')
+   @if($tab === 'pending')
+
+    {{-- ✅ FEE REQUESTS FIRST --}}
+    @forelse($pendingRequests as $request)
+        <div class="bg-yellow-50 border border-yellow-200 shadow rounded-lg p-4 flex justify-between items-center">
+
+            <div>
+                <h3 class="font-semibold text-yellow-800">
+                    {{ strtoupper($request->type) }} REQUEST
+                </h3>
+
+                <p class="text-sm text-gray-700">
+                    Fee: <strong>{{ $request->fee->fee_name }}</strong>
+                </p>
+
+                <p class="text-sm text-gray-600">
+                    Reason: {{ $request->reason }}
+                </p>
+
+                <p class="text-xs text-gray-400">
+                    Requested at: {{ \Carbon\Carbon::parse($request->requested_at)->format('M d, Y') }}
+                </p>
+            </div>
+
+            <span class="px-3 py-1 text-xs bg-yellow-200 text-yellow-800 rounded">
+                Pending OSA Approval
+            </span>
+        </div>
+    @empty
+    @endforelse
+    
         @forelse($pendingFees as $fee)
             <div class="bg-white shadow rounded-lg p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <!-- Fee Info -->
@@ -53,7 +88,7 @@
                             @else
                                 <span class="font-semibold">
                                     {{ $fee->organization->name }}
-                                </span>
+                                </span>a
                             @endif
 
                         @else
@@ -69,14 +104,60 @@
                     <a href="{{ route('college.fees.show', $fee->id) }}" class="inline-flex items-center px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">View</a>
                     <button type="button" data-approve-url="{{ route('college.fees.approve', $fee) }}" class="approve-fee-btn inline-flex items-center px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700">Approve</button>
                 </div>
+
             </div>
         @empty
             <div class="text-center text-gray-500 py-6">
                 No pending fees to review.
             </div>
         @endforelse
+
+    @elseif($tab === 'disabled')
+    @forelse($disabledFees as $fee)
+        <div class="bg-white shadow rounded-lg p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            
+            <div class="flex-1">
+                <h3 class="text-lg font-semibold text-gray-800">
+                    {{ $fee->fee_name }}
+                    <span class="ml-2 px-2 py-1 text-xs font-bold bg-red-100 text-red-700 rounded">
+                        DISABLED
+                    </span>
+                </h3>
+
+                <p class="text-sm text-gray-500 mt-1">
+                    Amount: <span class="font-medium">₱{{ number_format($fee->amount, 2) }}</span>
+                </p>
+
+                <p class="text-sm text-gray-400 mt-1">
+                    Disabled on:
+                     {{ optional($fee->feeRequests->first()?->disable_approved_at)
+                        ? \Carbon\Carbon::parse($fee->feeRequests->first()->disable_approved_at)->format('M d, Y')
+                        : '-' }}
+                </p>
+            </div>
+
+           <div class="flex gap-2">
+                <button
+                    type="button"
+                    onclick="openEnableModal({{ $fee->id }})"
+                    class="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700">
+                    Enable
+                </button>
+
+                <a href="{{ route('college.fees.show', $fee->id) }}"
+                class="px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600">
+                    View
+                </a>
+            </div>
+        </div>
+        @empty
+            <div class="text-center text-gray-500 py-6">
+                No disabled fees.
+            </div>
+        @endforelse
+
     @elseif($tab === 'approved')
-        @forelse($allFees as $fee)
+        @forelse($approvedFees as $fee)
             <div class="bg-white shadow rounded-lg p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div class="flex-1">
                     <h3 class="text-lg font-semibold text-gray-800">{{ $fee->fee_name }}</h3>
@@ -85,7 +166,13 @@
                     <p class="text-sm text-gray-600 mt-1">
                         @if($fee->organization)
                             @if($fee->organization && $fee->organization->motherOrganization)
-                                <span class="font-semibold">{{ $fee->organization->name }}</span>
+                                <span class="font-semibold">{{ $fee->organization->name }}
+                                    @if($fee->status === 'disabled')
+                                        <span class="inline-block mt-1 px-2 py-1 text-xs font-bold bg-red-100 text-red-700 rounded">
+                                            DISABLED
+                                        </span>
+                                    @endif
+                                </span>
                                 <span class="text-gray-400">(Office under {{ $fee->organization->motherOrganization->name }})</span>
                             @elseif($fee->organization)
                                 <span class="font-semibold">{{ $fee->organization->name }}</span>
@@ -102,6 +189,36 @@
                     <p class="text-sm text-gray-400 mt-1">
                         Approved on: {{ optional(\Illuminate\Support\Carbon::parse($fee->approved_at))->format('M d, Y') }}
                     </p>
+
+                    @if($fee->disable_status === 'pending')
+                        <p class="text-xs text-yellow-600 mt-1">
+                            Disable request pending OSA approval
+                        </p>
+                    @elseif($fee->disable_status === 'approved')
+                        <p class="text-xs text-red-600 mt-1">
+                            Fee disabled
+                        </p>
+                    @endif
+                    @if($fee->disable_status === 'rejected')
+                        <p class="text-xs text-red-600 mt-1">
+                            Disable request was rejected. You may submit again.
+                        </p>
+                    @endif
+
+                    @if($fee->status === 'approved' && ($fee->disable_status === null || $fee->disable_status === 'rejected'))
+                    <button
+                        type="button"
+                        onclick="openDisableModal({{ $fee->id }})"
+                        class="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
+                    >
+                        Disable
+                    </button>
+                @endif
+
+                <a href="{{ route('college.fees.show', $fee->id) }}"
+                class="px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600">
+                    View
+                </a>
                 </div>
             </div>
         @empty
@@ -135,7 +252,50 @@
     </div>
 </div>
 
+<div id="disableFeeModal" class="hidden fixed inset-0 z-50 flex items-center justify-center px-4">
+    <div class="fixed inset-0 bg-black/50"></div>
+
+    <div class="bg-white w-full max-w-md rounded-lg shadow-lg p-6 relative z-10">
+        <h3 class="text-lg font-semibold mb-3">Request Fee Disable</h3>
+
+        <form id="disableFeeForm" method="POST" action="">
+            @csrf
+
+            <textarea
+                name="reason"
+                required
+                placeholder="Enter reason for disabling this fee..."
+                class="w-full border rounded p-2 mb-4"
+            ></textarea>
+
+            <div class="flex justify-end gap-2">
+                <button type="button" onclick="closeDisableModal()" class="px-4 py-2 border rounded">
+                    Cancel
+                </button>
+
+                <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded">
+                    Send Request
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="enableModal" class="hidden fixed inset-0 flex items-center justify-center">
+    <div class="bg-white p-6 rounded w-96">
+        <form id="enableForm" method="POST">
+            @csrf
+            <textarea name="reason" class="w-full border p-2" placeholder="Reason"></textarea>
+
+            <button class="mt-3 bg-green-600 text-white px-4 py-2 rounded">
+                Send Request
+            </button>
+        </form>
+    </div>
+</div>
+
 <script>
+
 function openFeeApproveModal(actionUrl) {
     const modal = document.getElementById('feeApproveModal');
     const form = document.getElementById('feeApproveForm');
@@ -154,5 +314,21 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+
+function openDisableModal(feeId) {
+    const modal = document.getElementById('disableFeeModal');
+    const form = document.getElementById('disableFeeForm');
+
+    form.action = `/college/fees/${feeId}/request-disable`;
+    modal.classList.remove('hidden');
+}
+
+function closeDisableModal() {
+    document.getElementById('disableFeeModal').classList.add('hidden');
+}
+function openEnableModal(id) {
+    document.getElementById('enableForm').action = `/college/fees/${id}/request-enable`;
+    document.getElementById('enableModal').classList.remove('hidden');
+}
 </script>
 @endsection

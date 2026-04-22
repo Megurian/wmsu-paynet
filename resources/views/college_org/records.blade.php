@@ -135,9 +135,9 @@
                             <label class="block text-gray-700 mb-1">Fee Recurrence</label>
                             <select name="fee_recurrence" class="w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500">
                                 <option value="">Any</option>
-                                <option value="one_time" {{ request('recurrence') == 'one_time' ? 'selected' : '' }}>One Time</option>
-                                <option value="semestrial" {{ request('recurrence') == 'semestrial' ? 'selected' : '' }}>Semestrial</option>
-                                <option value="annual" {{ request('recurrence') == 'annual' ? 'selected' : '' }}>Annual</option>
+                                <option value="one_time" {{ request('fee_recurrence') == 'one_time' ? 'selected' : '' }}>One Time</option>
+                                <option value="semestrial" {{ request('fee_recurrence') == 'semestrial' ? 'selected' : '' }}>Semestrial</option>
+                                <option value="annual" {{ request('fee_recurrence') == 'annual' ? 'selected' : '' }}>Annual</option>
                             </select>
                         </div>
 
@@ -160,13 +160,14 @@
                         </div>
 
                         <div class="grid grid-cols-2 gap-2">
+                            @php $today = \Carbon\Carbon::today()->format('Y-m-d'); @endphp
                             <div>
                                 <label class="block text-gray-700 mb-1">From</label>
-                                <input type="date" name="date_from" value="{{ request('date_from') }}" class="w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500">
+                                <input type="date" name="date_from" value="{{ request('date_from') }}" max="{{ $today }}" class="w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500">
                             </div>
                             <div>
                                 <label class="block text-gray-700 mb-1">To</label>
-                                <input type="date" name="date_to" value="{{ request('date_to') }}" class="w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500">
+                                <input type="date" name="date_to" value="{{ request('date_to', $today) }}" max="{{ $today }}" class="w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500">
                             </div>
                         </div>
 
@@ -229,9 +230,10 @@
                         <th class="px-6 py-3 text-left">Fee</th>
                         <th class="px-6 py-3 text-left">Amount</th>
                         <th class="px-6 py-3 text-left">Course</th>
-                        <th class="px-6 py-3 text-left">Year</th>
-                        <th class="px-6 py-3 text-left">Section</th>
+                        <th class="px-6 py-3 text-left">Year & Section</th>
+                        <th class="px-6 py-3 text-left">Collected By</th>
                         <th class="px-6 py-3 text-left">Date</th>
+                        <th class="px-6 py-3 text-left">Status</th>
                     </tr>
                 </thead>
 
@@ -256,8 +258,8 @@
                         </td>
 
                         <td class="px-6 py-4">{{ $item['enrollment']->course->name ?? '-' }}</td>
-                        <td class="px-6 py-4">{{ $item['enrollment']->yearLevel->name ?? '-' }}</td>
-                        <td class="px-6 py-4">{{ $item['enrollment']->section->name ?? '-' }}</td>
+                        <td class="px-6 py-4">{{ $item['enrollment']->yearLevel->name ?? '-' }} {{ $item['enrollment']->section->name ?? '-' }}</td>
+                       <td class="px-6 py-4"> {{ $item['collector']->first_name ?? 'NO PAYMENT COLLECTED' }} {{ $item['collector']->middle_name ?? '' }} {{ $item['collector']->last_name ?? '' }} </td>
                         <td class="px-6 py-4 text-gray-500">
                             {{ $item['payment_date']?->format('M d, Y') ?? '-' }}
                         </td>

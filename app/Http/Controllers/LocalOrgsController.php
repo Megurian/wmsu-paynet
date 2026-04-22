@@ -144,60 +144,65 @@ class LocalOrgsController extends Controller
     }
 
 
-public function assignOfficer(Request $request, $orgId)
-{
-    $user = Auth::user();
-    abort_unless($user, 403);
+    public function assignOfficer(Request $request, $orgId)
+    {
+        $user = Auth::user();
+        abort_unless($user, 403);
 
-    $request->validate([
-        'student_id' => 'required|exists:students,id',
-        'role' => 'required|string',
-        'secondary_email' => 'required|email',
-        'password' => 'required|string|min:8|confirmed',
-    ]);
-
-    $activeSY = \App\Models\SchoolYear::where('is_active', true)->first();
-    $activeSem = \App\Models\Semester::where('is_active', true)->first();
-
-    abort_unless($activeSY && $activeSem, 500, 'Active school year or semester not set.');
-
-    $exists = OrganizationOfficer::where('organization_id', $orgId)
-        ->where('student_id', $request->student_id)
-        ->exists();
-
-    if ($exists) {
-        throw ValidationException::withMessages([
-            'student_id' => 'This student is already assigned as an officer.',
+        $request->validate([
+            'student_id' => 'required|exists:students,id',
+            'role' => 'required|string',
+            'secondary_email' => 'required|email',
+            'password' => 'required|string|min:8|confirmed',
         ]);
+
+        $activeSY = \App\Models\SchoolYear::where('is_active', true)->first();
+        $activeSem = \App\Models\Semester::where('is_active', true)->first();
+
+        abort_unless($activeSY && $activeSem, 500, 'Active school year or semester not set.');
+
+        $exists = OrganizationOfficer::where('organization_id', $orgId)
+            ->where('student_id', $request->student_id)
+            ->exists();
+
+        if ($exists) {
+            throw ValidationException::withMessages([
+                'student_id' => 'This student is already assigned as an officer.',
+            ]);
+        }
+
+        DB::transaction(function () use ($request, $orgId, $activeSY, $activeSem) {
+
+            $student = \App\Models\Student::findOrFail($request->student_id);
+
+
+            $userAccount = User::create([
+                'first_name' => $student->first_name,
+                'middle_name' => $student->middle_name,
+                'last_name' => $student->last_name,
+                'suffix' => $student->suffix ?? null,
+                'email' => $request->secondary_email,
+                'password' => Hash::make($request->password),
+                'role' => 'college_org',
+                'college_id' => Auth::user()->college_id,
+                'organization_id' => $orgId,
+            ]);
+
+            OrganizationOfficer::create([
+                'organization_id' => $orgId,
+                'student_id' => $request->student_id,
+                'user_id' => $userAccount->id, 
+                'role' => $request->role,
+                'secondary_email' => $request->secondary_email,
+                'password' => Hash::make($request->password),
+                'is_active' => true,
+                'school_year_id' => $activeSY->id,
+                'semester_id' => $activeSem->id,
+            ]);
+        });
+
+        return back()->with('success', 'Officer assigned and account created successfully.');
     }
-
-    DB::transaction(function () use ($request, $orgId, $activeSY, $activeSem) {
-
-        User::create([
-            'first_name' => '',
-            'middle_name' => null,
-            'last_name' => '',
-            'email' => $request->secondary_email,
-            'password' => Hash::make($request->password),
-            'role' => 'college_org',
-            'college_id' => Auth::user()->college_id,
-            'organization_id' => $orgId,
-        ]);
-
-        OrganizationOfficer::create([
-            'organization_id' => $orgId,
-            'student_id' => $request->student_id,
-            'role' => $request->role,
-            'secondary_email' => $request->secondary_email,
-            'password' => Hash::make($request->password),
-            'is_active' => true,
-            'school_year_id' => $activeSY->id,
-            'semester_id' => $activeSem->id,
-        ]);
-    });
-
-    return back()->with('success', 'Officer assigned and account created successfully.');
-}
 
     public function cancelSubmission(Organization $org)
     {
