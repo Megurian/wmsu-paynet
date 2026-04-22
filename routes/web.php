@@ -78,6 +78,7 @@ Route::middleware(['auth', 'role:osa'])->group(function () {
     Route::post('/osa/setup/{id}/add-semester', [OSASetupController::class, 'addSemester'])->name('osa.setup.addSemester');
     Route::post('/osa/setup/{schoolYear}/start-semester/{semester}', [OSASetupController::class, 'startSemester'])->name('osa.setup.start-semester');
     Route::post('/osa/setup/{schoolYear}/end-semester', [OSASetupController::class, 'endSemester'])->name('osa.setup.end-semester');
+    Route::post('/osa/setup/{schoolYear}/toggle-auto', [OSASetupController::class, 'toggleSemesterAuto'])->name('osa.setup.toggle-auto');
 
     Route::get('/osa/system-maintenance', [OSASystemMaintenanceController::class, 'index'])
         ->name('osa.system-maintenance');
