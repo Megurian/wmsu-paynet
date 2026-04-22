@@ -226,6 +226,20 @@ class AdviserStudentUploadController extends Controller
             $enrollment->save();
         }
 
+        log_activity(
+                'Added/Updated Student Enrollment',
+                "Adviser advised student {$student->full_name}",
+                $student->id,
+                [
+                    'adviser_id' => $adviserId,
+                    'course_id' => $courseId,
+                    'year_level_id' => $request->year_level_id,
+                    'section_id' => $request->section_id,
+                    'school_year_id' => $activeSY?->id,
+                    'semester_id' => $activeSem?->id,
+                ]
+            );
+
         return back()->with('status', 'Student uploaded successfully.');
     }
 
@@ -286,6 +300,16 @@ public function reAddOldStudent(Request $request, $studentId)
 
             $enrollment->save();
     }
+
+    log_activity(
+    'Re-added Student',
+    "Adviser Advised student ID {$studentId}",
+    $studentId,
+    [
+        'year_level_id' => $yearLevelId ?? null,
+        'section_id' => $sectionId ?? null,
+    ]
+);
 
     return back()->with('status', 'Student added successfully. Student may now proceed to payment');
 }
@@ -364,6 +388,15 @@ public function reAddBulk(Request $request)
         }
     }
 
+    log_activity(
+        'Bulk Re-added Student',
+        "Student Advised in bulk",
+        $studentId,
+        [
+            'adviser_id' => $adviserId,
+        ]
+    );
+
     return back()->with(
         'status',
         count($request->students) . ' student(s) processed successfully.'
@@ -427,6 +460,16 @@ public function updateField(Request $request, $id)
 
     $enrollment->{$request->field} = $request->value;
     $enrollment->save();
+
+    log_activity(
+        'Updated Student Field',
+        "Updated {$request->field} for student {$student->student_id}",
+        $student->id,
+        [
+            'field' => $request->field,
+            'value' => $request->value,
+        ]
+    );
 
     return response()->json([
         'success' => true,
@@ -576,6 +619,16 @@ public function promotionExecute()
         $new->save();
         $updated++;
     }
+
+    log_activity(
+        'Promoted Student',
+        "Student promoted to year level {$nextYear->id}",
+        $student->id,
+        [
+            'from_year' => $enrollment->year_level_id,
+            'to_year' => $nextYear->id,
+        ]
+    );
 
     return response()->json([
         'message' => "Promotion completed. Students forwarded to payment validation: $updated"

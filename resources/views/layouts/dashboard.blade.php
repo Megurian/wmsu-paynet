@@ -311,6 +311,11 @@
                     {{ request()->routeIs('college.local_organizations.approvals') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
                     <span>Organizations</span>
                 </a>
+
+                <a href="{{ route('college.logs') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('college.logs') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span>Logs</span>
+                </a>
             @endif
 
             @if(!empty(array_intersect($roles, ['student_coordinator', 'adviser', 'assessor'])))

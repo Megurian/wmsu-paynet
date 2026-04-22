@@ -162,6 +162,20 @@ class ValidateStudentsController extends Controller
                 'assessed_at'   => now(),
             ]
         );
+
+        log_activity(
+            'Validated Student',
+            "Assessed and enrolled student {$student->student_id}",
+            $student->id,
+            [
+                'action_by_role' => Auth::user()->role,
+                'course_id' => $request->course_id[$student->id],
+                'year_level_id' => $request->year_level_id[$student->id],
+                'section_id' => $request->section_id[$student->id],
+                'enrollment_id' => $enrollment->id ?? null,
+            ]
+        );
+                
         return back()->with('status', 'Student validated successfully.');
     }
 
@@ -210,6 +224,18 @@ class ValidateStudentsController extends Controller
                     'assessed_at' => now(),
                 ]
             );
+
+            log_activity(
+                'Bulk Validate Student',
+                "Validated student ID: {$studentId}",
+                $studentId,
+                [
+                    'assessed_by_role' => Auth::user()->role,
+                    'course_id' => $request->course_id[$studentId],
+                    'year_level_id' => $request->year_level_id[$studentId],
+                    'section_id' => $request->section_id[$studentId],
+                ]
+            );
         }
 
         return back()->with(
@@ -255,6 +281,18 @@ class ValidateStudentsController extends Controller
         if ($result['skipped'] > 0) {
             $message .= " {$result['skipped']} row(s) skipped (student ID exists with a different last name).";
         }
+
+        log_activity(
+            'Imported Students',
+            'Imported students via Excel file',
+            null,
+            [
+                'created' => $result['created'],
+                'updated' => $result['updated'],
+                'skipped' => $result['skipped'],
+                'uploaded_by' => Auth::id(),
+            ]
+        );
 
         return redirect()->back()->with('import_success', $message)
             ->with('import_skipped', $result['skipped_rows']);
@@ -351,6 +389,15 @@ class ValidateStudentsController extends Controller
             ]);
         }
 
+        log_activity(
+            'Marked Payment Completed',
+            "Marked student {$student->student_id} as paid",
+            $student->id,
+            [
+                'enrollment_id' => $enrollment->id,
+                'performed_by' => Auth::id(),
+            ]
+        );
         // no columns left to update; payment details are stored in payments table
 
         return back()->with('status', 'Payment marked as completed.');
@@ -401,7 +448,12 @@ class ValidateStudentsController extends Controller
             });
 
             if ($clearanceAudit) {
-                Log::info('Student cleared for enrollment', $clearanceAudit);
+                log_activity(
+                        'Cleared Student for Enrollment',
+                        "Student {$student->student_id} cleared for enrollment",
+                        $student->id,
+                        $clearanceAudit
+                    );
             }
         } catch (\RuntimeException $e) {
             if ($e->getMessage() === 'financial_not_clearable') {
@@ -544,13 +596,17 @@ class ValidateStudentsController extends Controller
                 );
             });
 
-            Log::info('Promissory note issued for student enrollment', [
-                'promissory_note_id' => $note->id,
-                'student_id' => $student->id,
-                'enrollment_id' => $note->enrollment_id,
-                'issued_by' => Auth::id(),
-                'original_amount' => $note->original_amount,
-            ]);
+            log_activity(
+                'Issued Promissory Note',
+                "Issued promissory note for student {$student->student_id}",
+                $student->id,
+                [
+                    'promissory_note_id' => $note->id,
+                    'enrollment_id' => $note->enrollment_id,
+                    'issued_by' => Auth::id(),
+                    'original_amount' => $note->original_amount,
+                ]
+            );
         } catch (\RuntimeException $exception) {
             return back()->withErrors([
                 'promissory_note' => $exception->getMessage(),

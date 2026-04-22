@@ -13,7 +13,11 @@
     <div class="grid grid-cols-1 gap-4">
         <div>
             <h3 class="font-medium">Organization</h3>
-            <p class="text-gray-700">{{ $fee->organization->name }} ({{ $fee->organization->org_code }})</p>
+            <p class="text-gray-700">{{ $fee->organization?->name ?? 'No Organization' }}
+                @if($fee->organization)
+                    ({{ $fee->organization->org_code }})
+                @endif
+            </p>
         </div>
 
         <div>

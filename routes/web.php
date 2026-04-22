@@ -36,6 +36,7 @@ use App\Http\Controllers\UniversityOrgDashboardController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\CollegeOrgDashboardController;
 use App\Http\Controllers\CollegeOrgManagementController;
+use App\Http\Controllers\CollegeLogController;
 
 Route::get('/test-route', function () {
     return 'Laravel route works!';
@@ -292,6 +293,9 @@ Route::middleware(['auth','role:college'])->group(function () {
 
     Route::post('/college/fees/{fee}/request-disable', [CollegeFeeApprovalController::class, 'requestDisable']);
     Route::post('/college/fees/{fee}/request-enable', [CollegeFeeApprovalController::class, 'requestEnable']);
+
+        
+        
     });
 
 Route::middleware(['auth', 'role:treasurer,college,student_coordinator,adviser,assessor,college_org'])->group(function () {
@@ -429,7 +433,11 @@ Route::middleware(['auth', 'role:treasurer,college,student_coordinator,adviser,a
     Route::post('/employees/preview', [EmployeeController::class, 'previewImport'])->name('employees.preview');
      Route::post('college/local_organizations/{org}/assign', [LocalOrgsController::class, 'assignOfficer'])
         ->name('college.local_organizations.assign');
-});
+    Route::get('/college/logs', [CollegeLogController::class, 'index'])
+        ->name('college.logs');
+    Route::get('/college/logs', [CollegeLogController::class, 'index'])
+        ->name('college.logs');
+    });
 
 
     Route::middleware(['auth','role:assessor,student_coordinator'])->group(function(){
@@ -438,7 +446,9 @@ Route::middleware(['auth', 'role:treasurer,college,student_coordinator,adviser,a
     Route::post('/college/students/validate/bulk', [ValidateStudentsController::class, 'bulkValidate'])
         ->name('college.students.validate.bulk');
      Route::get('/college/students/{student}/fees', [ValidateStudentsController::class, 'getFeesForStudent']);
-});
+
+
+     });
 
     Route::middleware(['auth', 'role:student_coordinator'])->group(function () {
         Route::get('/college/promissory-notes', [CoordinatorController::class, 'index'])
