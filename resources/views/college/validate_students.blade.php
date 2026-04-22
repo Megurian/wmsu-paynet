@@ -12,8 +12,8 @@
     <form method="GET" class="flex flex-wrap gap-3 flex-1 items-center">
      
         <div class="relative flex-1 min-w-[150px]">
-            <input type="text" name="search" value="{{ request('search') }}" placeholder="Search by name or Student ID" class="w-full px-3 py-2 pr-10 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none">
-            @if(request('search'))
+            <input type="text" name="search" value="{{ request()->query('search') }}" placeholder="Search by name or Student ID" class="w-full px-3 py-2 pr-10 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none">
+            @if(request()->query('search'))
                 <button type="button" onclick="this.closest('form').querySelector('input[name=search]').value=''; this.closest('form').submit();" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none transition" aria-label="Clear search">
                     &times;
                 </button>
@@ -22,21 +22,21 @@
         <select name="course" class="rounded-lg border border-gray-300 px-4 py-2.5 pr-8 appearance-none text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition" onchange="this.form.submit()">
             <option value="">All Courses</option>
             @foreach($courses as $course)
-                <option value="{{ $course->id }}" @selected(request('course') == $course->id)>{{ $course->name }}</option>
+                <option value="{{ $course->id }}" @selected(request()->query('course') == $course->id)>{{ $course->name }}</option>
             @endforeach
         </select>
 
         <select name="year" class="rounded-lg border border-gray-300 px-4 py-2.5 pr-8 appearance-none text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition" onchange="this.form.submit()">
             <option value="">All Years</option>
             @foreach($years as $year)
-                <option value="{{ $year->id }}" @selected(request('year') == $year->id)>{{ $year->name }}</option>
+                <option value="{{ $year->id }}" @selected(request()->query('year') == $year->id)>{{ $year->name }}</option>
             @endforeach
         </select>
 
         <select name="section" class="rounded-lg border border-gray-300 px-4 py-2.5 pr-8 appearance-none text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition" onchange="this.form.submit()">
             <option value="">All Sections</option>
             @foreach($sections as $section)
-                <option value="{{ $section->id }}" @selected(request('section') == $section->id)>{{ $section->name }}</option>
+                <option value="{{ $section->id }}" @selected(request()->query('section') == $section->id)>{{ $section->name }}</option>
             @endforeach
         </select>
     </form>

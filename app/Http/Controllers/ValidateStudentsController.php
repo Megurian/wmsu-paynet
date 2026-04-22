@@ -31,7 +31,12 @@ class ValidateStudentsController extends Controller
         $activeSY = SchoolYear::where('is_active', true)->first();
         $activeSem = Semester::where('is_active', true)->first();
 
-        $studentsQuery = Student::whereHas('enrollments', function ($e) use ($collegeId, $request) {
+        $courseFilter = $request->query('course');
+        $yearFilter = $request->query('year');
+        $sectionFilter = $request->query('section');
+        $searchFilter = $request->query('search');
+
+        $studentsQuery = Student::whereHas('enrollments', function ($e) use ($collegeId, $courseFilter, $yearFilter, $sectionFilter) {
             $e->whereIn('id', function ($q) {
                 $q->selectRaw('MAX(id)')
                     ->from('student_enrollments')
@@ -39,21 +44,21 @@ class ValidateStudentsController extends Controller
             })
                 ->where('college_id', $collegeId);
 
-            if ($request->course) {
-                $e->where('course_id', $request->course);
+            if ($courseFilter) {
+                $e->where('course_id', $courseFilter);
             }
-            if ($request->year) {
-                $e->where('year_level_id', $request->year);
+            if ($yearFilter) {
+                $e->where('year_level_id', $yearFilter);
             }
-            if ($request->section) {
-                $e->where('section_id', $request->section);
+            if ($sectionFilter) {
+                $e->where('section_id', $sectionFilter);
             }
         })
-            ->when($request->search, function ($q) use ($request) {
-                $q->where(function ($sub) use ($request) {
-                    $sub->where('student_id', 'like', "%{$request->search}%")
-                        ->orWhere('first_name', 'like', "%{$request->search}%")
-                        ->orWhere('last_name', 'like', "%{$request->search}%");
+            ->when($searchFilter, function ($q) use ($searchFilter) {
+                $q->where(function ($sub) use ($searchFilter) {
+                    $sub->where('student_id', 'like', "%{$searchFilter}%")
+                        ->orWhere('first_name', 'like', "%{$searchFilter}%")
+                        ->orWhere('last_name', 'like', "%{$searchFilter}%");
                 });
             })
             ->with(['enrollments' => function ($q) {
