@@ -365,4 +365,31 @@ class OSAFeesController extends Controller
 
         return back()->with('success', 'Disable request rejected.');
     }
+
+    public function enable(Request $request, Fee $fee)
+    {
+        $request->validate([
+            'password' => 'required|string',
+        ]);
+
+        $user = Auth::user();
+
+        if (!\Illuminate\Support\Facades\Hash::check($request->password, $user->password)) {
+            return back()->withErrors(['password' => 'Password verification failed.']);
+        }
+
+        if ($fee->status !== 'disabled') {
+            return back()->with('error', 'Only disabled fees can be enabled.');
+        }
+
+        $fee->update([
+            'status' => 'approved',
+            'disable_status' => null,
+            'disable_notes' => null,
+            'disable_approved_at' => null,
+            'disable_approved_by' => null,
+        ]);
+
+        return back()->with('success', 'Fee has been re-enabled.');
+    }
 }

@@ -151,6 +151,9 @@ Route::post('/osa/remittance/confirm',
 
 Route::post('/osa/fees/{fee}/disable/reject', [OSAFeesController::class, 'rejectDisable'])
     ->name('osa.fees.disable.reject');
+
+    Route::post('/osa/fees/{fee}/enable', [OSAFeesController::class, 'enable'])
+    ->name('osa.fees.enable');
 });
 
 Route::middleware(['auth', 'role:university_org'])->group(function () {
