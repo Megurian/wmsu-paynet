@@ -369,7 +369,7 @@ class OSAFeesController extends Controller
                 'reviewed_by' => $user->id,
                 'reviewed_at' => now(),
                 'review_note' => $request->note,
-                'disable_approved_at' => now(), // ✅ ADD THIS
+                'disable_approved_at' => now(), 
             ]);
         }
 
@@ -383,7 +383,7 @@ class OSAFeesController extends Controller
                 'reviewed_by' => $user->id,
                 'reviewed_at' => now(),
                 'review_note' => $request->note,
-                'enable_approved_at' => now(), // ✅ ADD THIS
+                'enable_approved_at' => now(), 
             ]);
         }
 
