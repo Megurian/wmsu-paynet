@@ -17,10 +17,15 @@
             {{ $pendingFees->count() }}
         </span>
     </a>
+    <a href="{{ route('college.fees.approval', ['tab' => 'disabled']) }}"
+    class="px-4 py-2 rounded-full font-medium text-sm transition
+    {{ $tab === 'disabled' ? 'bg-red-800 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300' }}">
+        Disabled Fees
+    </a>
     <a href="{{ route('college.fees.approval', ['tab' => 'approved']) }}"
        class="px-4 py-2 rounded-full font-medium text-sm transition
        {{ $tab === 'approved' ? 'bg-red-800 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300' }}">
-        All
+        Approved Fees
     </a>
 </div>
 
@@ -76,6 +81,43 @@
                 No pending fees to review.
             </div>
         @endforelse
+
+    @elseif($tab === 'disabled')
+    @forelse($disabledFees as $fee)
+        <div class="bg-white shadow rounded-lg p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            
+            <div class="flex-1">
+                <h3 class="text-lg font-semibold text-gray-800">
+                    {{ $fee->fee_name }}
+                    <span class="ml-2 px-2 py-1 text-xs font-bold bg-red-100 text-red-700 rounded">
+                        DISABLED
+                    </span>
+                </h3>
+
+                <p class="text-sm text-gray-500 mt-1">
+                    Amount: <span class="font-medium">₱{{ number_format($fee->amount, 2) }}</span>
+                </p>
+
+                <p class="text-sm text-gray-400 mt-1">
+                    Disabled on:
+                    {{ $fee->disable_approved_at 
+                        ? \Carbon\Carbon::parse($fee->disable_approved_at)->format('M d, Y')
+                        : '-' 
+                    }}
+                </p>
+            </div>
+
+            <a href="{{ route('college.fees.show', $fee->id) }}"
+               class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">
+                View
+            </a>
+        </div>
+        @empty
+            <div class="text-center text-gray-500 py-6">
+                No disabled fees.
+            </div>
+        @endforelse
+
     @elseif($tab === 'approved')
         @forelse($allFees as $fee)
             <div class="bg-white shadow rounded-lg p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">

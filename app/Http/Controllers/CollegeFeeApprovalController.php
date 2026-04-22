@@ -32,8 +32,13 @@ class CollegeFeeApprovalController extends Controller
 
         // Base approved college fees
         $allFees = (clone $baseQuery)
-        ->whereIn('status', ['approved', 'disabled', 'pending'])
+        ->whereIn('status', ['approved', 'pending'])
         ->orderByDesc('updated_at')
+        ->get();
+
+        $disabledFees = (clone $baseQuery)
+        ->where('status', 'disabled')
+        ->orderByDesc('disable_approved_at')
         ->get();
 
         // Include fees inherited by child organizations under this college
@@ -70,7 +75,7 @@ class CollegeFeeApprovalController extends Controller
         // Merge, dedupe and order by approved_at (desc)
         $allFees = $allFees->merge($inheritedFees)->unique('id')->sortByDesc('approved_at')->values();
 
-        return view('college.fees.approval', compact('pendingFees', 'allFees', 'tab'));
+        return view('college.fees.approval', compact('pendingFees','disabledFees', 'allFees', 'tab'));
     }
 
     /**
