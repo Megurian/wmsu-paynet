@@ -37,19 +37,15 @@
 
 <script>
     function switchTab(tab) {
-        // Hide all
         document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
 
-        // Remove active styles
         document.querySelectorAll('.tab-btn').forEach(el => {
             el.classList.remove('border-red-700', 'text-red-700', 'font-semibold');
             el.classList.add('border-transparent', 'text-gray-500');
         });
 
-        // Show selected
         document.getElementById('content-' + tab).classList.remove('hidden');
 
-        // Activate tab
         const activeTab = document.getElementById('tab-' + tab);
         activeTab.classList.add('border-red-700', 'text-red-700', 'font-semibold');
         activeTab.classList.remove('border-transparent', 'text-gray-500');

@@ -242,6 +242,11 @@ Route::get('/college-org/generate-report',
     Route::get('/college_org/documents/{document}/preview', [DocumentController::class, 'preview'])->name('college_org.documents.preview');
     Route::delete('/college_org/documents/{document}', [DocumentController::class, 'destroy'])->name('college_org.documents.destroy');
     Route::get('/college_org/organization-management', [CollegeOrgManagementController::class, 'index'])->name('college_org.organization_management');
+    Route::put('/college_org/info/logo', [CollegeOrgManagementController::class, 'updateLogo'])
+    ->name('college_org.info.updateLogo');
+
+    Route::put('/college_org/info/name', [CollegeOrgManagementController::class, 'updateName'])
+    ->name('college_org.info.updateName');
     });
 
 Route::middleware(['auth','role:adviser'])->group(function(){
@@ -255,7 +260,8 @@ Route::middleware(['auth','role:adviser'])->group(function(){
     ->name('college.students.readd');
 
     Route::post('/college/students/readd/bulk', [AdviserStudentUploadController::class, 'reAddBulk'])->name('college.students.readd.bulk');
-});
+
+    });
 
 Route::middleware(['auth','role:college'])->group(function () {
     Route::get('/college/fees/approval', [CollegeFeeApprovalController::class, 'index'])
