@@ -6,8 +6,10 @@ use Illuminate\Http\Request;
 use App\Models\Organization;
 use App\Models\User;
 use App\Models\College;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Str;
+use App\Notifications\CollegeAdminInvitationNotification;
 
 class OSAOrganizationsController extends Controller
 {
@@ -43,6 +45,25 @@ class OSAOrganizationsController extends Controller
         return response()->json(['available' => $available]);
     }
 
+    public function resendInvite(Organization $organization)
+    {
+        $admin = $organization->orgAdmin;
+
+        if (! $admin || $admin->invitation_active) {
+            return back()->with('status', 'No pending organization invite found.');
+        }
+
+        $token = Password::broker()->createToken($admin);
+        $admin->update(['invitation_sent_at' => now()]);
+        $admin->notify(new CollegeAdminInvitationNotification(
+            $token,
+            $organization->role === 'college_org' ? 'college president' : 'organization president',
+            $organization->name
+        ));
+
+        return back()->with('status', 'Invitation link resent successfully.');
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -64,7 +85,6 @@ class OSAOrganizationsController extends Controller
             'admin_middle_name' => 'nullable|string|max:255',
             'admin_suffix' => 'nullable|string|max:255',
             'admin_email' => 'required|email|unique:users,email',
-            'admin_password' => 'required|string|min:8|confirmed',
         ]);
 
         try {
@@ -89,19 +109,27 @@ class OSAOrganizationsController extends Controller
                     'created_semester_id' => $activeSem?->id,
                 ]);
 
-                User::create([
+                $admin = User::create([
                     'last_name' => $request->admin_last_name,
                     'first_name' => $request->admin_first_name,
                     'middle_name' => $request->admin_middle_name,
                     'suffix' => $request->admin_suffix,
                     'email' => $request->admin_email,
-                    'password' => Hash::make($request->admin_password),
+                    'password' => Str::random(64),
                     'role' => $request->role,
                     'organization_id' => $organization->id,
+                    'invitation_sent_at' => now(),
                 ]);
+
+                $token = Password::broker()->createToken($admin);
+                $admin->notify(new CollegeAdminInvitationNotification(
+                    $token,
+                    $request->role === 'college_org' ? 'college president' : 'organization president',
+                    $organization->name
+                ));
             });
 
-            return redirect()->route('osa.organizations')->with('status', 'Organization and admin created successfully!');
+            return redirect()->route('osa.organizations')->with('status', 'Organization created and invitation email sent to the admin.');
         } catch (\Exception $e) {
             return back()->withErrors('Failed to create organization: ' . $e->getMessage());
         }

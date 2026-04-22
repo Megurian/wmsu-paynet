@@ -110,6 +110,7 @@ Route::middleware(['auth', 'role:osa', CheckActiveSchoolYear::class])->group(fun
     Route::get('/osa/organizations', [OSAOrganizationsController::class, 'index'])->name('osa.organizations');
     Route::get('/osa/organizations/create', [OSAOrganizationsController::class, 'create'])->name('osa.organizations.create');
     Route::post('/osa/organizations', [OSAOrganizationsController::class, 'store'])->name('osa.organizations.store');
+    Route::post('/osa/organizations/{organization}/resend-invite', [OSAOrganizationsController::class, 'resendInvite'])->name('osa.organizations.resendInvite');
     Route::get('/osa/organizations/{id}', [OSAOrganizationsController::class, 'show'])->name('osa.organizations.show');
     Route::delete('/osa/organizations/{id}', [OSAOrganizationsController::class, 'destroy'])->name('osa.organizations.destroy');
     Route::post('/osa/organizations/{id}/toggle-osa-inheritance', [OSAOrganizationsController::class, 'toggleOsaInheritance'])->name('osa.organizations.toggle-osa-inheritance');
@@ -118,6 +119,7 @@ Route::middleware(['auth', 'role:osa', CheckActiveSchoolYear::class])->group(fun
     Route::get('/osa/college', [OSACollegeController::class, 'index'])->name('osa.college');
     Route::get('/osa/college/create', [OSACollegeController::class, 'create'])->name('osa.college.create');
     Route::post('/osa/college', [OSACollegeController::class, 'store'])->name('osa.college.store');
+    Route::post('/osa/college/{college}/resend-invite', [OSACollegeController::class, 'resendInvite'])->name('osa.college.resendInvite');
 
     // AJAX validation endpoints (live uniqueness checks)
     Route::post('/osa/college/check-code', [OSACollegeController::class, 'checkCode'])->name('osa.college.checkCode');
@@ -180,6 +182,7 @@ Route::middleware(['auth', 'role:university_org'])->group(function () {
     Route::get('/university-org/offices', [UniversityOrgOfficesController::class, 'index'])->name('university_org.offices.index');
     Route::get('/university-org/offices/create', [UniversityOrgOfficesController::class, 'create'])->name('university_org.offices.create');
     Route::post('/university-org/offices', [UniversityOrgOfficesController::class, 'store'])->name('university_org.offices.store');
+    Route::post('/university-org/offices/{organization}/resend-invite', [UniversityOrgOfficesController::class, 'resendInvite'])->name('university_org.offices.resendInvite');
 
     // AJAX validation endpoints for organizations (live uniqueness checks)
     Route::post('/university-org/organizations/check-code', [UniversityOrgOfficesController::class, 'checkCode'])->name('university_org.organizations.checkCode');
@@ -396,6 +399,7 @@ Route::middleware(['auth', 'role:treasurer,college,student_coordinator,adviser,a
     Route::put('/employees/{employee}', [EmployeeController::class, 'update'])->name('employees.update');
     Route::delete('/employees/{employee}', [EmployeeController::class, 'destroy'])->name('employees.destroy');
     Route::post('/employees/{employee}/create-account', [EmployeeController::class, 'createAccount']);
+    Route::post('/employees/{employee}/resend-invite', [EmployeeController::class, 'resendInvite'])->name('employees.resendInvite');
     Route::post('/college/roles/bulk-assign', [EmployeeController::class, 'bulkAssign'])
     ->name('college.roles.bulkAssign');
     Route::post('/employees/{employee}/toggle', [EmployeeController::class, 'toggle'])

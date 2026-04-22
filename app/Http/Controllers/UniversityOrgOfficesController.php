@@ -3,7 +3,10 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Str;
 use App\Models\Organization;
+use App\Notifications\CollegeAdminInvitationNotification;
 
 class UniversityOrgOfficesController extends Controller
 {
@@ -14,7 +17,7 @@ class UniversityOrgOfficesController extends Controller
 
         if ($organization) {
             // Only show organizations for which the current organization is the mother
-            $organizations = Organization::with(['college', 'motherOrganization'])->where('mother_organization_id', $organization->id)->orderBy('name')->get();
+            $organizations = Organization::with(['college', 'motherOrganization', 'orgAdmin'])->where('mother_organization_id', $organization->id)->orderBy('name')->get();
         } else {
             // Fallback: empty collection if user has no organization
             $organizations = collect();
@@ -45,7 +48,6 @@ class UniversityOrgOfficesController extends Controller
             'admin_middle_name' => 'nullable|string|max:255',
             'admin_suffix' => 'nullable|string|max:50',
             'admin_email' => 'required|email|unique:users,email',
-            'admin_password' => 'required|string|min:8|confirmed',
         ]);
 
         // Handle file upload if logo is provided
@@ -80,20 +82,27 @@ class UniversityOrgOfficesController extends Controller
             'created_semester_id' => $activeSem?->id,
         ]);
 
-        // Create the admin user (assign to college_org role)
-        $organization->users()->create([
+        $admin = $organization->users()->create([
             'last_name' => $validated['admin_last_name'],
             'first_name' => $validated['admin_first_name'],
             'middle_name' => $validated['admin_middle_name'] ?? null,
             'suffix' => $validated['admin_suffix'] ?? null,
             'email' => $validated['admin_email'],
-            'password' => bcrypt($validated['admin_password']),
+            'password' => Str::random(64),
             'role' => 'college_org',
             'college_id' => $college?->id,
             'organization_id' => $organization->id,
+            'invitation_sent_at' => now(),
         ]);
 
-        return redirect()->route('university_org.offices.index', $organization)->with('success', 'Organization and admin account created successfully.');
+        $token = Password::broker()->createToken($admin);
+        $admin->notify(new CollegeAdminInvitationNotification(
+            $token,
+            'office administrator',
+            $organization->name
+        ));
+
+        return redirect()->route('university_org.offices.index')->with('success', 'Organization created and invitation email sent to the admin.');
     }
 
     public function checkCode(Request $request)
@@ -101,6 +110,25 @@ class UniversityOrgOfficesController extends Controller
         $code = strtoupper($request->input('org_code', ''));
         $exists = Organization::whereRaw('UPPER(org_code) = ?', [$code])->exists();
         return response()->json(['available' => !$exists]);
+    }
+
+    public function resendInvite(Organization $organization)
+    {
+        $admin = $organization->orgAdmin;
+
+        if (! $admin || $admin->invitation_active) {
+            return back()->with('status', 'No pending invitation found.');
+        }
+
+        $token = Password::broker()->createToken($admin);
+        $admin->update(['invitation_sent_at' => now()]);
+        $admin->notify(new CollegeAdminInvitationNotification(
+            $token,
+            'office administrator',
+            $organization->name
+        ));
+
+        return back()->with('status', 'Invitation link resent successfully.');
     }
 
     public function checkEmail(Request $request)

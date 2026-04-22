@@ -131,28 +131,8 @@
             <div class="mb-4">
                 <label class="block font-medium mb-1"> Email</label>
                 <input id="admin_email_input" type="email" name="admin_email" value="{{ old('admin_email') }}" placeholder="Enter Admin Email" class="w-full border border-gray-300 px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400" required>
+                <p class="text-xs text-gray-500 mt-1">An invitation email will be sent so the admin can set their password and activate their account.</p>
                 <p id="emailFeedback" class="text-xs mt-1"></p>
-            </div>
-
-            <div class="mb-4">
-                <label class="block font-medium mb-1">Password</label>
-                <div class="relative">
-                    <input id="admin_password" type="password" name="admin_password" placeholder="Enter Password" class="w-full border border-gray-300 px-4 py-2 pr-10 rounded focus:outline-none focus:ring-2 focus:ring-blue-400" required>
-                    <button type="button" class="toggle-password-btn absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500" aria-label="Toggle password visibility" onclick="togglePassword('admin_password', this)">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>
-                    </button>
-                </div>
-            </div>
-
-            <div class="mb-6">
-                <label class="block font-medium mb-1">Confirm Password</label>
-                <div class="relative">
-                    <input id="admin_password_confirmation" type="password" name="admin_password_confirmation" placeholder="Confirm Password" class="w-full border border-gray-300 px-4 py-2 pr-10 rounded focus:outline-none focus:ring-2 focus:ring-blue-400" required>
-                    <button type="button" class="toggle-password-btn absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500" aria-label="Toggle confirm password visibility" onclick="togglePassword('admin_password_confirmation', this)">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>
-                    </button>
-                </div>
-                <p id="passwordFeedback" class="text-xs mt-1 text-red-600"></p>
             </div>
 
             <div class="flex justify-between">
@@ -195,14 +175,12 @@ function showStep(step){
 let codeTimeout = null, emailTimeout = null;
 let codeAvailable = null, emailAvailable = null;
 let codePending = false, emailPending = false;
-let passwordMismatch = false;
 
 // expose for preview modal
 window.codeAvailable = codeAvailable;
 window.emailAvailable = emailAvailable;
 window.codePending = codePending;
 window.emailPending = emailPending;
-window.passwordMismatch = passwordMismatch;
 
 const csrfMeta = document.querySelector('meta[name="csrf-token"]');
 const csrfToken = csrfMeta ? csrfMeta.getAttribute('content') : null;
@@ -227,7 +205,7 @@ function setFeedback(el, msg, colorClass) {
 function toggleCreateDisabled() {
     const step1Disabled = codeAvailable === false || codePending;
     const step2Disabled = codeAvailable === false || codePending;
-    const previewDisabled = codeAvailable === false || emailAvailable === false || codePending || emailPending || passwordMismatch;
+    const previewDisabled = codeAvailable === false || emailAvailable === false || codePending || emailPending;
 
     // Open Preview / Create button
     if (openPreviewBtn) {
@@ -267,52 +245,8 @@ function toggleCreateDisabled() {
     window.emailAvailable = emailAvailable;
     window.codePending = codePending;
     window.emailPending = emailPending;
-    window.passwordMismatch = passwordMismatch;
 }
 
-// Password match
-const pwInput = document.getElementById('admin_password');
-const pwcInput = document.getElementById('admin_password_confirmation');
-const pwFeedback = document.getElementById('passwordFeedback');
-
-function checkPasswordMatch() {
-    const pv = pwInput ? pwInput.value : '';
-    const pvc = pwcInput ? pwcInput.value : '';
-    if (!pv && !pvc) {
-        passwordMismatch = false;
-        if (pwFeedback) pwFeedback.textContent = '';
-        toggleCreateDisabled();
-        return;
-    }
-    if (pv !== pvc) {
-        passwordMismatch = true;
-        if (pwFeedback) pwFeedback.textContent = 'Passwords do not match';
-    } else {
-        passwordMismatch = false;
-        if (pwFeedback) pwFeedback.textContent = '';
-    }
-    toggleCreateDisabled();
-}
-
-if (pwInput && pwcInput) {
-    pwInput.addEventListener('input', checkPasswordMatch);
-    pwcInput.addEventListener('input', checkPasswordMatch);
-}
-
-// Toggle password visibility helper
-function togglePassword(inputId, btn) {
-    const input = document.getElementById(inputId);
-    if (!input) return;
-    const wasPassword = input.type === 'password';
-    input.type = wasPassword ? 'text' : 'password';
-    if (btn) {
-        btn.setAttribute('aria-pressed', wasPassword ? 'true' : 'false');
-        // swap icon between eye and eye-off for clarity
-        btn.innerHTML = wasPassword
-            ? '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a21.88 21.88 0 0 1 5-5.94"/><path d="M1 1l22 22"/></svg>'
-            : '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>';
-    }
-}
 
 // Live org code check
 if (codeInput) {
@@ -456,9 +390,6 @@ function validateStep(step) {
     if (step === 3) {
         const requiredEls = stepEl.querySelectorAll('input[required], textarea[required], select[required]');
         for (const el of requiredEls) { if (!el.checkValidity()) { el.reportValidity(); el.focus(); return Promise.resolve(false); } }
-
-        // password match
-        if (passwordMismatch) { document.getElementById('admin_password_confirmation').focus(); return Promise.resolve(false); }
 
         const emailVal = emailInput ? emailInput.value.trim() : '';
         if (emailAvailable === false) { setFeedback(emailFeedback, 'Already taken', 'text-red-600'); emailInput && emailInput.focus(); return Promise.resolve(false); }
@@ -628,14 +559,11 @@ function openPreview() {
             (adminMiddle ? ` ${adminMiddle}` : '') +
             (adminSuffix ? ` ${adminSuffix}` : '');
         const adminEmail = form.querySelector('input[name="admin_email"]').value.trim();
-        const adminPassword = form.querySelector('input[name="admin_password"]').value || '';
 
         let logoHtml = '<p class="text-gray-500">No logo uploaded</p>';
         if (logoPreview && !logoPreview.classList.contains('hidden') && logoPreview.src) {
             logoHtml = `<img src="${logoPreview.src}" alt="Logo" class="w-32 h-32 object-cover rounded border" />`;
         }
-
-        const maskedPassword = adminPassword ? '•'.repeat(Math.max(4, adminPassword.length)) + `  (length: ${adminPassword.length})` : '<span class="text-gray-500">Not set</span>';
 
         const html = `
             <div class="space-y-3">
@@ -658,7 +586,7 @@ function openPreview() {
                         <div><strong>Name:</strong> ${escapeHtml(adminFullName)}</div>
                         <div><strong>Email:</strong> ${escapeHtml(adminEmail)}</div>
                         <div id="preview-email-error" class="text-xs mt-1 text-red-600"></div>
-                        <div><strong>Password:</strong> ${maskedPassword}</div>
+                        <div class="text-sm text-gray-600 mt-2">An invitation email will be sent so the admin can set their password and activate the account.</div>
                     </div>
                 </div>
             </div>
@@ -669,7 +597,6 @@ function openPreview() {
         window.emailAvailable = emailAvailable;
         window.codePending = codePending;
         window.emailPending = emailPending;
-        window.passwordMismatch = passwordMismatch;
 
         showPreviewModal('previewModal', html, 'organizationForm');
     });

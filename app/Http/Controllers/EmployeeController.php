@@ -9,10 +9,14 @@ use App\Models\EmployeeAssignment;
 use App\Models\SchoolYear;
 use App\Models\Semester;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Str;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\EmployeeTemplateExport;
 use App\Imports\EmployeesImport;
 use App\Imports\EmployeesImportPreview;
+use App\Notifications\CollegeAdminInvitationNotification;
 
 class EmployeeController extends Controller
 {
@@ -94,7 +98,6 @@ public function createAccount(Request $request, Employee $employee)
 
     $request->validate([
         'email' => 'required|email|unique:users,email',
-        'password' => 'required|min:6',
         'position' => 'required|array',
         'position.*' => 'in:assessor,student_coordinator,adviser,treasurer',
         'course_id' => 'nullable|exists:courses,id',
@@ -129,23 +132,59 @@ public function createAccount(Request $request, Employee $employee)
         ]
     );
 
-    $user = User::create([
+    $accountUser = User::create([
         'email' => $request->email,
-        'password' => bcrypt($request->password),
+        'password' => Hash::make(Str::random(64)),
         'first_name' => $employee->first_name,
         'last_name' => $employee->last_name,
         'college_id' => $user->college_id,
         'role' => $roles,
         'course_id' => in_array('adviser', $roles) ? $request->course_id : null,
+        'invitation_sent_at' => now(),
     ]);
+
+    $roleLabel = collect($roles)
+        ->map(fn($role) => ucwords(str_replace('_', ' ', $role)))
+        ->join(', ');
+
+    $token = Password::broker()->createToken($accountUser);
+    $accountUser->notify(new CollegeAdminInvitationNotification(
+        $token,
+        $roleLabel ?: 'Employee',
+        $user->college?->name ?? 'Your College'
+    ));
 
     $employee->update([
         'has_account' => true,
-        'user_id' => $user->id,
-        'email' => $employee->email ?? $request->email, 
+        'user_id' => $accountUser->id,
+        'email' => $employee->email ?? $request->email,
     ]);
 
-    return back()->with('status', 'Account created successfully');
+    return back()->with('status', 'Invitation sent to create the employee account.');
+}
+
+public function resendInvite(Employee $employee)
+{
+    $admin = $employee->user;
+
+    if (! $admin || $admin->invitation_active) {
+        return back()->with('status', 'No pending invitation found.');
+    }
+
+    $token = Password::broker()->createToken($admin);
+    $admin->update(['invitation_sent_at' => now()]);
+
+    $roleLabel = collect($admin->role)
+        ->map(fn($role) => ucwords(str_replace('_', ' ', $role)))
+        ->join(', ');
+
+    $admin->notify(new CollegeAdminInvitationNotification(
+        $token,
+        $roleLabel ?: 'Employee',
+        Auth::user()->college?->name ?? 'Your College'
+    ));
+
+    return back()->with('status', 'Invitation link resent successfully.');
 }
 
 public function bulkAssign(Request $request)
