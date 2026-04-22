@@ -18,12 +18,17 @@ class CollegeOrgManagementController extends Controller
         $officers = OrganizationOfficer::with([
             'student.latestEnrollment.course',
             'student.latestEnrollment.yearLevel',
-            'student.latestEnrollment.section'
+            'student.latestEnrollment.section',
+            'student',
+             'user'
         ])
         ->where('organization_id', $organization->id)
         ->where('is_active', true)
         ->get();
 
+        $orgAccounts = \App\Models\User::where('organization_id', $organization->id)
+            ->where('role', 'college_org')
+            ->pluck('email', 'organization_id');
         return view('college_org.organization_management.index', compact('organization', 'officers'));
     }
 
