@@ -119,8 +119,13 @@
                             Fee disabled
                         </p>
                     @endif
+                    @if($fee->disable_status === 'rejected')
+                        <p class="text-xs text-red-600 mt-1">
+                            Disable request was rejected. You may submit again.
+                        </p>
+                    @endif
 
-                    @if($fee->status === 'approved' && !$fee->disable_status)
+                    @if($fee->status === 'approved' && ($fee->disable_status === null || $fee->disable_status === 'rejected'))
                     <button
                         type="button"
                         onclick="openDisableModal({{ $fee->id }})"

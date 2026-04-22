@@ -81,40 +81,27 @@
                     </div>
                 @endif
 
-                @if($fee->disable_status === 'pending')
-                    <div class="mt-2 p-2 bg-yellow-100 text-yellow-800 rounded text-sm">
-                        Disable request pending approval
-                    </div>
-
-                    <div class="flex gap-2 mt-2">
-                        <form method="POST" action="{{ route('osa.fees.disable.approve', $fee->id) }}">
-                            @csrf
-                            <input type="password" name="password" placeholder="Password" class="border p-1">
-                            <button class="bg-green-600 text-white px-3 py-1 rounded">
-                                Approve Disable
-                            </button>
-                        </form>
-
-                        <form method="POST" action="{{ route('osa.fees.disable.reject', $fee->id) }}">
-                            @csrf
-                            <input type="password" name="password" placeholder="Password" class="border p-1">
-                            <button class="bg-red-600 text-white px-3 py-1 rounded">
-                                Reject
-                            </button>
-                        </form>
-                    </div>
-                @endif
-
             </div>
 
-            <div class="flex gap-2 md:gap-3">
+           <div class="flex gap-2 md:gap-3">
+
+            @if($fee->disable_status === 'pending')
+                <button
+                    type="button"
+                    onclick="openDisableReviewModal({{ $fee->id }}, `{{ addslashes($fee->disable_reason) }}`)"
+                    class="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700"
+                >
+                    View Pending Disable Request
+                </button>
+            @else
                 <form method="GET" action="{{ route('osa.fees.show', $fee->id) }}">
-                    @csrf
                     <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-green-700 transition">
                         View Details
                     </button>
                 </form>
-            </div>
+            @endif
+
+        </div>
         </div>
 
         <br>
@@ -171,6 +158,55 @@
     @endif
 </div>
 
+<div id="disableReviewModal" class="hidden fixed inset-0 z-50 flex items-center justify-center px-4">
+    <div class="fixed inset-0 bg-black/50"></div>
+
+    <div class="bg-white w-full max-w-lg rounded-lg shadow-lg p-6 relative z-10">
+        <h3 class="text-lg font-semibold mb-3">Disable Request Review</h3>
+
+        <div class="mb-4">
+            <p class="text-sm font-medium text-gray-700">Dean’s Reason:</p>
+            <p id="disableReasonText" class="text-gray-600 bg-gray-100 p-3 rounded mt-1"></p>
+        </div>
+
+        <form id="disableReviewForm" method="POST">
+            @csrf
+
+            <!-- OSA Notes -->
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+                OSA Notes / Response
+            </label>
+            <textarea name="notes" class="w-full border rounded p-2 mb-4" required></textarea>
+
+            <!-- Password Confirmation -->
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+                Confirm Password
+            </label>
+            <input 
+                type="password" 
+                name="password" 
+                class="w-full border rounded p-2 mb-4" 
+                placeholder="Enter your password"
+                required
+            >
+
+            <div class="flex justify-end gap-2">
+                <button type="button" onclick="closeDisableReviewModal()" class="px-4 py-2 border rounded">
+                    Cancel
+                </button>
+
+                <button type="button" onclick="setApproveAction()" class="px-4 py-2 bg-green-600 text-white rounded">
+                    Approve
+                </button>
+
+                <button type="button" onclick="setRejectAction()" class="px-4 py-2 bg-red-600 text-white rounded">
+                    Reject
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
 function toggleMenu(menuId) {
     document.querySelectorAll('[id^="menu-"]').forEach(menu => {
@@ -192,6 +228,34 @@ document.addEventListener('click', function(event) {
         });
     }
 });
+
+function openDisableReviewModal(feeId, reason) {
+    document.getElementById('disableReviewModal').classList.remove('hidden');
+    document.getElementById('disableReasonText').innerText = reason;
+
+    const form = document.getElementById('disableReviewForm');
+    form.dataset.feeId = feeId;
+}
+
+function closeDisableReviewModal() {
+    document.getElementById('disableReviewModal').classList.add('hidden');
+}
+
+function setApproveAction() {
+    const form = document.getElementById('disableReviewForm');
+    const feeId = form.dataset.feeId;
+
+    form.action = `/osa/fees/${feeId}/disable/approve`;
+    form.submit();
+}
+
+function setRejectAction() {
+    const form = document.getElementById('disableReviewForm');
+    const feeId = form.dataset.feeId;
+
+    form.action = `/osa/fees/${feeId}/disable/reject`;
+    form.submit(); 
+}
 </script>
 
 <style>

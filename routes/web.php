@@ -288,10 +288,6 @@ Route::middleware(['auth','role:college'])->group(function () {
         ->name('college.fees.reject');
 
     Route::post('/college/fees/{fee}/request-disable', [CollegeFeeApprovalController::class,'requestDisable'])->name('college.fees.request-disable');
-Route::post('/college/fees/{fee}/request-disable', [CollegeFeeController::class, 'requestDisable'])
-    ->name('college.fees.request-disable');
-
-
 
     });
 

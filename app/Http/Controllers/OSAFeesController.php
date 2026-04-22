@@ -13,40 +13,32 @@ use Illuminate\Support\Facades\Auth;
 class OSAFeesController extends Controller
 {
     public function index(Request $request)
-    {
+{
         $pendingFees = Fee::with(['organization', 'user', 'appeals'])
-            ->where(function ($q) {
+        ->where(function ($q) {
 
-                $q->where(function ($q2) {
-                    $q2->whereIn('fee_scope', ['organization', 'university-wide'])
-                        ->where('status', 'pending');
-                })
-                    ->orWhere(function ($q3) {
-                        $q3->where('fee_scope', 'college')
-                            ->where('approval_level', 'osa')
-                            ->where('status', 'pending');
-                    })
-                    ->orWhereHas('appeals', function ($q4) {
-                        $q4->where('status', 'pending');
-                    })
-                    ->orWhere(function ($q5) {
-                        $q5->where('disable_status', 'pending');
-                    });
+            $q->where(function ($q2) {
+                $q2->whereIn('fee_scope', ['organization', 'university-wide'])
+                    ->where('status', 'pending');
+            })
+            ->orWhere(function ($q3) {
+                $q3->where('fee_scope', 'college')
+                    ->where('approval_level', 'osa')
+                    ->where('status', 'pending');
+            })
+            ->orWhere(function ($q4) {
+                $q4->where('disable_status', 'pending');
+            });
             })
             ->orderBy('created_at', 'desc')
             ->get();
 
 
         $approvedFees = Fee::with(['organization', 'user'])
-            ->where(function ($q) {
-                $q->where('status', 'approved')
-                ->orWhere('status', 'disabled');
-            })
+            ->whereIn('status', ['approved', 'disabled'])
             ->orderByDesc('approved_at')
             ->get();
 
-
-        // Status filter (default to approved)
         $status = $request->get('status', 'approved');
 
         $filteredQuery = Fee::with(['organization', 'user'])
@@ -329,6 +321,7 @@ class OSAFeesController extends Controller
     public function approveDisable(Request $request, Fee $fee)
     {
         $request->validate([
+            'notes' => 'nullable|string',
             'password' => 'required|string',
         ]);
 
@@ -338,13 +331,10 @@ class OSAFeesController extends Controller
             return back()->withErrors(['password' => 'Incorrect password.']);
         }
 
-        if ($fee->disable_status !== 'pending') {
-            return back()->with('error', 'No pending disable request.');
-        }
-
         $fee->update([
             'status' => 'disabled',
             'disable_status' => 'approved',
+            'disable_notes' => $request->notes,
             'disable_approved_by' => $user->id,
             'disable_approved_at' => now(),
         ]);
