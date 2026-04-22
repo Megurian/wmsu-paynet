@@ -46,8 +46,61 @@
    
 
         @if($status === 'pending')
-    <h3 class="text-xl font-semibold mb-4">Pending Fees</h3>
-    <p class="text-gray-500 italic">Pending fee approval requests for every organization will appear here.</p> <br>
+         <h3 class="text-xl font-semibold mb-4">Pending Fees</h3>
+         <p class="text-gray-500 italic">Pending fee approval requests for every organization will appear here.</p> <br>
+
+            <!-- DISABLE REQUESTS -->
+        @foreach($pendingDisableRequests as $request)
+            <div class="bg-white shadow rounded-lg p-4 mb-4 border-l-4 border-red-500">
+
+                <h3 class="text-lg font-semibold text-gray-800">
+                    Disable Request: {{ $request->fee->fee_name }}
+                </h3>
+
+                <p class="text-sm text-gray-500 mt-1">
+                    Requested by: {{ $request->requestedBy->name }}
+                </p>
+
+                <p class="text-sm text-gray-600 mt-2">
+                    Reason: {{ $request->reason }}
+                </p>
+
+                <button
+                    onclick="openDisableReviewModal({{ $request->id }}, `{{ $request->reason }}`)"
+                    class="mt-3 px-3 py-1 bg-blue-600 text-white rounded"
+                >
+                    Review
+                </button>
+
+            </div>
+        @endforeach
+
+
+        <!-- ENABLE REQUESTS -->
+        @foreach($pendingEnableRequests as $request)
+            <div class="bg-white shadow rounded-lg p-4 mb-4 border-l-4 border-green-500">
+
+                <h3 class="text-lg font-semibold text-gray-800">
+                    Enable Request: {{ $request->fee->fee_name }}
+                </h3>
+
+                <p class="text-sm text-gray-500 mt-1">
+                    Requested by: {{ $request->requestedBy->name }}
+                </p>
+
+                <p class="text-sm text-gray-600 mt-2">
+                    Reason: {{ $request->reason }}
+                </p>
+
+                <button
+                    onclick="openDisableReviewModal({{ $request->id }}, `{{ $request->reason }}`)"
+                    class="mt-3 px-3 py-1 bg-green-600 text-white rounded"
+                >
+                    Review
+                </button>
+
+            </div>
+        @endforeach
 
     @forelse($pendingFees as $fee)
 
@@ -205,7 +258,7 @@
             <label class="block text-sm font-medium text-gray-700 mb-1">
                 OSA Notes / Response
             </label>
-            <textarea name="notes" class="w-full border rounded p-2 mb-4" required></textarea>
+            <textarea name="note" class="w-full border rounded p-2 mb-4" required></textarea>
 
             <!-- Password Confirmation -->
             <label class="block text-sm font-medium text-gray-700 mb-1">
@@ -263,7 +316,7 @@ function openDisableReviewModal(feeId, reason) {
     document.getElementById('disableReasonText').innerText = reason;
 
     const form = document.getElementById('disableReviewForm');
-    form.dataset.feeId = feeId;
+    form.dataset.feeRequestId = feeId; // FIXED
 }
 
 function closeDisableReviewModal() {
@@ -272,18 +325,18 @@ function closeDisableReviewModal() {
 
 function setApproveAction() {
     const form = document.getElementById('disableReviewForm');
-    const feeId = form.dataset.feeId;
+    const requestId = form.dataset.feeRequestId;
 
-    form.action = `/osa/fees/${feeId}/disable/approve`;
+    form.action = `/osa/fee-requests/${requestId}/approve`;
     form.submit();
 }
 
 function setRejectAction() {
     const form = document.getElementById('disableReviewForm');
-    const feeId = form.dataset.feeId;
+    const requestId = form.dataset.feeRequestId;
 
-    form.action = `/osa/fees/${feeId}/disable/reject`;
-    form.submit(); 
+    form.action = `/osa/fee-requests/${requestId}/reject`;
+    form.submit();
 }
 </script>
 

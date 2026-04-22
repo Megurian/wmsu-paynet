@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Fee;
+use App\Models\FeeRequest;
 use App\Models\Organization;
 use App\Models\Document;
 use App\Models\SchoolYear;
@@ -39,6 +40,17 @@ class OSAFeesController extends Controller
             ->orderByDesc('approved_at')
             ->get();
 
+       $pendingDisableRequests = FeeRequest::with(['fee.organization', 'requestedBy'])
+            ->where('type', 'disable')
+            ->where('status', 'pending')
+            ->orderByDesc('created_at')
+            ->get();
+
+        $pendingEnableRequests = FeeRequest::with(['fee.organization', 'requestedBy'])
+            ->where('type', 'enable')
+            ->where('status', 'pending')
+            ->orderByDesc('created_at')
+            ->get();
         $disabledFees = Fee::with(['organization', 'user'])
             ->where('status', 'disabled')
             ->orderByDesc('updated_at')
@@ -97,7 +109,8 @@ class OSAFeesController extends Controller
 
         $organizations = Organization::orderBy('name')->get();
 
-        return view('osa.fees', compact('pendingFees', 'filteredFees', 'disabledFees', 'organizations', 'status', 'approvedFees'));
+        return view('osa.fees', compact('pendingFees', 'filteredFees',   'pendingDisableRequests',
+    'pendingEnableRequests', 'disabledFees', 'organizations', 'status', 'approvedFees'));
     }
 
     public function create()
@@ -323,49 +336,63 @@ class OSAFeesController extends Controller
         return redirect()->route('osa.fees')->with('success', 'Fee has been disabled.');
     }
 
-    public function approveDisable(Request $request, Fee $fee)
+    public function approveRequest(Request $request, FeeRequest $feeRequest)
     {
         $request->validate([
-            'notes' => 'nullable|string',
             'password' => 'required|string',
+            'note' => 'nullable|string',
         ]);
 
         $user = auth()->user();
 
         if (!\Illuminate\Support\Facades\Hash::check($request->password, $user->password)) {
-            return back()->withErrors(['password' => 'Incorrect password.']);
+            return back()->withErrors(['password' => 'Incorrect password']);
         }
 
-        $fee->update([
-            'status' => 'disabled',
-            'disable_status' => 'approved',
-            'disable_notes' => $request->notes,
-            'disable_approved_by' => $user->id,
-            'disable_approved_at' => now(),
+        $fee = $feeRequest->fee;
+
+        if ($feeRequest->type === 'disable') {
+            $fee->status = 'disabled';
+        }
+
+        if ($feeRequest->type === 'enable') {
+            $fee->status = 'approved';
+        }
+
+        $fee->save();
+
+        $feeRequest->update([
+            'status' => 'approved',
+            'reviewed_by' => $user->id,
+            'reviewed_at' => now(),
+            'review_note' => $request->note,
         ]);
 
-        return back()->with('success', 'Fee disabled successfully.');
+        return back()->with('success', 'Request approved.');
     }
 
-    public function rejectDisable(Request $request, Fee $fee)
+    public function rejectRequest(Request $request, FeeRequest $feeRequest)
     {
         $request->validate([
             'password' => 'required|string',
+            'note' => 'required|string',
         ]);
 
         $user = auth()->user();
 
         if (!\Illuminate\Support\Facades\Hash::check($request->password, $user->password)) {
-            return back()->withErrors(['password' => 'Incorrect password.']);
+            return back()->withErrors(['password' => 'Incorrect password']);
         }
 
-        $fee->update([
-            'disable_status' => 'rejected',
+        $feeRequest->update([
+            'status' => 'rejected',
+            'reviewed_by' => $user->id,
+            'reviewed_at' => now(),
+            'review_note' => $request->note,
         ]);
 
-        return back()->with('success', 'Disable request rejected.');
+        return back()->with('success', 'Request rejected.');
     }
-
     public function enable(Request $request, Fee $fee)
     {
         $request->validate([

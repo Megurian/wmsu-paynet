@@ -142,18 +142,18 @@ Route::middleware(['auth', 'role:osa', CheckActiveSchoolYear::class])->group(fun
    Route::get('/osa/remittance', [OSARemittanceController::class,'index'])
     ->name('osa.remittance');
 
-Route::post('/osa/remittance/confirm',
+    Route::post('/osa/remittance/confirm',
     [OSARemittanceController::class,'confirm'])
     ->name('osa.remittance.confirm');
 
-    Route::post('/osa/fees/{fee}/disable/approve', [OSAFeesController::class, 'approveDisable'])
-    ->name('osa.fees.disable.approve');
-
-Route::post('/osa/fees/{fee}/disable/reject', [OSAFeesController::class, 'rejectDisable'])
-    ->name('osa.fees.disable.reject');
-
     Route::post('/osa/fees/{fee}/enable', [OSAFeesController::class, 'enable'])
     ->name('osa.fees.enable');
+
+    Route::post('/osa/fee-requests/{feeRequest}/approve', [OSAFeesController::class, 'approveRequest'])
+    ->name('osa.fee-requests.approve');
+
+Route::post('/osa/fee-requests/{feeRequest}/reject', [OSAFeesController::class, 'rejectRequest'])
+    ->name('osa.fee-requests.reject');
 });
 
 Route::middleware(['auth', 'role:university_org'])->group(function () {
@@ -290,8 +290,8 @@ Route::middleware(['auth','role:college'])->group(function () {
         ->whereNumber('fee')
         ->name('college.fees.reject');
 
-    Route::post('/college/fees/{fee}/request-disable', [CollegeFeeApprovalController::class,'requestDisable'])->name('college.fees.request-disable');
-
+    Route::post('/college/fees/{fee}/request-disable', [CollegeFeeApprovalController::class, 'requestDisable']);
+    Route::post('/college/fees/{fee}/request-enable', [CollegeFeeApprovalController::class, 'requestEnable']);
     });
 
 Route::middleware(['auth', 'role:treasurer,college,student_coordinator,adviser,assessor,college_org'])->group(function () {

@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Fee;
+use App\Models\FeeRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Auth;
 
 class CollegeFeeApprovalController extends Controller
 {
@@ -128,53 +130,52 @@ class CollegeFeeApprovalController extends Controller
         return back()->with('success', 'Fee approved.');
     }
 
-    public function reject(Request $request, Fee $fee)
-    {
-        $user = auth()->user();
-        abort_unless($user, 403);
-
-        $request->validate([
-            'password' => 'required|string',
-        ]);
-
-        if (! Hash::check($request->password, $user->password)) {
-            return back()->withErrors(['password' => 'Password verification failed.'])->withInput();
-        }
-
-        abort_unless($fee->college_id === $user->college_id, 403);
-
-        $fee->update([
-            'status' => 'rejected',
-            'approved_by' => auth()->id(),
-            'approved_at' => now(),
-        ]);
-
-        return back()->with('success', 'Fee rejected.');
-    }
-
     public function requestDisable(Request $request, Fee $fee)
     {
-        $user = auth()->user();
-        abort_unless($user, 403);
-
         $request->validate([
             'reason' => 'required|string|max:1000',
         ]);
 
-        abort_unless($fee->college_id === $user->college_id, 403);
+        $user = Auth::user();
 
-        if ($fee->disable_status === 'pending') {
-            return back()->with('error', 'Disable request already pending.');
+        if ($fee->status === 'disabled') {
+            return back()->with('error', 'Already disabled.');
         }
 
-        $fee->update([
-            'disable_status' => 'pending',
-            'disable_reason' => $request->reason,
-            'disable_requested_at' => now(),
-            'disable_requested_by' => $user->id,
+        FeeRequest::create([
+            'fee_id' => $fee->id,
+            'type' => 'disable',
+            'status' => 'pending',
+            'reason' => $request->reason,
+            'requested_by' => $user->id,
+            'requested_at' => now(),
         ]);
 
-        return back()->with('success', 'Disable request sent to OSA for approval.');
+        return back()->with('success', 'Disable request sent to OSA.');
+    }
+
+    public function requestEnable(Request $request, Fee $fee)
+    {
+        $request->validate([
+            'reason' => 'required|string|max:1000',
+        ]);
+
+        $user = Auth::user();
+
+        if ($fee->status !== 'disabled') {
+            return back()->with('error', 'Fee is not disabled.');
+        }
+
+        FeeRequest::create([
+            'fee_id' => $fee->id,
+            'type' => 'enable',
+            'status' => 'pending',
+            'reason' => $request->reason,
+            'requested_by' => $user->id,
+            'requested_at' => now(),
+        ]);
+
+        return back()->with('success', 'Enable request sent to OSA.');
     }
 
   

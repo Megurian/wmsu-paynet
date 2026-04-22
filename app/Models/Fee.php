@@ -117,4 +117,11 @@ public function disableApprovedBy()
 {
     return $this->belongsTo(User::class, 'disable_approved_by');
 }
+
+// App\Models\Fee.php
+
+public function requests()
+{
+    return $this->hasMany(\App\Models\FeeRequest::class);
+}
 }

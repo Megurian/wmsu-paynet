@@ -238,7 +238,21 @@
     </div>
 </div>
 
+<div id="enableModal" class="hidden fixed inset-0 flex items-center justify-center">
+    <div class="bg-white p-6 rounded w-96">
+        <form id="enableForm" method="POST">
+            @csrf
+            <textarea name="reason" class="w-full border p-2" placeholder="Reason"></textarea>
+
+            <button class="mt-3 bg-green-600 text-white px-4 py-2 rounded">
+                Send Request
+            </button>
+        </form>
+    </div>
+</div>
+
 <script>
+
 function openFeeApproveModal(actionUrl) {
     const modal = document.getElementById('feeApproveModal');
     const form = document.getElementById('feeApproveForm');
@@ -268,6 +282,10 @@ function openDisableModal(feeId) {
 
 function closeDisableModal() {
     document.getElementById('disableFeeModal').classList.add('hidden');
+}
+function openEnableModal(id) {
+    document.getElementById('enableForm').action = `/college/fees/${id}/request-enable`;
+    document.getElementById('enableModal').classList.remove('hidden');
 }
 </script>
 @endsection
