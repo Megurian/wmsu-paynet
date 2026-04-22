@@ -739,8 +739,7 @@ class OrganizationPaymentController extends Controller
         $semesterId = $request->input('semester_id', $activeSemId);
 
         $students = Student::whereHas('enrollments', function ($q) use ($collegeId, $schoolYearId, $semesterId) {
-            $q->where('college_id', $collegeId)
-                ->whereIn('status', ['FOR_PAYMENT_VALIDATION', 'ENROLLED']);
+            $q->where('college_id', $collegeId);
 
             if ($schoolYearId) {
                 $q->where('school_year_id', $schoolYearId);
@@ -749,16 +748,12 @@ class OrganizationPaymentController extends Controller
             if ($semesterId) {
                 $q->where('semester_id', $semesterId);
             }
-        })->with(['enrollments' => function ($q) use ($schoolYearId, $semesterId) {
-            if ($schoolYearId) {
-                $q->where('school_year_id', $schoolYearId);
-            }
-            if ($semesterId) {
-                $q->where('semester_id', $semesterId);
-            }
-            $q->whereIn('status', ['FOR_PAYMENT_VALIDATION', 'ENROLLED']);
+        })
+        ->with(['enrollments' => function ($q) use ($schoolYearId, $semesterId) {
+            if ($schoolYearId) $q->where('school_year_id', $schoolYearId);
+            if ($semesterId) $q->where('semester_id', $semesterId);
         }, 'enrollments.course', 'enrollments.yearLevel', 'enrollments.section'])
-            ->get();
+        ->get();
 
         $paymentsQuery = Payment::with(['student', 'fees', 'enrollment.course', 'enrollment.yearLevel', 'enrollment.section'])
             ->where('organization_id', $organization->id)

@@ -202,7 +202,6 @@ Route::middleware(['auth', 'role:college_org'])->group(function () {
     Route::get('/college_org/dashboard', [CollegeOrgDashboardController::class, 'dashboard'])
     ->name('college_org.dashboard');
 
-    
 
     // Use controller so we can display inherited fees from the mother organization
     Route::get('/college_org/fees', [App\Http\Controllers\CollegeOrgFeesController::class, 'index'])->name('college_org.fees');

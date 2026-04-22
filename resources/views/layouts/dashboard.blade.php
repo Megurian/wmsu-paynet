@@ -56,7 +56,7 @@
             border-radius: 10px;
         }
         nav::-webkit-scrollbar-thumb:hover {
-            background: rgba(255, 255, 255, 0.4);
+            background: rgba(85, 51, 51, 0.4);
         }
 
     </style>
