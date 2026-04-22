@@ -233,6 +233,7 @@
                         <th class="px-6 py-3 text-left">Year & Section</th>
                         <th class="px-6 py-3 text-left">Collected By</th>
                         <th class="px-6 py-3 text-left">Date</th>
+                        <th class="px-6 py-3 text-left">Status</th>
                     </tr>
                 </thead>
 

@@ -125,6 +125,7 @@
                 <th>Student Name</th>
                 <th>Fee Name</th>
                 <th>Date Paid</th>
+                <th>Collected by</th>
                 <th class="text-right">Amount</th>
             </tr>
         </thead>
@@ -134,45 +135,46 @@
             @forelse($studentsWithPayments as $index => $item)
             @php
             $student = $item['student'];
-            $studentPayments = $item['payments'];
-            $pendingFees = $item['pendingFees'];
+            $enrollment = $item['enrollment'];
+            $fee = $item['fee'];
             @endphp
 
-            @if($studentPayments->isNotEmpty())
-            @foreach($studentPayments as $payment)
-            @php $total += $payment->amount_due; @endphp
+            @php
+            $amount = $item['amount'] ?? 0;
+            $total += $amount;
+            @endphp
+
             <tr>
-                <td>{{ $loop->parent->index + 1 }}</td>
+                <td>{{ $index + 1 }}</td>
+
                 <td>{{ $student->student_id ?? '-' }}</td>
-                <td>{{ $student->last_name }}, {{ $student->first_name }}</td>
+
                 <td>
-                    @foreach($payment->fees as $fee)
-                    <div>{{ $fee->fee_name }}</div>
-                    @endforeach
+                    {{ $student->last_name }}, {{ $student->first_name }} {{ $student->middle_name }}
                 </td>
-                <td>{{ $payment->created_at->format('Y-m-d') }}</td>
-                <td class="text-right">{{ number_format($payment->amount_due, 2) }}</td>
-            </tr>
-            @endforeach
-            @endif
 
-            @if($pendingFees->isNotEmpty())
-            @foreach($pendingFees as $fee)
-            <tr>
-                <td>{{ $loop->parent->index + 1 }}</td>
-                <td>{{ $student->student_id ?? '-' }}</td>
-                <td>{{ $student->last_name }}, {{ $student->first_name }}</td>
-                <td>{{ $fee->fee_name }} <small>(Pending)</small></td>
-                <td>-</td>
-                <td class="text-right">{{ number_format($fee->amount, 2) }}</td>
-            </tr>
-            @php $total += $fee->amount; @endphp
-            @endforeach
-            @endif
+                <td>
+                    {{ $fee->fee_name }}
+                    @if($item['status'] === 'Pending')
+                    <small>(Pending)</small>
+                    @endif
+                </td>
 
+                <td>
+                    {{ $item['payment_date'] ? \Carbon\Carbon::parse($item['payment_date'])->format('Y-m-d') : '-' }}
+                </td>
+
+                <td class="px-6 py-4"> {{ $item['collector']->first_name ?? 'NO PAYMENT COLLECTED' }} {{ $item['collector']->middle_name ?? '' }} {{ $item['collector']->last_name ?? '' }} </td>
+
+                <td class="text-right">
+                    {{ number_format($amount, 2) }}
+                </td>
+            </tr>
             @empty
             <tr>
-                <td colspan="6" style="text-align:center;">No payment records found.</td>
+                <td colspan="6" style="text-align:center;">
+                    No payment records found.
+                </td>
             </tr>
             @endforelse
         </tbody>

@@ -356,6 +356,11 @@
                     {{ request()->routeIs('college_org.records') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
                     <span>Records</span>
                 </a>
+
+                <a href="{{ route('college_org.organization_management') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('college_org.organization_management') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span>Organization Management</span>
+                </a>
             @endif
 
 

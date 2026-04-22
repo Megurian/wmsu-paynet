@@ -34,6 +34,7 @@ use App\Http\Controllers\OSAReportsController;
 use App\Http\Controllers\UniversityOrgDashboardController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\CollegeOrgDashboardController;
+use App\Http\Controllers\CollegeOrgManagementController;
 
 Route::get('/test-route', function () {
     return 'Laravel route works!';
@@ -240,7 +241,8 @@ Route::get('/college-org/generate-report',
     Route::post('/college_org/documents', [DocumentController::class, 'store'])->name('college_org.documents.store')->defaults('role', 'college_org');
     Route::get('/college_org/documents/{document}/preview', [DocumentController::class, 'preview'])->name('college_org.documents.preview');
     Route::delete('/college_org/documents/{document}', [DocumentController::class, 'destroy'])->name('college_org.documents.destroy');
-});
+    Route::get('/college_org/organization-management', [CollegeOrgManagementController::class, 'index'])->name('college_org.organization_management');
+    });
 
 Route::middleware(['auth','role:adviser'])->group(function(){
     Route::get('/college/students/my-upload', [AdviserStudentUploadController::class, 'index'])
