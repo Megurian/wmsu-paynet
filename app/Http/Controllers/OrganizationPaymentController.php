@@ -183,11 +183,12 @@ class OrganizationPaymentController extends Controller
                 ];
             });
 
-            $paidFeeIds = DB::table('fee_payment')
-                ->join('payments', 'fee_payment.payment_id', '=', 'payments.id')
-                ->where('payments.enrollment_id', $paymentEnrollment->id)
-                ->pluck('fee_payment.fee_id')
-                ->toArray();
+            $paidFeeIds = \App\Models\Fee::paidFeeIdsForStudentByPeriod(
+                $student->id,
+                $fees->pluck('id')->toArray(),
+                $paymentEnrollment->school_year_id,
+                $paymentEnrollment->semester_id
+            );
         }
 
         return response()->json([
@@ -508,13 +509,13 @@ class OrganizationPaymentController extends Controller
 
         $change = $request->cash_received - $totalAmount;
 
-        // Check for already-paid fees
-        $alreadyPaid = DB::table('fee_payment')
-            ->join('payments', 'fee_payment.payment_id', '=', 'payments.id')
-            ->where('payments.enrollment_id', $enrollment->id)
-            ->whereIn('fee_payment.fee_id', $request->fee_ids)
-            ->pluck('fee_payment.fee_id')
-            ->toArray();
+        // Check for already-paid fees with recurrence rules.
+        $alreadyPaid = \App\Models\Fee::paidFeeIdsForStudentByPeriod(
+            $student->id,
+            $request->fee_ids,
+            $enrollment->school_year_id,
+            $enrollment->semester_id
+        );
 
         if (!empty($alreadyPaid)) {
             $dupeCount = count($alreadyPaid);

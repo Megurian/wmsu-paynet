@@ -494,7 +494,7 @@ function paymentVerification() {
         },
 
         get unpaidMandatoryFees() {
-            return this.mandatoryFees.filter(fee => !fee.payments || fee.payments.length === 0);
+            return this.mandatoryFees.filter(fee => !fee.is_paid_for_active_context);
         },
 
         get optionalFees() {
@@ -502,7 +502,7 @@ function paymentVerification() {
         },
 
         get allMandatoryFeesPaid() {
-            return this.mandatoryFees.every(fee => fee.payments && fee.payments.length > 0);
+            return this.mandatoryFees.every(fee => fee.is_paid_for_active_context);
         },
 
         get activePromissoryNote() {

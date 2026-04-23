@@ -589,7 +589,7 @@ class ValidateStudentsController extends Controller
 
                 $selectedFees = collect($context['fees'] ?? [])->filter(function ($fee) use ($selectedFeeIds) {
                     return $fee->requirement_level === 'mandatory'
-                        && (! isset($fee->payments) || $fee->payments->isEmpty())
+                        && empty($fee->is_paid_for_active_context)
                         && $selectedFeeIds->contains((int) $fee->id);
                 });
 
@@ -647,6 +647,8 @@ class ValidateStudentsController extends Controller
     {
         $collegeId = Auth::user()->college_id;
         $activeEnrollment = $enrollment ?? $this->getActiveEnrollment($student);
+        $activeSY = SchoolYear::where('is_active', true)->first();
+        $activeSem = Semester::where('is_active', true)->first();
 
         if (! $collegeId || ! $activeEnrollment || $activeEnrollment->college_id !== $collegeId) {
             return [
@@ -659,10 +661,14 @@ class ValidateStudentsController extends Controller
             ];
         }
 
-        $fees = $this->getCollegeFeesForStudent($student, $collegeId);
+        $fees = $this->getCollegeFeesForStudent($student, $collegeId)
+            ->map(function ($fee) use ($activeSY, $activeSem) {
+                $fee->is_paid_for_active_context = $this->isFeePaidForActiveContext($fee, $activeSY, $activeSem);
+                return $fee;
+            });
         $mandatoryFees = $fees->where('requirement_level', 'mandatory');
         $allMandatoryFeesPaid = $mandatoryFees->isEmpty()
-            || $mandatoryFees->every(fn($fee) => isset($fee->payments) && $fee->payments->isNotEmpty());
+            || $mandatoryFees->every(fn($fee) => $fee->is_paid_for_active_context);
         $storedFinancialStatus = $activeEnrollment->financial_status ?? $activeEnrollment->computeFinancialStatus();
         $dueDateCeiling = $this->resolvePromissoryNoteDueDateCeiling($activeEnrollment);
 
@@ -793,14 +799,35 @@ class ValidateStudentsController extends Controller
             })
             ->with([
                 'organization',
-                'payments' => fn($q) => $q
-                    ->where('student_id', $student->id)
-                    ->when($activeSY, fn($q2) => $q2->where('school_year_id', $activeSY->id))
-                    ->when($activeSem, fn($q2) => $q2->where('semester_id', $activeSem->id)),
+                'payments' => fn($q) => $q->where('student_id', $student->id),
             ])
             ->get()
             ->unique('id')
             ->values();
+    }
+
+    private function isFeePaidForActiveContext(\App\Models\Fee $fee, ?SchoolYear $activeSY, ?Semester $activeSem): bool
+    {
+        $payments = collect($fee->payments ?? []);
+        $relevantPaid = $payments->reduce(function ($total, $payment) use ($fee, $activeSY, $activeSem) {
+            $amount = (float) ($payment->pivot->amount_paid ?? 0);
+
+            if ($fee->recurrence === 'one_time') {
+                return $total + $amount;
+            }
+
+            if ($fee->recurrence === 'annual') {
+                return $activeSY && $payment->school_year_id === $activeSY->id ? $total + $amount : $total;
+            }
+
+            if ($fee->recurrence === 'semestrial') {
+                return $activeSem && $payment->semester_id === $activeSem->id ? $total + $amount : $total;
+            }
+
+            return $total;
+        }, 0.0);
+
+        return $relevantPaid >= (float) $fee->amount;
     }
 
     private function getActiveEnrollment(Student $student): ?StudentEnrollment
