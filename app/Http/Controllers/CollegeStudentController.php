@@ -121,7 +121,7 @@ class CollegeStudentController extends Controller
         $activeSem = Semester::where('is_active', true)->first();
 
         if ($activeSY && $activeSem) {
-            StudentEnrollment::updateOrCreate(
+            $enrollment = StudentEnrollment::updateOrCreate(
                 [
                     'student_id' => $student->id,
                     'school_year_id' => $activeSY->id,
@@ -135,6 +135,18 @@ class CollegeStudentController extends Controller
                     'validated_by' => Auth::id(),
                     'validated_at' => now(),
                     'status' => 'ENROLLED', // Assuming admin adding means they are enrolled
+                ]
+            );
+
+            log_activity(
+                'Enroll Student',
+                "Enrolled student {$student->student_id}",
+                $student->id, null,null,
+                [
+                    'enrollment_id' => $enrollment->id,
+                    'course_id' => $request->course_id,
+                    'year_level_id' => $request->year_level_id,
+                    'section_id' => $request->section_id,
                 ]
             );
         }
@@ -151,9 +163,24 @@ class CollegeStudentController extends Controller
         // This preserves the student's identity and history in other colleges.
         $student->enrollments()->where('college_id', $collegeId)->delete();
 
+        log_activity(
+            'Remove Student Enrollment',
+            "Removed student {$student->student_id} from college",
+            $student->id, null,null,
+            [
+                'college_id' => $collegeId,
+            ]
+        );
+
         // If the student has no remaining enrollments anywhere, clean up.
         if ($student->enrollments()->doesntExist()) {
             $student->delete();
+
+            log_activity(
+                'Delete Student',
+                "Deleted student {$student->student_id}",
+                $student->id
+            );
         }
 
         return back()->with('status', 'Student removed successfully.');
@@ -178,6 +205,14 @@ class CollegeStudentController extends Controller
             ->where('semester_id', $activeSem->id)
             ->delete();
 
+            log_activity(
+                'Unvalidate Student',
+                "Removed student ID {$studentId} from current semester",
+                $studentId, null,null,
+                [
+                    'college_id' => $collegeId,
+                ]
+            );
         return back()->with('status', 'Student removed from current semester.');
     }
 
@@ -190,6 +225,8 @@ class CollegeStudentController extends Controller
         'field' => ['required', 'string', Rule::in(['name', 'email', 'contact', 'religion'])],
         'value' => ['required', 'string', 'max:255'],
     ]);
+
+     $oldValue = null;
 
     switch ($request->field) {
         case 'name':
@@ -212,6 +249,17 @@ class CollegeStudentController extends Controller
     }
 
     $student->save();
+
+    log_activity(
+            'Update Student Info',
+            "Updated {$request->field} of student {$student->student_id}",
+            $student->id, null,null,
+            [
+                'field' => $request->field,
+                'old_value' => $oldValue,
+                'new_value' => $request->value,
+            ]
+        );
 
     return back()->with('status', $request->field . ' updated successfully.');
 }

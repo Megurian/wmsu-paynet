@@ -67,7 +67,7 @@
 
             {{-- Courses --}}
            <div class="mb-6">
-                <label class="font-medium block mb-2">Courses</label>
+                <label class="font-medium block mb-2">Program/Courses</label>
 
                 <div class="flex gap-2 mb-3">
                     <input id="courseInput" type="text"
@@ -193,28 +193,8 @@
             <div class="mb-4">
                 <label class="block font-medium mb-1"> Email</label>
                 <input id="admin_email_input" type="email" name="admin_email" class="w-full border border-gray-300 px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400" placeholder="Enter Admin Email" required>
+                <p class="text-xs text-gray-500 mt-1">An invitation email will be sent so the admin can set their password and activate the account.</p>
                 <p id="emailFeedback" class="text-xs mt-1"></p>
-            </div>
-
-            <div class="mb-4">
-                <label class="block font-medium mb-1"> Password</label>
-                <div class="relative">
-                    <input id="admin_password" type="password" name="admin_password" class="w-full border border-gray-300 px-4 py-2 pr-10 rounded focus:outline-none focus:ring-2 focus:ring-blue-400" placeholder="Enter Password" required>
-                    <button type="button" class="toggle-password-btn absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500" aria-label="Toggle password visibility" onclick="togglePassword('admin_password', this)">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>
-                    </button>
-                </div>
-            </div>
-
-            <div class="mb-6">
-                <label class="block font-medium mb-1">Confirm Password</label>
-                <div class="relative">
-                    <input id="admin_password_confirmation" type="password" name="admin_password_confirmation" class="w-full border border-gray-300 px-4 py-2 pr-10 rounded focus:outline-none focus:ring-2 focus:ring-blue-400" placeholder="Confirm Password" required>
-                    <button type="button" class="toggle-password-btn absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500" aria-label="Toggle confirm password visibility" onclick="togglePassword('admin_password_confirmation', this)">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>
-                    </button>
-                    <p id="passwordFeedback" class="text-xs mt-1 text-red-600"></p>
-                </div>
             </div>
 
             <div class="flex justify-between">
@@ -381,17 +361,6 @@ function addItem(type, value = null) {
             .forEach(s => addItem('section', s));
     }
 
-    // Password visibility toggle
-    function togglePassword(inputId, btn) {
-        const input = document.getElementById(inputId);
-        if (!input) return;
-        const isPassword = input.type === 'password';
-        input.type = isPassword ? 'text' : 'password';
-        // swap icon
-        btn.innerHTML = isPassword ? getEyeOffIcon() : getEyeIcon();
-        btn.setAttribute('aria-pressed', isPassword ? 'true' : 'false');
-    }
-
     // Validate inputs per step. All fields are required except logo.
     function setListFeedback(type, msg) {
         const el = document.getElementById(`${type}Feedback`);
@@ -450,7 +419,7 @@ function addItem(type, value = null) {
             return ok;
         }
 
-        // Step 3: ensure admin info present and passwords match
+        // Step 3: ensure admin info present
         if (step === 3) {
             const requiredEls = stepEl.querySelectorAll('input[required], textarea[required], select[required]');
             for (const el of requiredEls) {
@@ -459,17 +428,6 @@ function addItem(type, value = null) {
                     el.focus();
                     return false;
                 }
-            }
-
-            const pw = document.getElementById('admin_password').value;
-            const pwc = document.getElementById('admin_password_confirmation').value;
-            const pwFeedback = document.getElementById('passwordFeedback');
-            if (pw !== pwc) {
-                if (pwFeedback) pwFeedback.textContent = 'Passwords do not match';
-                document.getElementById('admin_password_confirmation').focus();
-                return false;
-            } else {
-                if (pwFeedback) pwFeedback.textContent = '';
             }
 
             return true;
@@ -508,7 +466,6 @@ function addItem(type, value = null) {
             (adminMiddle ? ` ${adminMiddle}` : '') +
             (adminSuffix ? ` ${adminSuffix}` : '');
         const adminEmail = form.querySelector('input[name="admin_email"]').value.trim();
-        const adminPassword = form.querySelector('input[name="admin_password"]').value || '';
 
         const logoPreviewEl = document.getElementById('logoPreview');
         let logoHtml = '<p class="text-gray-500">No logo uploaded</p>';
@@ -519,9 +476,6 @@ function addItem(type, value = null) {
         const courses = (window.dataStore && window.dataStore.course) ? window.dataStore.course : (typeof dataStore !== 'undefined' && dataStore.course ? dataStore.course : []);
         const years = (window.dataStore && window.dataStore.year) ? window.dataStore.year : (typeof dataStore !== 'undefined' && dataStore.year ? dataStore.year : []);
         const sections = (window.dataStore && window.dataStore.section) ? window.dataStore.section : (typeof dataStore !== 'undefined' && dataStore.section ? dataStore.section : []);
-
-        // Mask password for security
-        const maskedPassword = adminPassword ? '•'.repeat(Math.max(4, adminPassword.length)) + `  (length: ${adminPassword.length})` : '<span class="text-gray-500">Not set</span>';
 
         const html = `
             <div class="space-y-3">
@@ -560,7 +514,7 @@ function addItem(type, value = null) {
                         <div><strong>Name:</strong> ${escapeHtml(adminFullName)}</div>
                         <div><strong>Email:</strong> ${escapeHtml(adminEmail)}</div>
                         <div id="preview-email-error" class="text-xs mt-1 text-red-600"></div>
-                        <div><strong>Password:</strong> ${maskedPassword}</div>
+                        <div class="text-sm text-gray-600 mt-2">An invitation email will be sent so the admin can set their password and activate the account.</div>
                     </div>
                 </div>
             </div>
@@ -588,7 +542,6 @@ function addItem(type, value = null) {
     let codeTimeout = null, emailTimeout = null;
     let codeAvailable = null, emailAvailable = null;
     let codePending = false, emailPending = false;
-    let passwordMismatch = false; // true when passwords don't match
 
     const codeInput = document.getElementById('college_code_input');
     const codeFeedback = document.getElementById('codeFeedback');
@@ -605,37 +558,11 @@ function addItem(type, value = null) {
     }
 
     // Live confirm-password validation
-    const pwInput = document.getElementById('admin_password');
-    const pwcInput = document.getElementById('admin_password_confirmation');
-    const pwFeedback = document.getElementById('passwordFeedback');
 
-    function checkPasswordMatch() {
-        const pv = pwInput ? pwInput.value : '';
-        const pvc = pwcInput ? pwcInput.value : '';
-        if (!pv && !pvc) {
-            passwordMismatch = false;
-            if (pwFeedback) pwFeedback.textContent = '';
-            toggleCreateDisabled();
-            return;
-        }
-        if (pv !== pvc) {
-            passwordMismatch = true;
-            if (pwFeedback) pwFeedback.textContent = 'Passwords do not match';
-        } else {
-            passwordMismatch = false;
-            if (pwFeedback) pwFeedback.textContent = '';
-        }
-        toggleCreateDisabled();
-    }
-
-    if (pwInput && pwcInput) {
-        pwInput.addEventListener('input', checkPasswordMatch);
-        pwcInput.addEventListener('input', checkPasswordMatch);
-    }
 
     function toggleCreateDisabled() {
         const step1Disabled = codeAvailable === false || codePending;
-        const finalDisabled = codeAvailable === false || emailAvailable === false || codePending || emailPending || passwordMismatch;
+        const finalDisabled = codeAvailable === false || emailAvailable === false || codePending || emailPending;
 
         // Open Preview / Create button
         if (openPreviewBtn) {

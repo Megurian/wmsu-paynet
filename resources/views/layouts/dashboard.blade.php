@@ -311,6 +311,11 @@
                     {{ request()->routeIs('college.local_organizations.approvals') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
                     <span>Organizations</span>
                 </a>
+
+                <a href="{{ route('college.logs') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('college.logs') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span>Logs</span>
+                </a>
             @endif
 
             @if(!empty(array_intersect($roles, ['student_coordinator', 'adviser', 'assessor'])))
@@ -356,6 +361,11 @@
                     {{ request()->routeIs('college_org.records') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
                     <span>Records</span>
                 </a>
+
+                <a href="{{ route('college_org.organization_management') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('college_org.organization_management') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span>Organization Management</span>
+                </a>
             @endif
 
 
@@ -363,6 +373,11 @@
                 <a href="{{ route('college.students.my-upload') }}" class="block px-4 py-2 rounded-md transition
                     {{ request()->routeIs('college.students.my-upload') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
                     <span>My Students</span>
+                </a>
+
+                <a href="{{ route('adviser.promissory_notes.index') }}" class="block px-4 py-2 rounded-md transition
+                    {{ request()->routeIs('adviser.promissory_notes.*') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                    <span>Promissory Notes</span>
                 </a>
             @endif
 

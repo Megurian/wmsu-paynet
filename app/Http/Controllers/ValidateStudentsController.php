@@ -31,7 +31,12 @@ class ValidateStudentsController extends Controller
         $activeSY = SchoolYear::where('is_active', true)->first();
         $activeSem = Semester::where('is_active', true)->first();
 
-        $studentsQuery = Student::whereHas('enrollments', function ($e) use ($collegeId, $request) {
+        $courseFilter = $request->query('course');
+        $yearFilter = $request->query('year');
+        $sectionFilter = $request->query('section');
+        $searchFilter = $request->query('search');
+
+        $studentsQuery = Student::whereHas('enrollments', function ($e) use ($collegeId, $courseFilter, $yearFilter, $sectionFilter) {
             $e->whereIn('id', function ($q) {
                 $q->selectRaw('MAX(id)')
                     ->from('student_enrollments')
@@ -39,21 +44,21 @@ class ValidateStudentsController extends Controller
             })
                 ->where('college_id', $collegeId);
 
-            if ($request->course) {
-                $e->where('course_id', $request->course);
+            if ($courseFilter) {
+                $e->where('course_id', $courseFilter);
             }
-            if ($request->year) {
-                $e->where('year_level_id', $request->year);
+            if ($yearFilter) {
+                $e->where('year_level_id', $yearFilter);
             }
-            if ($request->section) {
-                $e->where('section_id', $request->section);
+            if ($sectionFilter) {
+                $e->where('section_id', $sectionFilter);
             }
         })
-            ->when($request->search, function ($q) use ($request) {
-                $q->where(function ($sub) use ($request) {
-                    $sub->where('student_id', 'like', "%{$request->search}%")
-                        ->orWhere('first_name', 'like', "%{$request->search}%")
-                        ->orWhere('last_name', 'like', "%{$request->search}%");
+            ->when($searchFilter, function ($q) use ($searchFilter) {
+                $q->where(function ($sub) use ($searchFilter) {
+                    $sub->where('student_id', 'like', "%{$searchFilter}%")
+                        ->orWhere('first_name', 'like', "%{$searchFilter}%")
+                        ->orWhere('last_name', 'like', "%{$searchFilter}%");
                 });
             })
             ->with(['enrollments' => function ($q) {
@@ -103,7 +108,6 @@ class ValidateStudentsController extends Controller
             }
         }
 
-        // sort the paginated collection so advised students appear first
         $students->setCollection(
             $students->getCollection()->sortByDesc('isAdvised')
         );
@@ -162,6 +166,22 @@ class ValidateStudentsController extends Controller
                 'assessed_at'   => now(),
             ]
         );
+
+        log_activity(
+            'Validated Student',
+            "Assessed and enrolled student {$student->student_id}",
+            $student->id,
+            null,
+            null,
+            [
+                'action_by_role' => Auth::user()->role,
+                'course_id' => $request->course_id[$student->id],
+                'year_level_id' => $request->year_level_id[$student->id],
+                'section_id' => $request->section_id[$student->id],
+                'enrollment_id' => $enrollment->id ?? null,
+            ]
+        );
+                
         return back()->with('status', 'Student validated successfully.');
     }
 
@@ -210,6 +230,20 @@ class ValidateStudentsController extends Controller
                     'assessed_at' => now(),
                 ]
             );
+
+            log_activity(
+                'Bulk Validate Student',
+                "Validated student ID: {$studentId}",
+                $studentId,
+                null,
+                null,
+                [
+                    'assessed_by_role' => Auth::user()->role,
+                    'course_id' => $request->course_id[$studentId],
+                    'year_level_id' => $request->year_level_id[$studentId],
+                    'section_id' => $request->section_id[$studentId],
+                ]
+            );
         }
 
         return back()->with(
@@ -255,6 +289,20 @@ class ValidateStudentsController extends Controller
         if ($result['skipped'] > 0) {
             $message .= " {$result['skipped']} row(s) skipped (student ID exists with a different last name).";
         }
+
+        log_activity(
+            'Imported Students',
+            'Imported students via Excel file',
+            null,
+            null,
+            null,
+            [
+                'created' => $result['created'],
+                'updated' => $result['updated'],
+                'skipped' => $result['skipped'],
+                'uploaded_by' => Auth::id(),
+            ]
+        );
 
         return redirect()->back()->with('import_success', $message)
             ->with('import_skipped', $result['skipped_rows']);
@@ -351,6 +399,17 @@ class ValidateStudentsController extends Controller
             ]);
         }
 
+        log_activity(
+            'Marked Payment Completed',
+            "Marked student {$student->student_id} as paid",
+            $student->id,
+            null,
+            null,
+            [
+                'enrollment_id' => $enrollment->id,
+                'performed_by' => Auth::id(),
+            ]
+        );
         // no columns left to update; payment details are stored in payments table
 
         return back()->with('status', 'Payment marked as completed.');
@@ -401,7 +460,14 @@ class ValidateStudentsController extends Controller
             });
 
             if ($clearanceAudit) {
-                Log::info('Student cleared for enrollment', $clearanceAudit);
+                log_activity(
+                    'Cleared Student for Enrollment',
+                    "Student {$student->student_id} cleared for enrollment",
+                    $student->id,
+                    null,
+                    null,
+                    $clearanceAudit
+                );
             }
         } catch (\RuntimeException $e) {
             if ($e->getMessage() === 'financial_not_clearable') {
@@ -523,7 +589,7 @@ class ValidateStudentsController extends Controller
 
                 $selectedFees = collect($context['fees'] ?? [])->filter(function ($fee) use ($selectedFeeIds) {
                     return $fee->requirement_level === 'mandatory'
-                        && (! isset($fee->payments) || $fee->payments->isEmpty())
+                        && empty($fee->is_paid_for_active_context)
                         && $selectedFeeIds->contains((int) $fee->id);
                 });
 
@@ -544,13 +610,19 @@ class ValidateStudentsController extends Controller
                 );
             });
 
-            Log::info('Promissory note issued for student enrollment', [
+            log_activity(
+            'Issued Promissory Note',
+            "Issued promissory note for student {$student->student_id}",
+            $student->id,
+            null,
+            null,
+            [
                 'promissory_note_id' => $note->id,
-                'student_id' => $student->id,
                 'enrollment_id' => $note->enrollment_id,
                 'issued_by' => Auth::id(),
                 'original_amount' => $note->original_amount,
-            ]);
+            ]
+        );
         } catch (\RuntimeException $exception) {
             return back()->withErrors([
                 'promissory_note' => $exception->getMessage(),
@@ -575,6 +647,8 @@ class ValidateStudentsController extends Controller
     {
         $collegeId = Auth::user()->college_id;
         $activeEnrollment = $enrollment ?? $this->getActiveEnrollment($student);
+        $activeSY = SchoolYear::where('is_active', true)->first();
+        $activeSem = Semester::where('is_active', true)->first();
 
         if (! $collegeId || ! $activeEnrollment || $activeEnrollment->college_id !== $collegeId) {
             return [
@@ -587,10 +661,14 @@ class ValidateStudentsController extends Controller
             ];
         }
 
-        $fees = $this->getCollegeFeesForStudent($student, $collegeId);
+        $fees = $this->getCollegeFeesForStudent($student, $collegeId)
+            ->map(function ($fee) use ($activeSY, $activeSem) {
+                $fee->is_paid_for_active_context = $this->isFeePaidForActiveContext($fee, $activeSY, $activeSem);
+                return $fee;
+            });
         $mandatoryFees = $fees->where('requirement_level', 'mandatory');
         $allMandatoryFeesPaid = $mandatoryFees->isEmpty()
-            || $mandatoryFees->every(fn($fee) => isset($fee->payments) && $fee->payments->isNotEmpty());
+            || $mandatoryFees->every(fn($fee) => $fee->is_paid_for_active_context);
         $storedFinancialStatus = $activeEnrollment->financial_status ?? $activeEnrollment->computeFinancialStatus();
         $dueDateCeiling = $this->resolvePromissoryNoteDueDateCeiling($activeEnrollment);
 
@@ -721,14 +799,35 @@ class ValidateStudentsController extends Controller
             })
             ->with([
                 'organization',
-                'payments' => fn($q) => $q
-                    ->where('student_id', $student->id)
-                    ->when($activeSY, fn($q2) => $q2->where('school_year_id', $activeSY->id))
-                    ->when($activeSem, fn($q2) => $q2->where('semester_id', $activeSem->id)),
+                'payments' => fn($q) => $q->where('student_id', $student->id),
             ])
             ->get()
             ->unique('id')
             ->values();
+    }
+
+    private function isFeePaidForActiveContext(\App\Models\Fee $fee, ?SchoolYear $activeSY, ?Semester $activeSem): bool
+    {
+        $payments = collect($fee->payments ?? []);
+        $relevantPaid = $payments->reduce(function ($total, $payment) use ($fee, $activeSY, $activeSem) {
+            $amount = (float) ($payment->pivot->amount_paid ?? 0);
+
+            if ($fee->recurrence === 'one_time') {
+                return $total + $amount;
+            }
+
+            if ($fee->recurrence === 'annual') {
+                return $activeSY && $payment->school_year_id === $activeSY->id ? $total + $amount : $total;
+            }
+
+            if ($fee->recurrence === 'semestrial') {
+                return $activeSem && $payment->semester_id === $activeSem->id ? $total + $amount : $total;
+            }
+
+            return $total;
+        }, 0.0);
+
+        return $relevantPaid >= (float) $fee->amount;
     }
 
     private function getActiveEnrollment(Student $student): ?StudentEnrollment

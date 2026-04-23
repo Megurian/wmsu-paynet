@@ -56,6 +56,7 @@ class CollegeUserController extends Controller
     {
         
         $collegeId = Auth::user()->college_id;
+
         return view('college.create-user', [
             'courses' => Course::where('college_id', $collegeId)->get(),
         ]);
@@ -79,7 +80,7 @@ class CollegeUserController extends Controller
                     $request->last_name .
                     ($request->suffix ? ', ' . $request->suffix : '');
 
-        User::create([
+        $user = User::create([
             'first_name' => $request->first_name,
             'middle_name' => $request->middle_name,
             'last_name' => $request->last_name,
@@ -91,6 +92,18 @@ class CollegeUserController extends Controller
             'course_id' => $request->role === 'adviser' ? $request->course_id : null,
         ]);
 
+        log_activity(
+            'Create User',
+            "Created user {$user->email}",
+            null,              // studentId
+            $user->id,         // employeeId (user account)
+            Auth::id(),        // officerId (who performed action)
+            [
+                'role' => $user->role,
+                'course_id' => $user->course_id,
+            ]
+        );
+
         return redirect()->route('college.users.index', ['tab' => 'accounts'])
                         ->with('status', 'User created successfully!');
     }
@@ -100,6 +113,17 @@ class CollegeUserController extends Controller
         if ($user->college_id !== Auth::user()->college_id || !in_array($user->role, ['treasurer', 'student_coordinator', 'adviser', 'assessor'])) {
             abort(403, 'Unauthorized access.');
         }
+
+        log_activity(
+            'Delete User',
+            "Deleted user {$user->email}",
+            null,
+            $user->id,
+            Auth::id(),
+            [
+                'role' => $user->role,
+            ]
+        );
 
         $user->delete();
 
@@ -116,11 +140,25 @@ class CollegeUserController extends Controller
         $college = Auth::user()->college;
         abort_unless($college, 404);
 
+         $oldLogo = $college->logo;
+
         if ($request->hasFile('college_logo')) {
             $path = $request->file('college_logo')->store('college_logos', 'public');
             $college->logo = $path;
             $college->save();
         }
+
+        log_activity(
+            'Update College Logo',
+            "Updated college logo",
+            null,
+            null,
+            Auth::id(), 
+            [
+                'old_logo' => $oldLogo,
+                'new_logo' => $path,
+            ]
+        );
 
         return redirect()->route('college.users.index', ['tab' => 'college'])
                         ->with('status', 'College logo updated successfully!');
@@ -135,8 +173,23 @@ class CollegeUserController extends Controller
         $college = Auth::user()->college;
         abort_unless($college, 404);
 
+         $oldName = $college->name;
+
         $college->name = $request->college_name;
         $college->save();
+
+
+        log_activity(
+            'Update College Name',
+            "Changed college name from {$oldName} to {$college->name}",
+            null,
+            null,
+            Auth::id(),
+            [
+                'old_name' => $oldName,
+                'new_name' => $college->name,
+            ]
+        );
 
         return redirect()->route('college.users.index', ['tab' => 'college'])
                         ->with('status', 'College name updated successfully!');
@@ -152,8 +205,22 @@ class CollegeUserController extends Controller
             abort(403, 'Unauthorized access.');
         }
 
+        $oldCourse = $user->course_id;
+
         $user->course_id = $request->course_id;
         $user->save();
+
+                log_activity(
+            'Assign Course to Adviser',
+            "Assigned course to {$user->email}",
+            null,
+            $user->id,
+            Auth::id(),
+            [
+                'old_course_id' => $oldCourse,
+                'new_course_id' => $request->course_id,
+            ]
+        );
 
         return redirect()->route('college.users.index', ['tab' => 'accounts'])
                         ->with('status', 'Course assigned to adviser successfully!');
@@ -165,9 +232,22 @@ public function toggle(Employee $employee)
     abort_unless($user, 403);
     abort_unless($employee->college_id === $user->college_id, 403);
 
+    $oldStatus = $employee->is_active;
     $employee->update([
         'is_active' => !$employee->is_active
     ]);
+
+    log_activity(
+    'Toggle Employee Status',
+    "Toggled employee {$employee->id} status",
+    null,
+    $employee->id,
+    Auth::id(),
+    [
+        'old_status' => $oldStatus,
+        'new_status' => $employee->is_active,
+    ]
+);
 
     return back()->with('status', 'Employee status updated!');
 }

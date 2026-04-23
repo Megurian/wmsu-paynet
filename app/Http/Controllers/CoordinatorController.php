@@ -207,6 +207,18 @@ class CoordinatorController extends Controller
             'review_notes_provided' => ! empty($validated['review_notes'] ?? null),
         ]);
 
+        log_activity(
+            'Approve Promissory Note',
+            "Approved PN #{$note->id}",
+            $note->student_id,     // student_id (correct)
+            null,                  // employee_id
+            Auth::id(),           // officer_id (coordinator)
+            [
+                'promissory_note_id' => $note->id,
+                'approved_by' => Auth::id(),
+            ]
+        );
+
         if ($note->student?->email) {
             $note->student->notify(new PromissoryNoteSignatureApprovedNotification($note));
         }
@@ -230,6 +242,19 @@ class CoordinatorController extends Controller
             'rejected_by' => Auth::id(),
             'review_notes_provided' => ! empty($validated['review_notes'] ?? null),
         ]);
+
+        log_activity(
+            'Reject Promissory Note',
+            "Rejected PN #{$note->id}",
+            $note->student_id,     // student_id (correct)
+            null,
+            Auth::id(),
+            [
+                'promissory_note_id' => $note->id,
+                'rejected_by' => Auth::id(),
+                'reason' => $request->review_notes,
+            ]
+        );
 
         return back()->with('status', 'Promissory note returned for re-signing.');
     }

@@ -128,11 +128,12 @@ class TreasurerCashieringController extends Controller
             ];
         });
 
-        $paidFeeIds = DB::table('fee_payment')
-            ->join('payments', 'fee_payment.payment_id', '=', 'payments.id')
-            ->where('payments.enrollment_id', $enrollment->id)
-            ->pluck('fee_payment.fee_id')
-            ->toArray();
+        $paidFeeIds = \App\Models\Fee::paidFeeIdsForStudentByPeriod(
+            $student->id,
+            $fees->pluck('id')->toArray(),
+            $enrollment->school_year_id,
+            $enrollment->semester_id
+        );
 
         return response()->json([
             'student' => [
@@ -285,6 +286,13 @@ class TreasurerCashieringController extends Controller
             'cash_received' => 'required|numeric|min:0',
         ]);
 
+        Log::info('Cash payment initiated', [
+            'user_id' => $user->id,
+            'student_id' => $request->student_id,
+            'fee_ids' => $request->fee_ids,
+            'cash_received' => $request->cash_received,
+        ]);
+
         $collegeId = $user->college_id;
 
         if (!$collegeId) {
@@ -311,6 +319,10 @@ class TreasurerCashieringController extends Controller
             return response()->json(['message' => 'Student does not belong to this college.'], 403);
         }
 
+        Log::info('Enrollment resolved for payment', [
+            'enrollment_id' => $enrollment->id,
+            'status' => $enrollment->status,
+        ]);
         $outstandingPN = PromissoryNote::where('student_id', $student->id)
             ->whereIn('status', [
                 PromissoryNote::STATUS_ACTIVE,
@@ -332,6 +344,7 @@ class TreasurerCashieringController extends Controller
             ], 422);
         }
 
+
         $fees = Fee::whereIn('id', $request->fee_ids)
             ->where('fee_scope', 'college')
             ->where('college_id', $collegeId)
@@ -340,6 +353,7 @@ class TreasurerCashieringController extends Controller
                 $q->whereJsonContains('role', 'student_coordinator');
             })
             ->get();
+
 
         if ($fees->count() !== count($request->fee_ids)) {
             return response()->json(['message' => 'One or more fees do not exist or are not valid for college-level cashiering.'], 422);
@@ -362,13 +376,20 @@ class TreasurerCashieringController extends Controller
 
         $change = $request->cash_received - $totalAmount;
 
+        Log::info('Creating cash payment record', [
+            'student_id' => $student->id,
+            'enrollment_id' => $enrollment->id,
+            'total_amount' => $totalAmount,
+            'change' => $change,
+        ]);
+
         // Check for already-paid fees
-        $alreadyPaid = DB::table('fee_payment')
-            ->join('payments', 'fee_payment.payment_id', '=', 'payments.id')
-            ->where('payments.enrollment_id', $enrollment->id)
-            ->whereIn('fee_payment.fee_id', $request->fee_ids)
-            ->pluck('fee_payment.fee_id')
-            ->toArray();
+        $alreadyPaid = \App\Models\Fee::paidFeeIdsForStudentByPeriod(
+            $enrollment->student_id,
+            $request->fee_ids,
+            $enrollment->school_year_id,
+            $enrollment->semester_id
+        );
 
         if (!empty($alreadyPaid)) {
             $dupeCount = count($alreadyPaid);
@@ -413,6 +434,11 @@ class TreasurerCashieringController extends Controller
         $applicableFees = $this->getApplicableFeesForEnrollment($enrollment, $collegeId);
         $enrollment->updatePaymentStatusForApplicableFees($applicableFees);
 
+        Log::info('Cash payment successful', [
+            'payment_id' => $payment->id,
+            'transaction_id' => $transactionId,
+        ]);
+
         return response()->json([
             'message' => 'Payment collected successfully.',
             'payment_id' => $payment->id,
@@ -425,6 +451,8 @@ class TreasurerCashieringController extends Controller
                 'name' => "{$student->first_name} {$student->last_name}"
             ]
         ]);
+
+        
     }
 
     private function getApplicableFeesForEnrollment(StudentEnrollment $enrollment, int $collegeId)

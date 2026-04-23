@@ -4,6 +4,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\OSASetupController;
 use App\Http\Controllers\OSACollegeController;
 use App\Http\Controllers\OSADashController;
+use App\Http\Controllers\OSAFeesController;
 use App\Http\Controllers\OSARemittanceController;
 use App\Http\Controllers\OSAOrganizationsController;
 use App\Http\Controllers\OSASystemMaintenanceController;
@@ -13,6 +14,7 @@ use App\Http\Controllers\CollegeDashboardController;
 use App\Http\Controllers\CollegeHistoryController;
 use App\Http\Controllers\ValidateStudentsController;
 use App\Http\Controllers\CoordinatorController;
+use App\Http\Controllers\AdviserPromissoryNoteController;
 use App\Http\Controllers\UniversityOrgFeesController;
 use App\Http\Controllers\UniversityOrgReportsController;
 use App\Http\Controllers\UniversityOrgOfficesController;
@@ -34,6 +36,8 @@ use App\Http\Controllers\OSAReportsController;
 use App\Http\Controllers\UniversityOrgDashboardController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\CollegeOrgDashboardController;
+use App\Http\Controllers\CollegeOrgManagementController;
+use App\Http\Controllers\CollegeLogController;
 
 Route::get('/test-route', function () {
     return 'Laravel route works!';
@@ -78,6 +82,7 @@ Route::middleware(['auth', 'role:osa'])->group(function () {
     Route::post('/osa/setup/{id}/add-semester', [OSASetupController::class, 'addSemester'])->name('osa.setup.addSemester');
     Route::post('/osa/setup/{schoolYear}/start-semester/{semester}', [OSASetupController::class, 'startSemester'])->name('osa.setup.start-semester');
     Route::post('/osa/setup/{schoolYear}/end-semester', [OSASetupController::class, 'endSemester'])->name('osa.setup.end-semester');
+    Route::post('/osa/setup/{schoolYear}/toggle-auto', [OSASetupController::class, 'toggleSemesterAuto'])->name('osa.setup.toggle-auto');
 
     Route::get('/osa/system-maintenance', [OSASystemMaintenanceController::class, 'index'])
         ->name('osa.system-maintenance');
@@ -109,6 +114,7 @@ Route::middleware(['auth', 'role:osa', CheckActiveSchoolYear::class])->group(fun
     Route::get('/osa/organizations', [OSAOrganizationsController::class, 'index'])->name('osa.organizations');
     Route::get('/osa/organizations/create', [OSAOrganizationsController::class, 'create'])->name('osa.organizations.create');
     Route::post('/osa/organizations', [OSAOrganizationsController::class, 'store'])->name('osa.organizations.store');
+    Route::post('/osa/organizations/{organization}/resend-invite', [OSAOrganizationsController::class, 'resendInvite'])->name('osa.organizations.resendInvite');
     Route::get('/osa/organizations/{id}', [OSAOrganizationsController::class, 'show'])->name('osa.organizations.show');
     Route::delete('/osa/organizations/{id}', [OSAOrganizationsController::class, 'destroy'])->name('osa.organizations.destroy');
     Route::post('/osa/organizations/{id}/toggle-osa-inheritance', [OSAOrganizationsController::class, 'toggleOsaInheritance'])->name('osa.organizations.toggle-osa-inheritance');
@@ -117,6 +123,7 @@ Route::middleware(['auth', 'role:osa', CheckActiveSchoolYear::class])->group(fun
     Route::get('/osa/college', [OSACollegeController::class, 'index'])->name('osa.college');
     Route::get('/osa/college/create', [OSACollegeController::class, 'create'])->name('osa.college.create');
     Route::post('/osa/college', [OSACollegeController::class, 'store'])->name('osa.college.store');
+    Route::post('/osa/college/{college}/resend-invite', [OSACollegeController::class, 'resendInvite'])->name('osa.college.resendInvite');
 
     // AJAX validation endpoints (live uniqueness checks)
     Route::post('/osa/college/check-code', [OSACollegeController::class, 'checkCode'])->name('osa.college.checkCode');
@@ -140,9 +147,18 @@ Route::middleware(['auth', 'role:osa', CheckActiveSchoolYear::class])->group(fun
    Route::get('/osa/remittance', [OSARemittanceController::class,'index'])
     ->name('osa.remittance');
 
-Route::post('/osa/remittance/confirm',
+    Route::post('/osa/remittance/confirm',
     [OSARemittanceController::class,'confirm'])
     ->name('osa.remittance.confirm');
+
+    Route::post('/osa/fees/{fee}/enable', [OSAFeesController::class, 'enable'])
+    ->name('osa.fees.enable');
+
+    Route::post('/osa/fee-requests/{feeRequest}/approve', [OSAFeesController::class, 'approveRequest'])
+    ->name('osa.fee-requests.approve');
+
+Route::post('/osa/fee-requests/{feeRequest}/reject', [OSAFeesController::class, 'rejectRequest'])
+    ->name('osa.fee-requests.reject');
 });
 
 Route::middleware(['auth', 'role:university_org'])->group(function () {
@@ -179,6 +195,7 @@ Route::middleware(['auth', 'role:university_org'])->group(function () {
     Route::get('/university-org/offices', [UniversityOrgOfficesController::class, 'index'])->name('university_org.offices.index');
     Route::get('/university-org/offices/create', [UniversityOrgOfficesController::class, 'create'])->name('university_org.offices.create');
     Route::post('/university-org/offices', [UniversityOrgOfficesController::class, 'store'])->name('university_org.offices.store');
+    Route::post('/university-org/offices/{organization}/resend-invite', [UniversityOrgOfficesController::class, 'resendInvite'])->name('university_org.offices.resendInvite');
 
     // AJAX validation endpoints for organizations (live uniqueness checks)
     Route::post('/university-org/organizations/check-code', [UniversityOrgOfficesController::class, 'checkCode'])->name('university_org.organizations.checkCode');
@@ -240,7 +257,13 @@ Route::get('/college-org/generate-report',
     Route::post('/college_org/documents', [DocumentController::class, 'store'])->name('college_org.documents.store')->defaults('role', 'college_org');
     Route::get('/college_org/documents/{document}/preview', [DocumentController::class, 'preview'])->name('college_org.documents.preview');
     Route::delete('/college_org/documents/{document}', [DocumentController::class, 'destroy'])->name('college_org.documents.destroy');
-});
+    Route::get('/college_org/organization-management', [CollegeOrgManagementController::class, 'index'])->name('college_org.organization_management');
+    Route::put('/college_org/info/logo', [CollegeOrgManagementController::class, 'updateLogo'])
+    ->name('college_org.info.updateLogo');
+
+    Route::put('/college_org/info/name', [CollegeOrgManagementController::class, 'updateName'])
+    ->name('college_org.info.updateName');
+    });
 
 Route::middleware(['auth','role:adviser'])->group(function(){
     Route::get('/college/students/my-upload', [AdviserStudentUploadController::class, 'index'])
@@ -253,7 +276,8 @@ Route::middleware(['auth','role:adviser'])->group(function(){
     ->name('college.students.readd');
 
     Route::post('/college/students/readd/bulk', [AdviserStudentUploadController::class, 'reAddBulk'])->name('college.students.readd.bulk');
-});
+
+    });
 
 Route::middleware(['auth','role:college'])->group(function () {
     Route::get('/college/fees/approval', [CollegeFeeApprovalController::class, 'index'])
@@ -271,7 +295,13 @@ Route::middleware(['auth','role:college'])->group(function () {
     Route::post('/college/fees/{fee}/reject', [CollegeFeeApprovalController::class, 'reject'])
         ->whereNumber('fee')
         ->name('college.fees.reject');
-});
+
+    Route::post('/college/fees/{fee}/request-disable', [CollegeFeeApprovalController::class, 'requestDisable']);
+    Route::post('/college/fees/{fee}/request-enable', [CollegeFeeApprovalController::class, 'requestEnable']);
+
+        
+        
+    });
 
 Route::middleware(['auth', 'role:treasurer,college,student_coordinator,adviser,assessor,college_org'])->group(function () {
     // Route::get('/college/dashboard', function () {
@@ -395,6 +425,7 @@ Route::middleware(['auth', 'role:treasurer,college,student_coordinator,adviser,a
     Route::put('/employees/{employee}', [EmployeeController::class, 'update'])->name('employees.update');
     Route::delete('/employees/{employee}', [EmployeeController::class, 'destroy'])->name('employees.destroy');
     Route::post('/employees/{employee}/create-account', [EmployeeController::class, 'createAccount']);
+    Route::post('/employees/{employee}/resend-invite', [EmployeeController::class, 'resendInvite'])->name('employees.resendInvite');
     Route::post('/college/roles/bulk-assign', [EmployeeController::class, 'bulkAssign'])
     ->name('college.roles.bulkAssign');
     Route::post('/employees/{employee}/toggle', [EmployeeController::class, 'toggle'])
@@ -408,7 +439,13 @@ Route::middleware(['auth', 'role:treasurer,college,student_coordinator,adviser,a
     Route::post('/employees/preview', [EmployeeController::class, 'previewImport'])->name('employees.preview');
      Route::post('college/local_organizations/{org}/assign', [LocalOrgsController::class, 'assignOfficer'])
         ->name('college.local_organizations.assign');
-});
+    Route::post('college/local_organizations/officers/{officer}/resend-invite', [LocalOrgsController::class, 'resendOfficerInvite'])
+        ->name('college.local_organizations.officers.resendInvite');
+    Route::get('/college/logs', [CollegeLogController::class, 'index'])
+        ->name('college.logs');
+    Route::get('/college/logs', [CollegeLogController::class, 'index'])
+        ->name('college.logs');
+    });
 
 
     Route::middleware(['auth','role:assessor,student_coordinator'])->group(function(){
@@ -417,7 +454,9 @@ Route::middleware(['auth', 'role:treasurer,college,student_coordinator,adviser,a
     Route::post('/college/students/validate/bulk', [ValidateStudentsController::class, 'bulkValidate'])
         ->name('college.students.validate.bulk');
      Route::get('/college/students/{student}/fees', [ValidateStudentsController::class, 'getFeesForStudent']);
-});
+
+
+     });
 
     Route::middleware(['auth', 'role:student_coordinator'])->group(function () {
         Route::get('/college/promissory-notes', [CoordinatorController::class, 'index'])
@@ -434,6 +473,16 @@ Route::middleware(['auth', 'role:treasurer,college,student_coordinator,adviser,a
             ->name('college.promissory_notes.reject');
     });
 
+    Route::middleware(['auth', 'role:adviser'])->group(function () {
+        Route::get('/college/promissory-notes/adviser', [AdviserPromissoryNoteController::class, 'index'])
+            ->name('adviser.promissory_notes.index');
+        Route::get('/college/promissory-notes/adviser/{note}/document', [AdviserPromissoryNoteController::class, 'viewDocument'])
+            ->name('adviser.promissory_notes.document');
+        Route::post('/college/promissory-notes/adviser/{note}/approve-signature', [AdviserPromissoryNoteController::class, 'approveSignature'])
+            ->name('adviser.promissory_notes.approve');
+        Route::post('/college/promissory-notes/adviser/{note}/reject-signature', [AdviserPromissoryNoteController::class, 'rejectSignature'])
+            ->name('adviser.promissory_notes.reject');
+    });
 
 
 Route::middleware(['auth', 'role:treasurer'])->group(function () {

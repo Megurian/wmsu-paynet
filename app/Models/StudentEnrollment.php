@@ -4,9 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
+use App\Traits\LogsActivity;
 
 class StudentEnrollment extends Model
 {
+     use LogsActivity;
     const NOT_ENROLLED = 'NOT_ENROLLED';
     const FOR_PAYMENT_VALIDATION = 'FOR_PAYMENT_VALIDATION';
     const PAID = 'PAID';
@@ -206,12 +208,22 @@ class StudentEnrollment extends Model
         }
 
         $feeAmounts = $fees->pluck('amount', 'id');
+        $feeIds = $fees->pluck('id')->toArray();
         $paidAmounts = DB::table('fee_payment')
             ->join('payments', 'fee_payment.payment_id', '=', 'payments.id')
-            ->where('payments.enrollment_id', $this->id)
-            ->whereIn('fee_payment.fee_id', $fees->pluck('id')->toArray())
+            ->join('fees', 'fee_payment.fee_id', '=', 'fees.id')
+            ->where('payments.student_id', $this->student_id)
+            ->whereIn('fee_payment.fee_id', $feeIds)
             ->groupBy('fee_payment.fee_id')
-            ->select('fee_payment.fee_id', DB::raw('SUM(fee_payment.amount_paid) as amount_paid'))
+            ->selectRaw(
+                'fee_payment.fee_id, SUM(CASE
+                    WHEN fees.recurrence = "one_time" THEN fee_payment.amount_paid
+                    WHEN fees.recurrence = "annual" AND payments.school_year_id = ? THEN fee_payment.amount_paid
+                    WHEN fees.recurrence = "semestrial" AND payments.semester_id = ? THEN fee_payment.amount_paid
+                    ELSE 0
+                END) as amount_paid',
+                [$this->school_year_id, $this->semester_id]
+            )
             ->pluck('amount_paid', 'fee_payment.fee_id');
 
         $fullyPaid = $fees->every(function ($fee) use ($feeAmounts, $paidAmounts) {
@@ -260,4 +272,6 @@ class StudentEnrollment extends Model
     {
         return $query->where('financial_status', self::FINANCIAL_DEFERRED);
     }
+
+    
 }

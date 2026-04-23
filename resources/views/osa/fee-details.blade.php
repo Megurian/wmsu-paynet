@@ -13,7 +13,11 @@
     <div class="grid grid-cols-1 gap-4">
         <div>
             <h3 class="font-medium">Organization</h3>
-            <p class="text-gray-700">{{ $fee->organization->name }} ({{ $fee->organization->org_code }})</p>
+            <p class="text-gray-700">{{ $fee->organization?->name ?? 'No Organization' }}
+                @if($fee->organization)
+                    ({{ $fee->organization->org_code }})
+                @endif
+            </p>
         </div>
 
         <div>
@@ -179,11 +183,21 @@
         </div>
         <div class="flex justify-end mt-6 gap-3">
             @if($fee->status === 'pending')
-            <button id="approveBtn" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Approve</button>
+                <button id="approveBtn" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                    Approve
+                </button>
             @endif
-            @if($fee->status !== 'disabled')
-            <button id="disableBtn" class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">Disable</button>
+
+            @if($fee->status === 'disabled')
+                <button id="enableBtn" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                    Enable
+                </button>
+            @else
+                <button id="disableBtn" class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">
+                    Disable
+                </button>
             @endif
+
             <a href="{{ route('osa.fees') }}" class="px-4 py-2 border rounded">Back</a>
         </div>
 
@@ -228,6 +242,34 @@
                 </form>
             </div>
         </div>
+
+        <!-- Enable Modal -->
+        <div id="enableModal" class="hidden fixed inset-0 z-50 flex items-center justify-center">
+            <div class="fixed inset-0 bg-black bg-opacity-50"></div>
+            <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-4 z-10 p-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Confirm Enable</h3>
+                <p class="text-sm text-gray-500 mb-4">
+                    Enter your password to re-enable this fee.
+                </p>
+
+                <form method="POST" action="{{ route('osa.fees.enable', $fee->id) }}">
+                    @csrf
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                        <input type="password" name="password" required class="w-full border rounded px-3 py-2">
+                    </div>
+
+                    <div class="flex justify-end gap-2">
+                        <button type="button" onclick="closeEnableModal()" class="px-4 py-2 border rounded">
+                            Cancel
+                        </button>
+                        <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded">
+                            Confirm Enable
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -264,6 +306,21 @@ function openDisableModal() {
 
 function closeDisableModal() {
     document.getElementById('disableModal').classList.add('hidden');
+}
+const enableBtn = document.getElementById('enableBtn');
+if (enableBtn) {
+    enableBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        openEnableModal();
+    });
+}
+
+function openEnableModal() {
+    document.getElementById('enableModal').classList.remove('hidden');
+}
+
+function closeEnableModal() {
+    document.getElementById('enableModal').classList.add('hidden');
 }
 </script>
 @endsection

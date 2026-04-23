@@ -1,11 +1,22 @@
 @extends('layouts.dashboard')
 
-@section('title', 'Promissory Note Approvals')
-@section('page-title', 'Promissory Note Approvals')
-
-@section('content')
 @php
-    $tabs = [
+    $reviewerTitle = $reviewerTitle ?? 'Promissory Note Approvals';
+    $reviewerSubtitle = $reviewerSubtitle ?? 'Review uploaded signatures and move to the reporting dashboard for balances and delinquency counts.';
+    $reviewerNotesLabel = $reviewerNotesLabel ?? 'Coordinator Notes';
+    $routePrefix = $approvalRoutePrefix ?? 'college.promissory_notes';
+    $dashboardRouteName = $dashboardRouteName ?? 'college.promissory_notes.dashboard';
+    $indexRoute = $indexRoute ?? $routePrefix . '.index';
+    $documentRoute = $documentRoute ?? $routePrefix . '.document';
+    $approveRoute = $approveRoute ?? $routePrefix . '.approve';
+    $rejectRoute = $rejectRoute ?? $routePrefix . '.reject';
+    $pendingStatus = $pendingStatus ?? 'PENDING_VERIFICATION';
+    $pendingHeadingText = $pendingHeadingText ?? 'Awaiting coordinator review';
+    $pendingPanelText = $pendingPanelText ?? 'Your signed note has been uploaded. No further action is needed until review is complete.';
+    $approvalButtonText = $approvalButtonText ?? 'Approve Signature';
+    $rejectButtonText = $rejectButtonText ?? 'Reject and Return for Re-signing';
+
+    $tabs = $tabs ?? [
         'pending_verification' => 'Pending Review',
         'active' => 'Active',
         'closed' => 'Closed',
@@ -17,6 +28,7 @@
 
     $statusLabels = [
         'PENDING_SIGNATURE' => 'Pending Signature',
+        'PENDING_ADVISER_VERIFICATION' => 'Pending Adviser Review',
         'PENDING_VERIFICATION' => 'Pending Review',
         'ACTIVE' => 'Active',
         'VOIDED' => 'Voided',
@@ -27,6 +39,7 @@
 
     $statusClasses = [
         'PENDING_SIGNATURE' => 'bg-amber-100 text-amber-800 border-amber-200',
+        'PENDING_ADVISER_VERIFICATION' => 'bg-indigo-100 text-indigo-800 border-indigo-200',
         'PENDING_VERIFICATION' => 'bg-sky-100 text-sky-800 border-sky-200',
         'ACTIVE' => 'bg-emerald-100 text-emerald-800 border-emerald-200',
         'VOIDED' => 'bg-slate-100 text-slate-700 border-slate-200',
@@ -36,20 +49,27 @@
     ];
 @endphp
 
+@section('title', $reviewerTitle)
+@section('page-title', $reviewerTitle)
+
+@section('content')
+
 <div class="mb-6 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
     <div>
-        <h1 class="text-2xl font-semibold text-gray-900">Promissory Note Approvals</h1>
-        <p class="mt-1 text-sm text-gray-500">Review uploaded signatures and move to the reporting dashboard for balances and delinquency counts.</p>
+        <h1 class="text-2xl font-semibold text-gray-900">{{ $reviewerTitle }}</h1>
+        <p class="mt-1 text-sm text-gray-500">{{ $reviewerSubtitle }}</p>
     </div>
 
-    <a href="{{ route('college.promissory_notes.dashboard') }}" class="inline-flex items-center justify-center rounded-xl bg-red-800 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700">
-        Open PN Reports
-    </a>
+    @if($routePrefix === 'college.promissory_notes' && $dashboardRouteName)
+        <a href="{{ route($dashboardRouteName) }}" class="inline-flex items-center justify-center rounded-xl bg-red-800 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700">
+            Open PN Reports
+        </a>
+    @endif
 </div>
 
 <div class="mb-6 flex flex-wrap gap-2">
     @foreach($tabs as $key => $label)
-        <a href="{{ route('college.promissory_notes.index', ['tab' => $key]) }}"
+        <a href="{{ route($indexRoute, ['tab' => $key]) }}"
            class="rounded-full px-4 py-2 text-sm font-medium transition {{ $tab === $key ? 'bg-red-800 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300' }}">
             {{ $label }}
             @if(isset($counts[$key]))
@@ -60,7 +80,7 @@
 </div>
 
 <div class="mb-6 rounded-2xl border border-gray-200 bg-white p-5">
-    <form method="GET" action="{{ route('college.promissory_notes.index') }}" class="grid gap-3 md:grid-cols-2 lg:grid-cols-[1.8fr_1fr_1fr_1fr_auto] items-end">
+    <form method="GET" action="{{ route($indexRoute) }}" class="grid gap-3 md:grid-cols-2 lg:grid-cols-[1.8fr_1fr_1fr_1fr_auto] items-end">
         <input type="hidden" name="tab" value="{{ $tab }}">
 
         <div>
@@ -124,7 +144,7 @@
             <button type="submit" class="inline-flex items-center justify-center rounded-2xl bg-red-800 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700">
                 Apply
             </button>
-            <a href="{{ route('college.promissory_notes.index', ['tab' => $tab]) }}" class="inline-flex items-center justify-center rounded-2xl border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50">
+            <a href="{{ route($indexRoute, ['tab' => $tab]) }}" class="inline-flex items-center justify-center rounded-2xl border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50">
                 Reset
             </a>
         </div>
@@ -194,7 +214,7 @@
 
                         @if(! empty($note->notes))
                             <div class="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
-                                <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">Coordinator Notes</div>
+                                <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">{{ $reviewerNotesLabel }}</div>
                                 <p class="mt-1 whitespace-pre-line">{{ $note->notes }}</p>
                             </div>
                         @endif
@@ -207,10 +227,10 @@
                                     <div class="text-sm font-semibold text-gray-900">Uploaded Signed Copy</div>
                                     <div class="text-xs text-gray-500">{{ basename($note->document_path) }}</div>
                                 </div>
-                                <a href="{{ route('college.promissory_notes.document', $note) }}" target="_blank" class="rounded-lg bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-gray-200 hover:bg-gray-50">Open</a>
+                                <a href="{{ route($documentRoute, $note) }}" target="_blank" class="rounded-lg bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-gray-200 hover:bg-gray-50">Open</a>
                             </div>
                             <div class="overflow-hidden rounded-xl border border-gray-200 bg-white">
-                                <iframe src="{{ route('college.promissory_notes.document', $note) }}" class="h-[420px] w-full"></iframe>
+                                <iframe src="{{ route($documentRoute, $note) }}" class="h-[420px] w-full"></iframe>
                             </div>
                         @else
                             <div class="rounded-xl border border-dashed border-gray-300 bg-white p-4 text-sm text-gray-600">
@@ -218,9 +238,14 @@
                             </div>
                         @endif
 
-                        @if($note->status === 'PENDING_VERIFICATION')
+                        @if($note->status === $pendingStatus)
+                            <div class="mt-4 space-y-4 rounded-xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-900">
+                                <div class="font-semibold">{{ $pendingHeadingText }}</div>
+                                <div class="mt-1 text-sky-800">{{ $pendingPanelText }}</div>
+                            </div>
+
                             <div class="mt-4 space-y-4 rounded-xl border border-sky-200 bg-white p-4">
-                                <form method="POST" action="{{ route('college.promissory_notes.approve', $note) }}" class="space-y-3">
+                                <form method="POST" action="{{ route($approveRoute, $note) }}" class="space-y-3">
                                     @csrf
                                     <label class="flex items-start gap-2 text-sm text-gray-700">
                                         <input type="checkbox" name="review_confirmed" value="1" class="mt-1 rounded border-gray-300 text-red-800 focus:ring-red-500" required>
@@ -228,15 +253,15 @@
                                     </label>
                                     <textarea name="review_notes" rows="3" class="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm" placeholder="Optional review notes"></textarea>
                                     <button type="submit" class="w-full rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-500">
-                                        Approve Signature
+                                        {{ $approvalButtonText }}
                                     </button>
                                 </form>
 
-                                <form method="POST" action="{{ route('college.promissory_notes.reject', $note) }}" class="space-y-3">
+                                <form method="POST" action="{{ route($rejectRoute, $note) }}" class="space-y-3">
                                     @csrf
                                     <textarea name="review_notes" rows="2" class="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm" placeholder="Reason for rejection (optional)"></textarea>
                                     <button type="submit" class="w-full rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-500">
-                                        Reject and Return for Re-signing
+                                        {{ $rejectButtonText }}
                                     </button>
                                 </form>
                             </div>

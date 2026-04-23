@@ -538,6 +538,15 @@
         previewSummary.textContent = `The selected academic year is divided into ${suggestedTimeline.length} editable semester block${suggestedTimeline.length === 1 ? '' : 's'}.`;
     }
 
+    function showValidationModal(message) {
+        openConfirmModal({
+            title: 'Validation error',
+            message,
+            confirmText: 'OK',
+            onConfirm: () => {},
+        });
+    }
+
     function confirmNewSchoolYear() {
         const start = document.querySelector('input[name="sy_start"]').value;
         const end = document.querySelector('input[name="sy_end"]').value;
@@ -550,22 +559,22 @@
         const schoolYearEnd = parseDateInput(end);
 
         if (!start || !end) {
-            alert('Please select both start and end dates.');
+            showValidationModal('Please select both start and end dates.');
             return false;
         }
 
         if (start > end) {
-            alert('Start date cannot be after the end date.');
+            showValidationModal('Start date cannot be after the end date.');
             return false;
         }
 
         if (weights.length !== labels.length || weights.some((value) => !Number.isFinite(value) || value <= 0)) {
-            alert('Please enter valid semester lengths for every term.');
+            showValidationModal('Please enter valid semester lengths for every term.');
             return false;
         }
 
         if (semesterStartInputs.length !== labels.length || semesterEndInputs.length !== labels.length) {
-            alert('Please generate the semester timeline before submitting the form.');
+            showValidationModal('Please generate the semester timeline before submitting the form.');
             return false;
         }
 
@@ -576,34 +585,41 @@
             const semesterEnd = parseDateInput(semesterEndInputs[index]?.value);
 
             if (!semesterStart || !semesterEnd) {
-                alert(`Please enter valid start and end dates for ${labels[index]}.`);
+                showValidationModal(`Please enter valid start and end dates for ${labels[index]}.`);
                 return false;
             }
 
             if (semesterStart > semesterEnd) {
-                alert(`${labels[index]} must start on or before its end date.`);
+                showValidationModal(`${labels[index]} must start on or before its end date.`);
                 return false;
             }
 
             if (schoolYearStart && semesterStart < schoolYearStart) {
-                alert(`${labels[index]} starts before the selected academic year begins.`);
+                showValidationModal(`${labels[index]} starts before the selected academic year begins.`);
                 return false;
             }
 
             if (schoolYearEnd && semesterEnd > schoolYearEnd) {
-                alert(`${labels[index]} ends after the selected academic year ends.`);
+                showValidationModal(`${labels[index]} ends after the selected academic year ends.`);
                 return false;
             }
 
             if (previousEndDate && semesterStart <= previousEndDate) {
-                alert(`${labels[index]} must start after the previous semester ends.`);
+                showValidationModal(`${labels[index]} must start after the previous semester ends.`);
                 return false;
             }
 
             previousEndDate = semesterEnd;
         }
 
-        return confirm('Create this academic year and save the suggested semester schedule with your manual date edits?');
+        openConfirmModal({
+            title: 'Create Academic Year',
+            message: 'Create this academic year and save the suggested semester schedule with your manual date edits?',
+            confirmText: 'Create',
+            onConfirm: () => document.getElementById('academicYearForm').submit(),
+        });
+
+        return false;
     }
 
     document.addEventListener('DOMContentLoaded', () => {

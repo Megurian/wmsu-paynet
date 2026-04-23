@@ -92,9 +92,13 @@
 
             <div class="w-1/4 flex flex-col items-end gap-2">
 
-                <div class="text-right">
+                <div class="text-right space-y-2">
                     @if(!$employee->is_active)
                         <span class="text-xs text-red-500 font-semibold">Disabled Account</span>
+                    @elseif($employee->user && $employee->user->invitation_pending)
+                        <span class="text-xs inline-flex items-center px-2 py-1 rounded-full bg-yellow-100 text-yellow-800 font-semibold">Invitation Pending</span>
+                    @elseif($employee->user && $employee->user->invitation_expired)
+                        <span class="text-xs inline-flex items-center px-2 py-1 rounded-full bg-red-100 text-red-800 font-semibold">Invitation Expired</span>
                     @elseif($employee->has_account)
                         <span class="text-xs text-green-600 font-semibold">Active Account</span>
                     @else
@@ -102,8 +106,7 @@
                     @endif
                 </div>
 
-                <div class="flex gap-2">
-
+                <div class="flex flex-col items-end gap-2">
                     <button
                         onclick="openEditEmployeeModal({{ json_encode([
                             'id' => $employee->id,
@@ -129,7 +132,14 @@
                             Create
                         </button>
                     @else
-                        <span class="text-xs text-gray-400">Created</span>
+                        @if($employee->user && $employee->user->invitation_expired)
+                            <form action="{{ route('employees.resendInvite', $employee->id) }}" method="POST">
+                                @csrf
+                                <button type="submit" class="px-3 py-1 text-xs bg-red-50 text-red-600 rounded hover:bg-red-100">Resend Invitation</button>
+                            </form>
+                        @else
+                            <span class="text-xs text-gray-400">Created</span>
+                        @endif
                     @endif     
 
                 </div>
@@ -539,16 +549,8 @@
                         </p>
                     </div>
 
-                    <!-- PASSWORD -->
-                    <div>
-                        <label class="text-sm font-medium text-gray-700">Password</label>
-                        <input name="password" type="password" required
-                            placeholder="Enter secure password"
-                            class="mt-1 w-full border rounded-lg p-2 focus:ring-2 focus:ring-green-200 focus:border-green-400">
-
-                        <p class="text-xs text-gray-400 mt-1">
-                            Must be at least 6 characters.
-                        </p>
+                    <div class="text-sm text-gray-500 bg-yellow-50 border border-yellow-100 rounded-lg p-4">
+                        When you submit, the employee will receive an invitation email with a secure link to set their password.
                     </div>
 
                 </div>
@@ -641,6 +643,15 @@
     );
 </script>
 <script>
+function openCreateAccountModal(id, name, email, department) {
+    const modal = document.getElementById('createAccountModal');
+    modal.classList.remove('hidden');
+    document.getElementById('accountEmployeeName').innerText = name;
+    document.getElementById('createAccountForm').action = `/employees/${id}/create-account`;
+    document.getElementById('accountEmail').value = email ?? '';
+    modal.dataset.department = department || '';
+}
+
 function toggleOtherDepartment(select) {
     const input = document.getElementById('otherDepartmentInput');
 

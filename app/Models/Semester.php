@@ -10,7 +10,7 @@ class Semester extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['school_year_id', 'name', 'starts_at', 'will_end_at', 'is_active', 'started_at', 'ended_at'];
+    protected $fillable = ['school_year_id', 'name', 'starts_at', 'will_end_at', 'is_active', 'is_auto', 'started_at', 'ended_at'];
 
     protected $casts = [
         'starts_at' => 'date',
@@ -18,6 +18,7 @@ class Semester extends Model
         'started_at' => 'datetime',
         'ended_at' => 'datetime',
         'is_active' => 'boolean',
+        'is_auto' => 'boolean',
     ];
 
     public function schoolYear() {

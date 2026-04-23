@@ -64,6 +64,18 @@ class CollegeAcademicController extends Controller
             $status .= '. Skipped existing: ' . implode(', ', $existing);
         }
 
+        log_activity(
+            'Added Course(s)',
+            'Added course(s): ' . $newNames->implode(', '),
+             null,null,null,
+            [
+                'college_id' => $collegeId,
+                'added' => $newNames->values(),
+                'skipped' => $existing,
+                'performed_by' => $user->id,
+            ]
+        );
+
         return back()->with('status', $status);
     }
 
@@ -103,6 +115,18 @@ class CollegeAcademicController extends Controller
             $status .= '. Skipped existing: ' . implode(', ', $existing);
         }
 
+        log_activity(
+            'Added Year Level(s)',
+            'Added year level(s): ' . $newNames->implode(', '),
+             null,null,null,
+            [
+                'college_id' => $collegeId,
+                'added' => $newNames->values(),
+                'skipped' => $existing,
+                'performed_by' => $user->id,
+            ]
+        );
+
         return back()->with('status', $status);
     }
 
@@ -141,6 +165,18 @@ class CollegeAcademicController extends Controller
         if (!empty($existing)) {
             $status .= '. Skipped existing: ' . implode(', ', $existing);
         }
+
+        log_activity(
+            'Added Section(s)',
+            'Added section(s): ' . $newNames->implode(', '),
+             null,null,null,
+            [
+                'college_id' => $collegeId,
+                'added' => $newNames->values(),
+                'skipped' => $existing,
+                'performed_by' => $user->id,
+            ]
+        );
 
         return back()->with('status', $status);
     }
@@ -185,6 +221,17 @@ class CollegeAcademicController extends Controller
 
         $course->delete();
 
+        log_activity(
+            'Deleted Course',
+            "Deleted course: {$course->name}",
+             null,null,null,
+            [
+                'course_id' => $course->id,
+                'college_id' => $course->college_id,
+                'performed_by' => $user->id,
+            ]
+        );
+
         return back()->with('status', 'Course removed successfully.');
     }
 
@@ -206,6 +253,17 @@ class CollegeAcademicController extends Controller
 
         $yearLevel->delete();
 
+        log_activity(
+            'Deleted Year Level',
+            "Deleted year level: {$yearLevel->name}",
+             null,null,null,
+            [
+                'year_level_id' => $yearLevel->id,
+                'college_id' => $yearLevel->college_id,
+                'performed_by' => $user->id,
+            ]
+        );
+
         return back()->with('status', 'Year Level removed successfully.');
     }
 
@@ -226,6 +284,17 @@ class CollegeAcademicController extends Controller
         }
 
         $section->delete();
+
+        log_activity(
+            'Deleted Section',
+            "Deleted section: {$section->name}",
+            null,null,null,
+            [
+                'section_id' => $section->id,
+                'college_id' => $section->college_id,
+                'performed_by' => $user->id,
+            ]
+        );
 
         return back()->with('status', 'Section removed successfully.');
     }

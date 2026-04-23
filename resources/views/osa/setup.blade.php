@@ -182,8 +182,27 @@
         </div>
     </div>
 
-   <div class="px-5 py-4 border-t bg-gray-50 flex justify-end">
+   @php
+        $autoModeEnabled = $sy->semesters->isNotEmpty() && $sy->semesters->every(fn($semester) => $semester->is_auto);
+        $nextSemester = $sy->semesters->firstWhere(fn($s) => !$s->is_active && !$s->ended_at);
+        $academicYearCompleted = $sy->semesters->isNotEmpty() && !$nextSemester && $hasAllSemesters;
+    @endphp
+   <div class="px-5 py-4 border-t bg-gray-50 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
     @if($isActive)
+        <div class="flex items-center gap-3">
+            <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold {{ $academicYearCompleted ? 'bg-gray-100 text-gray-500' : ($autoModeEnabled ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-200 text-gray-700') }}">
+                Auto transition {{ $autoModeEnabled ? 'ON' : 'OFF' }}
+            </span>
+            <form method="POST" action="{{ route('osa.setup.toggle-auto', $sy->id) }}" class="inline">
+                @csrf
+                <button type="submit"
+                    @if($academicYearCompleted) disabled @endif
+                    aria-disabled="{{ $academicYearCompleted ? 'true' : 'false' }}"
+                    class="rounded-xl border px-4 py-2 text-sm font-semibold transition {{ $academicYearCompleted ? 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed' : ($autoModeEnabled ? 'border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100' : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-100') }}">
+                    {{ $autoModeEnabled ? 'Disable Auto' : 'Enable Auto' }}
+                </button>
+            </form>
+        </div>
         @if($activeSemester)
             {{-- END SEMESTER --}}
             <form  id="createForm" method="POST" 

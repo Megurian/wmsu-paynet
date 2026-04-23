@@ -12,8 +12,12 @@ class PromissoryNoteSignaturePendingNotification extends Notification implements
 {
     use Queueable;
 
-    public function __construct(public PromissoryNote $note)
-    {
+    public function __construct(
+        public PromissoryNote $note,
+        public string $actionUrl,
+        public string $subject,
+        public string $summary
+    ) {
     }
 
     public function via($notifiable): array
@@ -26,11 +30,11 @@ class PromissoryNoteSignaturePendingNotification extends Notification implements
         $studentName = $this->note->student?->full_name ?? trim(($this->note->student?->first_name ?? '') . ' ' . ($this->note->student?->last_name ?? ''));
 
         return (new MailMessage)
-            ->subject('Promissory note awaiting review')
-            ->line('A signed promissory note has been uploaded and is waiting for coordinator review.')
+            ->subject($this->subject)
+            ->line($this->summary)
             ->line('Student: ' . $studentName)
             ->line('PN ID: ' . $this->note->id)
             ->line('Remaining balance: ₱' . number_format((float) $this->note->remaining_balance, 2))
-            ->action('Review promissory notes', route('college.promissory_notes.index', ['tab' => 'pending_verification']));
+            ->action('Review promissory notes', $this->actionUrl);
     }
 }

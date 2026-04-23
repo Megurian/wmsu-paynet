@@ -29,6 +29,27 @@
         <!-- College Name & Code -->
         <h3 class="text-lg font-semibold">{{ $college->name }}</h3>
         <p class="text-gray-600 mb-2"><span class="font-medium">{{ $college->college_code }}</span></p>
+
+        @php
+            $dean = $college->users->first(fn($user) => in_array('college', (array) $user->role));
+        @endphp
+
+        @if($dean && ! $dean->invitation_active)
+            <div class="mb-3 inline-flex items-center gap-2">
+                @if($dean->invitation_pending)
+                    <span class="px-2 py-1 rounded-full bg-yellow-100 text-yellow-800 text-xs font-semibold">Invitation Pending</span>
+                @elseif($dean->invitation_expired)
+                    <span class="px-2 py-1 rounded-full bg-red-100 text-red-800 text-xs font-semibold">Invitation Expired</span>
+                @endif
+            </div>
+
+            @if($dean->invitation_expired)
+                <form action="{{ route('osa.college.resendInvite', $college->id) }}" method="POST" class="mt-2">
+                    @csrf
+                    <button type="submit" class="px-3 py-2 bg-red-700 text-white rounded text-xs hover:bg-red-800 transition">Resend Invitation</button>
+                </form>
+            @endif
+        @endif
  
         <div class="absolute top-2 right-2">
             <button onclick="document.getElementById('menu-{{ $college->id }}').classList.toggle('hidden')" 

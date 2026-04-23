@@ -37,11 +37,6 @@ class CollegeDashboardController extends Controller
         ])->with('message', 'No active school year or semester is currently set.');
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | STUDENTS (FILTERED FOR ADVISER)
-    |--------------------------------------------------------------------------
-    */
     $studentQuery = StudentEnrollment::query()
         ->where('school_year_id', $activeSY->id)
         ->where('semester_id', $activeSem->id)
@@ -55,18 +50,9 @@ class CollegeDashboardController extends Controller
 
     $totalStudents = $studentQuery->count();
 
-    /*
-    |--------------------------------------------------------------------------
-    | FEES (college-wide OR optionally adviser scope if needed)
-    |--------------------------------------------------------------------------
-    */
+   
     $totalFees = Fee::where('college_id', $collegeId)->count();
 
-    /*
-    |--------------------------------------------------------------------------
-    | PAYMENTS (IMPORTANT FIX)
-    |--------------------------------------------------------------------------
-    */
     $totalPayments = Payment::whereHas('student.enrollments', function ($q) use ($collegeId, $isAdviser, $adviserId, $activeSY, $activeSem) {
         $q->where('school_year_id', $activeSY->id)
           ->where('semester_id', $activeSem->id)
@@ -79,21 +65,12 @@ class CollegeDashboardController extends Controller
         }
     })->count();
 
-    /*
-    |--------------------------------------------------------------------------
-    | PENDING APPROVALS
-    |--------------------------------------------------------------------------
-    */
+ 
     $pendingApprovalsQuery = Fee::where('college_id', $collegeId)
         ->where('status', 'pending');
 
     $pendingApprovals = $pendingApprovalsQuery->count();
 
-    /*
-    |--------------------------------------------------------------------------
-    | RECENT STUDENTS
-    |--------------------------------------------------------------------------
-    */
     $recentStudentsQuery = StudentEnrollment::with('student')
         ->where('school_year_id', $activeSY->id)
         ->where('semester_id', $activeSem->id)
@@ -110,11 +87,6 @@ class CollegeDashboardController extends Controller
         ->take(5)
         ->get();
 
-    /*
-    |--------------------------------------------------------------------------
-    | RECENT FEES (unchanged unless you want adviser-specific fees)
-    |--------------------------------------------------------------------------
-    */
     $recentFees = Fee::where('college_id', $collegeId)
         ->latest()
         ->take(5)

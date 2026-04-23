@@ -14,7 +14,7 @@ class OrganizationOfficer extends Model
         'role',
         'semester_id',
         'is_active',
-        
+        'user_id',
     ];
 
     public function student()
@@ -25,5 +25,11 @@ class OrganizationOfficer extends Model
     public function organization()
     {
         return $this->belongsTo(Organization::class);
+    }
+
+    
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id');
     }
 }

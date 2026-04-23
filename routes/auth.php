@@ -22,6 +22,12 @@ Route::middleware('guest')->group(function () {
 
     Route::post('login', [AuthenticatedSessionController::class, 'store']);
 
+    Route::get('login/portal-choice', [AuthenticatedSessionController::class, 'showPortalChoice'])
+        ->name('login.choice');
+
+    Route::post('login/portal-choice', [AuthenticatedSessionController::class, 'choosePortal'])
+        ->name('login.choice.post');
+
     Route::get('forgot-password', [PasswordResetLinkController::class, 'create'])
         ->name('password.request');
 

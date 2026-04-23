@@ -33,11 +33,11 @@
                 </div>
                 <div>
                     <p class="text-gray-600 font-medium">Paid</p>
-                    <p class="text-2xl font-bold text-green-600" x-text="mandatoryFees.filter(f => f.payments && f.payments.length > 0).length"></p>
+                    <p class="text-2xl font-bold text-green-600" x-text="mandatoryFees.filter(f => f.is_paid_for_active_context).length"></p>
                 </div>
                 <div>
                     <p class="text-gray-600 font-medium">Pending</p>
-                    <p class="text-2xl font-bold text-yellow-600" x-text="mandatoryFees.filter(f => !f.payments || f.payments.length === 0).length"></p>
+                    <p class="text-2xl font-bold text-yellow-600" x-text="mandatoryFees.filter(f => !f.is_paid_for_active_context).length"></p>
                 </div>
             </div>
             <div class="mt-3 pt-3 border-t border-gray-300 text-sm">
@@ -92,12 +92,12 @@
                 </thead>
                 <tbody>
                     <template x-for="fee in mandatoryFees" :key="fee.id">
-                        <tr :class="fee.payments && fee.payments.length ? 'bg-green-50' : 'bg-yellow-50'" class="border-b border-gray-200 hover:bg-opacity-75 transition">
+                        <tr :class="fee.is_paid_for_active_context ? 'bg-green-50' : 'bg-yellow-50'" class="border-b border-gray-200 hover:bg-opacity-75 transition">
                             <td class="px-4 py-3 text-gray-700" x-text="fee.organization?.name || 'College'"></td>
                             <td class="px-4 py-3 font-medium text-gray-800" x-text="fee.fee_name"></td>
                             <td class="px-4 py-3 text-right font-semibold text-gray-800" x-text="`₱ ${parseFloat(fee.amount).toFixed(2)}`"></td>
                             <td class="px-4 py-3 text-center">
-                                <span class="text-xs px-2 py-1 rounded font-semibold" :class="fee.payments && fee.payments.length ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'" x-text="fee.payments && fee.payments.length ? 'PAID' : 'PENDING'"></span>
+                                <span class="text-xs px-2 py-1 rounded font-semibold" :class="fee.is_paid_for_active_context ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'" x-text="fee.is_paid_for_active_context ? 'PAID' : 'PENDING'"></span>
                             </td>
                             <td class="px-4 py-3 text-xs">
                                 <template x-if="fee.payments && fee.payments.length > 0">
@@ -166,12 +166,12 @@
                         </thead>
                         <tbody>
                             <template x-for="fee in optionalFees" :key="fee.id">
-                                <tr :class="fee.payments && fee.payments.length ? 'bg-green-50' : 'bg-gray-50'" class="border-b border-gray-200 hover:bg-opacity-75 transition">
+                                <tr :class="fee.is_paid_for_active_context ? 'bg-green-50' : 'bg-gray-50'" class="border-b border-gray-200 hover:bg-opacity-75 transition">
                                     <td class="px-4 py-3 text-gray-700" x-text="fee.organization?.name || 'College'"></td>
                                     <td class="px-4 py-3 font-medium text-gray-800" x-text="fee.fee_name"></td>
                                     <td class="px-4 py-3 text-right font-semibold text-gray-800" x-text="`₱ ${parseFloat(fee.amount).toFixed(2)}`"></td>
                                     <td class="px-4 py-3 text-center">
-                                        <span class="text-xs px-2 py-1 rounded font-semibold" :class="fee.payments && fee.payments.length ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'" x-text="fee.payments && fee.payments.length ? 'PAID' : 'PENDING'"></span>
+                                        <span class="text-xs px-2 py-1 rounded font-semibold" :class="fee.is_paid_for_active_context ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'" x-text="fee.is_paid_for_active_context ? 'PAID' : 'PENDING'"></span>
                                     </td>
                                     <td class="px-4 py-3 text-xs">
                                         <template x-if="fee.payments && fee.payments.length > 0">
@@ -188,7 +188,7 @@
                                                 </template>
                                             </div>
                                         </template>
-                                        <template x-if="!fee.payments || fee.payments.length === 0">
+                                        <template x-if="!fee.is_paid_for_active_context">
                                             <p class="text-gray-500 italic">—</p>
                                         </template>
                                     </td>

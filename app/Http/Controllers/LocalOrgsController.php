@@ -6,10 +6,13 @@ use App\Models\Organization;
 use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 use App\Models\Fee;
 use App\Models\OrganizationOfficer;
+use App\Notifications\CollegeAdminInvitationNotification;
 use Illuminate\Validation\ValidationException;
 
 use App\Models\Payment;
@@ -98,8 +101,21 @@ class LocalOrgsController extends Controller
                 'college_id' => $user->college_id,
                 'organization_id' => $org->id,
             ]);
-        });
 
+             log_activity(
+        'Create Organization',
+        "Created organization {$org->name} ({$org->org_code})",
+        null,
+        null,
+        null,
+        [
+            'organization_id' => $org->id,
+            'created_by' => $user->id,
+            'status' => 'pending'
+        ]
+    );
+
+        });
         return redirect()->route('college.local_organizations')
             ->with('success', 'Organization submitted for dean approval and initial admin created.');
     }
@@ -114,19 +130,9 @@ class LocalOrgsController extends Controller
                 ->where('status', 'approved')
                 ->get();
 
-        $officers = DB::table('organization_officers')
-            ->join('students', 'students.id', '=', 'organization_officers.student_id')
-            ->where('organization_officers.organization_id', $org->id)
-            ->where('organization_officers.is_active', true)
-            ->select(
-                'students.id',
-                'students.first_name',
-                'students.last_name',
-                'students.email',
-                'students.student_id',
-                'organization_officers.role',
-                'organization_officers.is_active'
-            )
+        $officers = OrganizationOfficer::with(['student', 'user'])
+            ->where('organization_id', $org->id)
+            ->where('is_active', true)
             ->get();
         $activeSY = \App\Models\SchoolYear::where('is_active', true)->first();
         $activeSem = \App\Models\Semester::where('is_active', true)->first();
@@ -144,60 +150,112 @@ class LocalOrgsController extends Controller
     }
 
 
-public function assignOfficer(Request $request, $orgId)
-{
-    $user = Auth::user();
-    abort_unless($user, 403);
+    public function assignOfficer(Request $request, $orgId)
+    {
+        $user = Auth::user();
+        abort_unless($user, 403);
 
-    $request->validate([
-        'student_id' => 'required|exists:students,id',
-        'role' => 'required|string',
-        'secondary_email' => 'required|email',
-        'password' => 'required|string|min:8|confirmed',
-    ]);
-
-    $activeSY = \App\Models\SchoolYear::where('is_active', true)->first();
-    $activeSem = \App\Models\Semester::where('is_active', true)->first();
-
-    abort_unless($activeSY && $activeSem, 500, 'Active school year or semester not set.');
-
-    $exists = OrganizationOfficer::where('organization_id', $orgId)
-        ->where('student_id', $request->student_id)
-        ->exists();
-
-    if ($exists) {
-        throw ValidationException::withMessages([
-            'student_id' => 'This student is already assigned as an officer.',
+        $request->validate([
+            'student_id' => 'required|exists:students,id',
+            'role' => 'required|string',
+            'secondary_email' => 'required|email|unique:users,email',
         ]);
+
+        $activeSY = \App\Models\SchoolYear::where('is_active', true)->first();
+        $activeSem = \App\Models\Semester::where('is_active', true)->first();
+
+        abort_unless($activeSY && $activeSem, 500, 'Active school year or semester not set.');
+
+        $exists = OrganizationOfficer::where('organization_id', $orgId)
+            ->where('student_id', $request->student_id)
+            ->exists();
+
+        if ($exists) {
+            throw ValidationException::withMessages([
+                'student_id' => 'This student is already assigned as an officer.',
+            ]);
+        }
+
+        DB::transaction(function () use ($request, $orgId, $activeSY, $activeSem) {
+
+            $student = \App\Models\Student::findOrFail($request->student_id);
+
+            $userAccount = User::create([
+                'first_name' => $student->first_name,
+                'middle_name' => $student->middle_name,
+                'last_name' => $student->last_name,
+                'suffix' => $student->suffix ?? null,
+                'email' => $request->secondary_email,
+                'password' => Hash::make(Str::random(64)),
+                'role' => 'college_org',
+                'college_id' => Auth::user()->college_id,
+                'organization_id' => $orgId,
+                'invitation_sent_at' => now(),
+            ]);
+
+            $roleLabel = ucwords(str_replace('_', ' ', $request->role));
+
+            $token = Password::broker()->createToken($userAccount);
+            $userAccount->notify(new CollegeAdminInvitationNotification(
+                $token,
+                $roleLabel,
+                Organization::find($orgId)?->name ?? 'Organization'
+            ));
+
+            $student->is_officer = true;
+            $student->save();
+
+            OrganizationOfficer::create([
+                'organization_id' => $orgId,
+                'student_id' => $request->student_id,
+                'user_id' => $userAccount->id,
+                'role' => $request->role,
+                'is_active' => true,
+                'school_year_id' => $activeSY->id,
+                'semester_id' => $activeSem->id,
+            ]);
+
+            log_activity(
+    'Assign Organization Officer',
+    "Assigned {$student->first_name} {$student->last_name} as {$request->role} in organization ID {$orgId}",
+    $request->student_id,
+    null,
+    null,
+    [
+        'organization_id' => $orgId,
+        'role' => $request->role,
+        'secondary_email' => $request->secondary_email,
+        'assigned_by' => Auth::id(),
+    ]
+);
+        });
+
+        return back()->with('success', 'Officer assigned and invitation email sent successfully.');
     }
 
-    DB::transaction(function () use ($request, $orgId, $activeSY, $activeSem) {
+    public function resendOfficerInvite(OrganizationOfficer $officer)
+    {
+        $user = Auth::user();
+        abort_unless($user, 403);
+        abort_unless($officer->organization->college_id === $user->college_id, 403);
 
-        User::create([
-            'first_name' => '',
-            'middle_name' => null,
-            'last_name' => '',
-            'email' => $request->secondary_email,
-            'password' => Hash::make($request->password),
-            'role' => 'college_org',
-            'college_id' => Auth::user()->college_id,
-            'organization_id' => $orgId,
-        ]);
+        $account = $officer->user;
+        if (! $account || $account->invitation_active) {
+            return back()->with('status', 'No pending invitation found.');
+        }
 
-        OrganizationOfficer::create([
-            'organization_id' => $orgId,
-            'student_id' => $request->student_id,
-            'role' => $request->role,
-            'secondary_email' => $request->secondary_email,
-            'password' => Hash::make($request->password),
-            'is_active' => true,
-            'school_year_id' => $activeSY->id,
-            'semester_id' => $activeSem->id,
-        ]);
-    });
+        $token = Password::broker()->createToken($account);
+        $account->update(['invitation_sent_at' => now()]);
 
-    return back()->with('success', 'Officer assigned and account created successfully.');
-}
+        $roleLabel = ucwords(str_replace('_', ' ', $officer->role));
+        $account->notify(new CollegeAdminInvitationNotification(
+            $token,
+            $roleLabel,
+            $officer->organization->name ?? 'Organization'
+        ));
+
+        return back()->with('success', 'Invitation link resent successfully.');
+    }
 
     public function cancelSubmission(Organization $org)
     {
@@ -206,6 +264,17 @@ public function assignOfficer(Request $request, $orgId)
         abort_unless($org->college_id === $user->college_id, 403);
 
         if ($org->status === 'pending') {
+             log_activity(
+        'Cancel Organization Submission',
+        "Canceled organization submission: {$org->name}",
+        null,
+        null,
+        null,
+        [
+            'organization_id' => $org->id,
+            'canceled_by' => Auth::id(),
+        ]
+    );
             $org->delete();
             return redirect()->route('college.local_organizations')->with('status', 'Submission canceled successfully.');
         }

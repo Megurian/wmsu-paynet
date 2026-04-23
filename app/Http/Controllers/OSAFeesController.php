@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Fee;
+use App\Models\FeeRequest;
 use App\Models\Organization;
 use App\Models\Document;
 use App\Models\SchoolYear;
@@ -13,24 +14,22 @@ use Illuminate\Support\Facades\Auth;
 class OSAFeesController extends Controller
 {
     public function index(Request $request)
-    {
-        // show pending fees for OSA to review (includes fees with pending appeals)
+{
         $pendingFees = Fee::with(['organization', 'user', 'appeals'])
-            ->where(function ($q) {
-                $q->where(function ($q2) {
-                    // Fees specifically pending for OSA (organization or university-wide)
-                    $q2->whereIn('fee_scope', ['organization', 'university-wide'])
-                        ->where('status', 'pending');
-                })
-                    ->orWhere(function ($q3) {
-                        // College fees assigned to OSA
-                        $q3->where('fee_scope', 'college')
-                            ->where('approval_level', 'osa')
-                            ->where('status', 'pending');
-                    })
-                    ->orWhereHas('appeals', function ($q4) {
-                        $q4->where('status', 'pending');
-                    });
+        ->where(function ($q) {
+
+            $q->where(function ($q2) {
+                $q2->whereIn('fee_scope', ['organization', 'university-wide'])
+                    ->where('status', 'pending');
+            })
+            ->orWhere(function ($q3) {
+                $q3->where('fee_scope', 'college')
+                    ->where('approval_level', 'osa')
+                    ->where('status', 'pending');
+            })
+            ->orWhere(function ($q4) {
+                $q4->where('disable_status', 'pending');
+            });
             })
             ->orderBy('created_at', 'desc')
             ->get();
@@ -41,16 +40,35 @@ class OSAFeesController extends Controller
             ->orderByDesc('approved_at')
             ->get();
 
+       $pendingDisableRequests = FeeRequest::with(['fee.organization', 'requestedBy'])
+            ->where('type', 'disable')
+            ->where('status', 'pending')
+            ->orderByDesc('created_at')
+            ->get();
 
-        // Status filter (default to approved)
+        $pendingEnableRequests = FeeRequest::with(['fee.organization', 'requestedBy'])
+            ->where('type', 'enable')
+            ->where('status', 'pending')
+            ->orderByDesc('created_at')
+            ->get();
+        $disabledFees = Fee::with([
+            'organization',
+            'user',
+            'feeRequests' => function ($q) {
+                $q->where('type', 'disable')
+                ->where('status', 'approved')
+                ->latest();
+            }
+        ])
+        ->where('status', 'disabled')
+        ->orderByDesc('updated_at')
+        ->get();
+
         $status = $request->get('status', 'approved');
 
-        // Show university-wide fees and college-organization fees (exclude college-local/student-coordinator entries)
         $filteredQuery = Fee::with(['organization', 'user'])
             ->where(function ($q) {
-                // university-wide fees (OSA and university orgs)
                 $q->where('fee_scope', 'university-wide')
-                    // college fees that are tied to a college organization (organization_id NOT NULL)
                     ->orWhere(function ($q2) {
                         $q2->where('fee_scope', 'college')
                             ->whereNotNull('organization_id');
@@ -58,20 +76,23 @@ class OSAFeesController extends Controller
             });
 
         if ($status === 'approved') {
-            $filteredQuery->where('status', 'approved')
-                ->whereDoesntHave('appeals', function ($q) {
-                    $q->where('status', 'pending');
-                });
+            $filteredQuery->where('status', 'approved');
+
         } elseif ($status === 'pending') {
             $filteredQuery->where(function ($q) {
                 $q->where('status', 'pending')
-                    ->orWhereHas('appeals', function ($q2) {
-                        $q2->where('status', 'pending');
-                    });
+                ->orWhere('disable_status', 'pending');
             });
+
         } elseif ($status === 'disabled') {
             $filteredQuery->where('status', 'disabled');
-        } // 'all' or any other value will not apply a status filter
+
+        } else {
+            $filteredQuery->where(function ($q) {
+                $q->whereIn('status', ['approved', 'pending', 'disabled'])
+                ->orWhereNotNull('disable_status');
+            });
+        }
 
         // Other filters
         if ($request->filled('organization_id')) {
@@ -96,7 +117,8 @@ class OSAFeesController extends Controller
 
         $organizations = Organization::orderBy('name')->get();
 
-        return view('osa.fees', compact('pendingFees', 'filteredFees', 'organizations', 'status', 'approvedFees'));
+        return view('osa.fees', compact('pendingFees', 'filteredFees',   'pendingDisableRequests',
+    'pendingEnableRequests', 'disabledFees', 'organizations', 'status', 'approvedFees'));
     }
 
     public function create()
@@ -157,7 +179,7 @@ class OSAFeesController extends Controller
             // OSA-created fees are auto-approved
             'status' => 'approved',
         ];
-      
+
         $data['created_school_year_id'] = $activeSY->id;
         $data['created_semester_id'] = $activeSem->id;
 
@@ -320,5 +342,100 @@ class OSAFeesController extends Controller
         $fee->save();
 
         return redirect()->route('osa.fees')->with('success', 'Fee has been disabled.');
+    }
+
+    public function approveRequest(Request $request, FeeRequest $feeRequest)
+    {
+        $request->validate([
+            'password' => 'required|string',
+            'note' => 'nullable|string',
+        ]);
+
+        $user = auth()->user();
+
+        if (!\Illuminate\Support\Facades\Hash::check($request->password, $user->password)) {
+            return back()->withErrors(['password' => 'Incorrect password']);
+        }
+
+        $fee = $feeRequest->fee;
+
+        if ($feeRequest->type === 'disable') {
+
+            $fee->status = 'disabled';
+            $fee->save();
+
+            $feeRequest->update([
+                'status' => 'approved',
+                'reviewed_by' => $user->id,
+                'reviewed_at' => now(),
+                'review_note' => $request->note,
+                'disable_approved_at' => now(), 
+            ]);
+        }
+
+        if ($feeRequest->type === 'enable') {
+
+            $fee->status = 'approved';
+            $fee->save();
+
+            $feeRequest->update([
+                'status' => 'approved',
+                'reviewed_by' => $user->id,
+                'reviewed_at' => now(),
+                'review_note' => $request->note,
+                'enable_approved_at' => now(), 
+            ]);
+        }
+
+        return back()->with('success', 'Request approved.');
+    }
+
+    public function rejectRequest(Request $request, FeeRequest $feeRequest)
+    {
+        $request->validate([
+            'password' => 'required|string',
+            'note' => 'required|string',
+        ]);
+
+        $user = auth()->user();
+
+        if (!\Illuminate\Support\Facades\Hash::check($request->password, $user->password)) {
+            return back()->withErrors(['password' => 'Incorrect password']);
+        }
+
+        $feeRequest->update([
+            'status' => 'rejected',
+            'reviewed_by' => $user->id,
+            'reviewed_at' => now(),
+            'review_note' => $request->note,
+        ]);
+
+        return back()->with('success', 'Request rejected.');
+    }
+    public function enable(Request $request, Fee $fee)
+    {
+        $request->validate([
+            'password' => 'required|string',
+        ]);
+
+        $user = Auth::user();
+
+        if (!\Illuminate\Support\Facades\Hash::check($request->password, $user->password)) {
+            return back()->withErrors(['password' => 'Password verification failed.']);
+        }
+
+        if ($fee->status !== 'disabled') {
+            return back()->with('error', 'Only disabled fees can be enabled.');
+        }
+
+        $fee->update([
+            'status' => 'approved',
+            'disable_status' => null,
+            'disable_notes' => null,
+            'disable_approved_at' => null,
+            'disable_approved_by' => null,
+        ]);
+
+        return back()->with('success', 'Fee has been re-enabled.');
     }
 }

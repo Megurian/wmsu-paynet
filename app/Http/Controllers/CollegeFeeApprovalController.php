@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Fee;
+use App\Models\FeeRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Auth;
 
 class CollegeFeeApprovalController extends Controller
 {
@@ -29,12 +31,23 @@ class CollegeFeeApprovalController extends Controller
             })
             ->orderByDesc('created_at')
             ->get();
-
-        // Base approved college fees
-        $allFees = (clone $baseQuery)
+        $pendingRequests = FeeRequest::with(['fee.organization', 'requestedBy'])
+            ->where('status', 'pending')
+            ->latest()
+            ->get();
+            
+       $approvedFees = (clone $baseQuery)
             ->where('status', 'approved')
+            ->whereDoesntHave('feeRequests', function ($q) {
+                $q->where('status', 'pending')
+                ->whereIn('type', ['disable', 'enable']);
+            })
             ->orderByDesc('approved_at')
             ->get();
+        $disabledFees = (clone $baseQuery)
+        ->where('status', 'disabled')
+        ->orderByDesc('disable_approved_at')
+        ->get();
 
         // Include fees inherited by child organizations under this college
         $childOrgs = \App\Models\Organization::where('college_id', $collegeId)
@@ -47,8 +60,12 @@ class CollegeFeeApprovalController extends Controller
         $inheritedFees = collect();
 
         if (!empty($motherOrgIds)) {
-            $inheritedFees = \App\Models\Fee::with(['organization.motherOrganization'])
+           $inheritedFees = \App\Models\Fee::with(['organization.motherOrganization'])
                 ->where('status', 'approved')
+                ->whereDoesntHave('feeRequests', function ($q) {
+                    $q->where('status', 'pending')
+                    ->whereIn('type', ['disable', 'enable']);
+                })
                 ->whereIn('organization_id', $motherOrgIds)
                 ->get();
 
@@ -59,6 +76,10 @@ class CollegeFeeApprovalController extends Controller
                 if ($osaId) {
                     $osaFees = \App\Models\Fee::with(['organization.motherOrganization'])
                         ->where('status', 'approved')
+                        ->whereDoesntHave('feeRequests', function ($q) {
+                            $q->where('status', 'pending')
+                            ->whereIn('type', ['disable', 'enable']);
+                        })
                         ->where('organization_id', $osaId)
                         ->get();
 
@@ -68,9 +89,9 @@ class CollegeFeeApprovalController extends Controller
         }
 
         // Merge, dedupe and order by approved_at (desc)
-        $allFees = $allFees->merge($inheritedFees)->unique('id')->sortByDesc('approved_at')->values();
+        $approvedFees = $approvedFees->merge($inheritedFees)->unique('id')->sortByDesc('approved_at')->values();
 
-        return view('college.fees.approval', compact('pendingFees', 'allFees', 'tab'));
+        return view('college.fees.approval', compact('pendingFees', 'approvedFees', 'pendingRequests','disabledFees', 'tab'));
     }
 
     /**
@@ -120,30 +141,108 @@ class CollegeFeeApprovalController extends Controller
             'approved_at' => now(),
         ]);
 
+        log_activity(
+        'Fee Forwarded to OSA',
+            "Fee '{$fee->fee_name}' forwarded to OSA for final approval",
+            null, null, null,
+            [
+                'fee_id' => $fee->id,
+                'college_id' => $fee->college_id,
+                'from_level' => 'dean',
+                'to_level' => 'osa',
+                'action_by' => $user->id,
+            ]
+        );
+
+        log_activity(
+            'Fee Approved',
+            "Fee '{$fee->fee_name}' approved by dean",
+            null, null, null,
+            [
+                'fee_id' => $fee->id,
+                'college_id' => $fee->college_id,
+                'approved_by' => $user->id,
+                'approved_at' => now(),
+                'final_status' => 'approved',
+            ]
+        );
+
         return back()->with('success', 'Fee approved.');
     }
 
-    public function reject(Request $request, Fee $fee)
+    public function requestDisable(Request $request, Fee $fee)
     {
-        $user = auth()->user();
-        abort_unless($user, 403);
-
         $request->validate([
-            'password' => 'required|string',
+            'reason' => 'required|string|max:1000',
         ]);
 
-        if (! Hash::check($request->password, $user->password)) {
-            return back()->withErrors(['password' => 'Password verification failed.'])->withInput();
+        $user = Auth::user();
+
+        if ($fee->status === 'disabled') {
+            return back()->with('error', 'Already disabled.');
         }
 
-        abort_unless($fee->college_id === $user->college_id, 403);
-
-        $fee->update([
-            'status' => 'rejected',
-            'approved_by' => auth()->id(),
-            'approved_at' => now(),
+        FeeRequest::create([
+            'fee_id' => $fee->id,
+            'type' => 'disable',
+            'status' => 'pending',
+            'reason' => $request->reason,
+            'requested_by' => $user->id,
+            'requested_at' => now(),
         ]);
 
-        return back()->with('success', 'Fee rejected.');
+        log_activity(
+            'Requested Fee Disable',
+            "Disable request submitted for fee '{$fee->fee_name}'",
+            null, null, null,
+            [
+                'fee_id' => $fee->id,
+                'college_id' => $fee->college_id,
+                'reason' => $request->reason,
+                'requested_by' => $user->id,
+                'status' => 'pending',
+            ]
+        );
+
+        return back()->with('success', 'Disable request sent to OSA.');
     }
+
+    public function requestEnable(Request $request, Fee $fee)
+    {
+        $request->validate([
+            'reason' => 'required|string|max:1000',
+        ]);
+
+        $user = Auth::user();
+
+        if ($fee->status !== 'disabled') {
+            return back()->with('error', 'Fee is not disabled.');
+        }
+
+        FeeRequest::create([
+            'fee_id' => $fee->id,
+            'type' => 'enable',
+            'status' => 'pending',
+            'reason' => $request->reason,
+            'requested_by' => $user->id,
+            'requested_at' => now(),
+        ]);
+
+        log_activity(
+            'Requested Fee Enable',
+            "Enable request submitted for fee '{$fee->fee_name}'",
+            null, null, null,
+            [
+                'fee_id' => $fee->id,
+                'college_id' => $fee->college_id,
+                'reason' => $request->reason,
+                'requested_by' => $user->id,
+                'status' => 'pending',
+            ]
+        );
+
+        return back()->with('success', 'Enable request sent to OSA.');
+    }
+
+  
 }
