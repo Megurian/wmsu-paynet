@@ -766,59 +766,61 @@ class OrganizationPaymentController extends Controller
         }, 'enrollments.course', 'enrollments.yearLevel', 'enrollments.section'])
         ->get();
 
-        $paymentsQuery = Payment::with([
-                'student',
-                'fees',
-                'enrollment.course',
-                'enrollment.yearLevel',
-                'enrollment.section',
-                'collector'
-            ])
-            ->where('organization_id', $organization->id)
-            ->where('school_year_id', $schoolYearId)
-            ->where('semester_id', $semesterId);
+       $paymentsQuery = Payment::with([
+        'student',
+        'fees',
+        'enrollment.course',
+        'enrollment.yearLevel',
+        'enrollment.section',
+        'collector'
+    ])
+    ->where('organization_id', $organization->id)
+    ->where('school_year_id', $schoolYearId)
+    ->where('semester_id', $semesterId);
+
+    $today = now()->endOfDay();
+    $paymentsQuery->where('created_at', '<=', $today);
+
+    if ($request->filled('date_from')) {
+        $paymentsQuery->where('created_at', '>=', \Carbon\Carbon::parse($request->date_from)->startOfDay());
+    }
+
+    if ($request->filled('date_to')) {
+        $paymentsQuery->where('created_at', '<=', \Carbon\Carbon::parse($request->date_to)->endOfDay());
+    }
+
+    if ($request->filled('search')) {
+        $query = $request->input('search');
+        $paymentsQuery->whereHas('student', function ($q) use ($query) {
+            $q->where('student_id', 'like', "%{$query}%")
+                ->orWhere('first_name', 'like', "%{$query}%")
+                ->orWhere('last_name', 'like', "%{$query}%");
+        });
+    }
+
+    if ($officerId) {
+        $paymentsQuery->where('collected_by', $officerId);
+    }
+
+    if ($courseId) {
+        $paymentsQuery->whereHas('enrollment.course', fn ($q) =>
+            $q->where('id', $courseId)
+        );
+    }
 
 
-       $today = now()->endOfDay();
+    if ($yearLevelId) {
+        $paymentsQuery->whereHas('enrollment.yearLevel', fn ($q) =>
+            $q->where('id', $yearLevelId)
+        );
+    }
 
-        $paymentsQuery->where('created_at', '<=', $today);
+    if ($sectionId) {
+        $paymentsQuery->whereHas('enrollment.section', fn ($q) =>
+            $q->where('id', $sectionId)
+        );
+    }
 
-        if ($request->filled('date_from')) {
-            $paymentsQuery->where('created_at', '>=', \Carbon\Carbon::parse($request->date_from)->startOfDay());
-        }
-
-        if ($request->filled('date_to')) {
-            $paymentsQuery->where('created_at', '<=', \Carbon\Carbon::parse($request->date_to)->endOfDay());
-        }
-        if ($request->filled('search')) {
-            $query = $request->input('search');
-            $paymentsQuery->whereHas('student', function ($q) use ($query) {
-                $q->where('student_id', 'like', "%{$query}%")
-                    ->orWhere('first_name', 'like', "%{$query}%")
-                    ->orWhere('last_name', 'like', "%{$query}%");
-            });
-        }
-        if ($officerId) {
-            $paymentsQuery->where('collected_by', $officerId);
-        }
-
-        if ($courseId) {
-            $paymentsQuery->whereHas('enrollment.course', function ($q) use ($courseId) {
-                $q->where('id', $courseId);
-            });
-        }
-
-        if ($yearLevelId) {
-            $paymentsQuery->whereHas('enrollment.yearLevel', function ($q) use ($yearLevelId) {
-                $q->where('id', $yearLevelId);
-            });
-        }
-
-        if ($sectionId) {
-            $paymentsQuery->whereHas('enrollment.section', function ($q) use ($sectionId) {
-                $q->where('id', $sectionId);
-            });
-        }
 
         $payments = $paymentsQuery->latest()->get();
 
@@ -910,35 +912,62 @@ class OrganizationPaymentController extends Controller
                 ->values();
         }
 
-        $filtered = $studentsWithPayments;
+    $filteredPayments = $payments->filter(function ($payment) use ($feeId, $requirementLevel) {
 
-        // Transactions = count of PAID rows only
-        $totalTransactions = $filtered
-            ->where('status', 'Paid')
-            ->count();
+        return $payment->fees->contains(function ($fee) use ($feeId, $requirementLevel) {
 
-        // Total collected = sum of paid amounts
-        $totalCollected = $filtered
-            ->where('status', 'Paid')
-            ->sum('amount');
+            if ($feeId && $fee->id != $feeId) return false;
 
-        // Today collections 
-        $todayCollections = $filtered
-            ->where('status', 'Paid')
-            ->filter(fn ($item) => $item['payment_date'] && $item['payment_date']->isToday())
-            ->sum('amount');
+            if ($requirementLevel && $fee->requirement_level !== $requirementLevel) {
+                return false;
+            }
 
-        // Mandatory
-        $mandatoryCollected = $filtered
-            ->where('status', 'Paid')
-            ->filter(fn ($item) => $item['fee']->requirement_level === 'mandatory')
-            ->sum('amount');
+            return true;
+        });
+    });
+    $totalTransactions = $filteredPayments->count();
 
-        // Optional
-        $optionalCollected = $filtered
-            ->where('status', 'Paid')
-            ->filter(fn ($item) => $item['fee']->requirement_level === 'optional')
-            ->sum('amount');
+    $totalCollected = $filteredPayments->sum(function ($payment) use ($feeId, $requirementLevel) {
+        return $payment->fees->sum(function ($fee) use ($feeId, $requirementLevel) {
+
+            if ($feeId && $fee->id != $feeId) return 0;
+            if ($requirementLevel && $fee->requirement_level !== $requirementLevel) return 0;
+
+            return $fee->pivot->amount_paid ?? $fee->amount;
+        });
+    });
+
+    $todayCollections = $filteredPayments
+        ->filter(fn ($p) => $p->created_at->isToday())
+        ->sum(function ($payment) use ($feeId, $requirementLevel) {
+            return $payment->fees->sum(function ($fee) use ($feeId, $requirementLevel) {
+
+                if ($feeId && $fee->id != $feeId) return 0;
+                if ($requirementLevel && $fee->requirement_level !== $requirementLevel) return 0;
+
+                return $fee->pivot->amount_paid ?? $fee->amount;
+            });
+        });
+
+    $mandatoryCollected = $filteredPayments->sum(function ($payment) use ($feeId) {
+        return $payment->fees->sum(function ($fee) use ($feeId) {
+
+            if ($feeId && $fee->id != $feeId) return 0;
+            if ($fee->requirement_level !== 'mandatory') return 0;
+
+            return $fee->pivot->amount_paid ?? $fee->amount;
+        });
+    });
+
+    $optionalCollected = $filteredPayments->sum(function ($payment) use ($feeId) {
+        return $payment->fees->sum(function ($fee) use ($feeId) {
+
+            if ($feeId && $fee->id != $feeId) return 0;
+            if ($fee->requirement_level !== 'optional') return 0;
+
+            return $fee->pivot->amount_paid ?? $fee->amount;
+        });
+    });
 
         $schoolYears = SchoolYear::orderBy('sy_start', 'desc')->get();
         $semesters = Semester::orderBy('id')->get();
@@ -967,8 +996,6 @@ class OrganizationPaymentController extends Controller
                     ->orWhere('created_semester_id', '<=', $semesterId);
             });
         }
-
-        
 
         $fees = $fees->orderBy('created_at', 'desc')->get();
         $courses = \App\Models\Course::where('college_id', $collegeId)->get();
