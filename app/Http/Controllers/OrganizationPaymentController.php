@@ -720,6 +720,7 @@ class OrganizationPaymentController extends Controller
 
     public function records(Request $request)
     {
+        $officerId = $request->input('officer_id');
         $user = Auth::user();
         abort_unless($user, 403);
 
@@ -796,6 +797,9 @@ class OrganizationPaymentController extends Controller
                     ->orWhere('first_name', 'like', "%{$query}%")
                     ->orWhere('last_name', 'like', "%{$query}%");
             });
+        }
+        if ($officerId) {
+            $paymentsQuery->where('collected_by', $officerId);
         }
 
         if ($courseId) {
@@ -908,7 +912,7 @@ class OrganizationPaymentController extends Controller
 
         $filtered = $studentsWithPayments;
 
-        // Transactions = count of PAID rows only (since each row = fee payment)
+        // Transactions = count of PAID rows only
         $totalTransactions = $filtered
             ->where('status', 'Paid')
             ->count();
@@ -918,7 +922,7 @@ class OrganizationPaymentController extends Controller
             ->where('status', 'Paid')
             ->sum('amount');
 
-        // Today collections (based on filtered data)
+        // Today collections 
         $todayCollections = $filtered
             ->where('status', 'Paid')
             ->filter(fn ($item) => $item['payment_date'] && $item['payment_date']->isToday())
@@ -971,6 +975,11 @@ class OrganizationPaymentController extends Controller
         $yearLevels = \App\Models\YearLevel::where('college_id', $collegeId)->get();
         $sections = \App\Models\Section::where('college_id', $collegeId)->get();
 
+        $officers = \App\Models\OrganizationOfficer::with('user')
+        ->where('organization_id', $organization->id)
+        ->where('is_active', true)
+        ->get();
+
         return view('college_org.records', compact(
             'studentsWithPayments', // 
             'schoolYears',
@@ -986,7 +995,7 @@ class OrganizationPaymentController extends Controller
             'todayCollections',
             'mandatoryCollected',
             'optionalCollected',
-           
+           'officers'
         ));
     }
 

@@ -20,7 +20,7 @@
    <div class="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
         <form method="GET" action="{{ route('college_org.records') }}" class="space-y-5">
 
-            <div class="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+            <div class="grid grid-cols-1 md:grid-cols-6 gap-4 items-end">
 
                 <div>
                     <label class="block text-xs font-medium text-gray-500 mb-1">School Year</label>
@@ -52,6 +52,19 @@
                         <option value="">All</option>
                         <option value="paid" {{ request('payment_status') == 'paid' ? 'selected' : '' }}>Paid</option>
                         <option value="pending" {{ request('payment_status') == 'pending' ? 'selected' : '' }}>Pending</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-1">Officer</label>
+                    <select name="officer_id" class="w-full h-10 border border-gray-300 rounded-lg px-3 text-sm">
+                        <option value="">All</option>
+                        @foreach($officers as $officer)
+                            <option value="{{ $officer->user_id }}" {{ request('officer_id') == $officer->user_id ? 'selected' : '' }}>
+                                {{ $officer->user->first_name ?? '' }} {{ $officer->user->last_name ?? '' }}
+                                ({{ $officer->role }})
+                            </option>
+                        @endforeach
                     </select>
                 </div>
 
