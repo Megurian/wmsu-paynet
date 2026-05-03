@@ -131,37 +131,69 @@
 </form>
 
 <div id="proofModal"
-     class="fixed inset-0 bg-black bg-opacity-40 hidden items-center justify-center z-50">
+     class="fixed inset-0 hidden items-center justify-center z-50 bg-black/50 backdrop-blur-sm">
 
-    <div class="bg-white rounded-xl p-6 w-full max-w-md shadow-lg">
+    <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden">
 
-        <h2 class="text-lg font-semibold mb-4">
-            Upload Proof of Remittance
-        </h2>
+        <div class="px-6 py-4 border-b bg-gradient-to-r from-red-600 to-red-600 text-white">
+            <h2 class="text-lg font-semibold">Upload Proof of Remittance</h2>
+            <p class="text-xs text-white/80 mt-1">
+                Please attach a clear image of proof of remittance
+            </p>
+        </div>
 
-        <input type="file"
-               name="proof_image"
-               id="proof_image"
-               accept="image/*"
-               form="remittanceForm"
-               class="w-full border rounded p-2 mb-4">
+        <div class="p-6 space-y-5">
 
-        <div class="flex justify-end gap-3">
+            <label for="proof_image"
+                   class="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-xl p-6 cursor-pointer hover:border-indigo-500 transition">
+
+                <svg class="w-10 h-10 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M7 16V4m0 0L3 8m4-4l4 4m6 8v4m0 0l4-4m-4 4l-4-4" />
+                </svg>
+
+                <p class="text-sm font-medium text-gray-700">
+                    Click to upload or drag and drop
+                </p>
+
+                <p class="text-xs text-gray-400 mt-1">
+                    PNG, JPG, JPEG up to 5MB
+                </p>
+
+                <input type="file"
+                       name="proof_image"
+                       id="proof_image"
+                       accept="image/*"
+                       form="remittanceForm"
+                       class="hidden"
+                       onchange="previewFileName(this)">
+            </label>
+
+            <!-- File Preview -->
+            <div id="filePreview" class="hidden text-sm text-gray-600 bg-gray-50 p-3 rounded-lg border">
+                Selected file: <span id="fileName" class="font-medium"></span>
+            </div>
+
+        </div>
+
+        <!-- FOOTER -->
+        <div class="px-6 py-4 border-t flex justify-between items-center bg-gray-50">
+
             <button type="button"
                     onclick="closeProofModal()"
-                    class="px-4 py-2 bg-gray-300 rounded">
+                    class="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm">
                 Cancel
             </button>
 
             <button type="button"
                     onclick="submitRemittance()"
-                    class="px-4 py-2 bg-indigo-600 text-white rounded">
-                Submit
+                    class="px-5 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-medium shadow">
+                Submit Remittance
             </button>
+
         </div>
 
     </div>
-
 </div>
 
 </div>
@@ -250,6 +282,18 @@ function submitRemittance() {
         return;
     }
     form.requestSubmit();
+}
+
+function previewFileName(input) {
+    const preview = document.getElementById('filePreview');
+    const fileName = document.getElementById('fileName');
+
+    if (input.files && input.files.length > 0) {
+        fileName.textContent = input.files[0].name;
+        preview.classList.remove('hidden');
+    } else {
+        preview.classList.add('hidden');
+    }
 }
 </script>
 
