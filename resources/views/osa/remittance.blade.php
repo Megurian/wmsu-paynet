@@ -295,6 +295,26 @@ function previewFileName(input) {
         preview.classList.add('hidden');
     }
 }
+
+function viewProof(url) {
+    const modal = document.getElementById('proofViewModal');
+    const img = document.getElementById('proofImagePreview');
+
+    img.src = url;
+
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+
+function closeProofView() {
+    const modal = document.getElementById('proofViewModal');
+    const img = document.getElementById('proofImagePreview');
+
+    img.src = '';
+
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+}
 </script>
 
 
@@ -422,7 +442,7 @@ bg-red-100 text-red-700
                     <th class="p-3 text-center">Amount</th>
                     <th class="p-3 text-center">Date</th>
                     <th class="p-3 text-left">Confirmed By</th>
-
+                    <th class="p-3 text-left">Attchment</th>
                 </tr>
 
             </thead>
@@ -449,6 +469,17 @@ bg-red-100 text-red-700
                         {{ $item->confirmer->name ?? 'System' }}
                     </td>
 
+                    <td class="p-3 text-center">
+                        @if($item->proof_image)
+                            <button
+                                onclick="viewProof('{{ asset('storage/'.$item->proof_image) }}')"
+                                class="px-3 py-1 text-xs font-medium bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition">
+                                View
+                            </button>
+                        @else
+                            <span class="text-xs text-gray-400">No Attachment</span>
+                        @endif
+                    </td>
                 </tr>
 
                 @endforeach
@@ -456,9 +487,38 @@ bg-red-100 text-red-700
             </tbody>
 
         </table>
+    </div>
+</div>
+
+<div id="proofViewModal"
+     class="fixed inset-0 hidden items-center justify-center z-50 bg-black/60 backdrop-blur-sm">
+
+    <div class="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden">
+
+        <div class="flex items-center justify-between px-6 py-4 border-b bg-gray-50">
+            <h2 class="text-lg font-semibold text-gray-800">Remittance Attachment</h2>
+
+            <button onclick="closeProofView()"
+                    class="text-gray-500 hover:text-gray-700 text-xl">
+                &times;
+            </button>
+        </div>
+
+        <div class="p-6 flex justify-center bg-gray-100">
+            <img id="proofImagePreview"
+                 src=""
+                 class="max-h-[500px] rounded-lg shadow-md border"
+                 alt="Proof Image">
+        </div>
+
+        <div class="px-6 py-4 flex justify-end bg-white border-t">
+            <button onclick="closeProofView()"
+                    class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg text-sm">
+                Close
+            </button>
+        </div>
 
     </div>
-
 </div>
 
 @endsection
