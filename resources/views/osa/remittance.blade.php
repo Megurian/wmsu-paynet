@@ -77,49 +77,92 @@
         Confirm Remittance
     </h3>
 
-<form method="POST" action="{{ route('osa.remittance.confirm') }}" class="grid grid-cols-1 md:grid-cols-3 gap-5 items-end">
+<form id="remittanceForm"
+      method="POST"
+      action="{{ route('osa.remittance.confirm') }}"
+      enctype="multipart/form-data"
+      class="grid grid-cols-1 md:grid-cols-3 gap-5 items-end">
 
-        @csrf
-        <input type="hidden" name="school_year_id" id="school_year_id" value="{{ $selectedSchoolYear?->id }}">
-        <input type="hidden" name="semester_id" id="semester_id" value="{{ $selectedSemester?->id }}">
+    @csrf
 
-        <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">
-                Select Organization
-            </label>
+    <input type="hidden" name="school_year_id" value="{{ $selectedSchoolYear?->id }}">
+    <input type="hidden" name="semester_id" value="{{ $selectedSemester?->id }}">
 
-        <select id="from_organization_id" name="organization_id" required  class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" onchange="updateRemaining()">
+    <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">
+            Select Organization
+        </label>
+
+        <select name="organization_id" required
+            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+
             <option value="">-- Choose Organization --</option>
+
             @foreach($remittanceData as $row)
-                <option value="{{ $row['organization']->id }}" data-remaining="{{ $row['remaining'] }}">
-                    {{ $row['organization']->name }} (Remaining: ₱{{ number_format($row['remaining'],2) }})
+                <option value="{{ $row['organization']->id }}"
+                        data-remaining="{{ $row['remaining'] }}">
+                    {{ $row['organization']->name }}
+                    (Remaining: ₱{{ number_format($row['remaining'],2) }})
                 </option>
             @endforeach
+
         </select>
+    </div>
 
-        </div>
+    <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">
+            Amount
+        </label>
 
-        <div>
+        <input type="number"
+               step="0.01"
+               name="amount"
+               required
+               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+    </div>
 
-            <label class="block text-sm font-medium text-gray-700 mb-1">
-                Amount
-            </label>
+    <div>
+        <button type="button"
+                onclick="openProofModal()"
+                class="w-full bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700">
+            Confirm Remittance
+        </button>
+    </div>
+</form>
 
-            <input id="amount" type="number" step="0.01" name="amount" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+<div id="proofModal"
+     class="fixed inset-0 bg-black bg-opacity-40 hidden items-center justify-center z-50">
 
-        </div>
+    <div class="bg-white rounded-xl p-6 w-full max-w-md shadow-lg">
 
-        <div>
+        <h2 class="text-lg font-semibold mb-4">
+            Upload Proof of Remittance
+        </h2>
 
-            <button type="submit" class="w-full bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition">
+        <input type="file"
+               name="proof_image"
+               id="proof_image"
+               accept="image/*"
+               form="remittanceForm"
+               class="w-full border rounded p-2 mb-4">
 
-                Confirm Remittance
-
+        <div class="flex justify-end gap-3">
+            <button type="button"
+                    onclick="closeProofModal()"
+                    class="px-4 py-2 bg-gray-300 rounded">
+                Cancel
             </button>
 
+            <button type="button"
+                    onclick="submitRemittance()"
+                    class="px-4 py-2 bg-indigo-600 text-white rounded">
+                Submit
+            </button>
         </div>
 
-    </form>
+    </div>
+
+</div>
 
 </div>
 
@@ -172,6 +215,42 @@
         updateSemesterOptions();
         updateRemaining();
     });
+
+function openProofModal() {
+    const fileInput = document.getElementById('proof_image');
+    fileInput.value = ''; 
+
+    document.getElementById('proofModal')
+        .classList.remove('hidden');
+
+    document.getElementById('proofModal')
+        .classList.add('flex');
+}
+
+function closeProofModal() {
+    document.getElementById('proofModal')
+        .classList.add('hidden');
+
+    document.getElementById('proofModal')
+        .classList.remove('flex');
+}
+
+function submitRemittance() {
+    const fileInput = document.getElementById('proof_image');
+
+    if (!fileInput.files.length) {
+        alert('Please select a proof image first.');
+        return;
+    }
+
+    const form = document.getElementById('remittanceForm');
+
+    if (!form) {
+        console.error('Remittance form not found');
+        return;
+    }
+    form.requestSubmit();
+}
 </script>
 
 

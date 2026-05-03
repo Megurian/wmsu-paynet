@@ -158,6 +158,7 @@ class OSARemittanceController extends Controller
             'amount' => 'required|numeric|min:0.01',
             'school_year_id' => 'required|exists:school_years,id',
             'semester_id' => 'required|exists:semesters,id',
+            
         ]);
 
         $osaOrg = Organization::firstOrCreate(
@@ -208,6 +209,8 @@ class OSARemittanceController extends Controller
             return back()->with('error', 'Amount cannot exceed remaining balance of ₱' . number_format($remaining, 2));
         }
 
+          $path = $request->file('proof_image')->store('remittance_proofs', 'public');
+
         Remittance::create([
             'from_organization_id' => $request->organization_id,
             'to_organization_id' => $osaOrg->id,
@@ -215,6 +218,7 @@ class OSARemittanceController extends Controller
             'school_year_id' => $schoolYear->id,
             'semester_id' => $semester->id,
             'amount' => $request->amount,
+            'proof_image' => $path,
             'status' => 'confirmed',
             'confirmed_by' => Auth::id()
         ]);
