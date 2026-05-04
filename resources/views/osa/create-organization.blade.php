@@ -601,6 +601,33 @@ function openPreview() {
         showPreviewModal('previewModal', html, 'organizationForm');
     });
 }
+
+document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter') return;
+
+    const active = document.activeElement;
+
+    const form = document.getElementById('organizationForm');
+    if (!form.contains(active)) return;
+
+    e.preventDefault();
+
+    const currentStepEl = document.querySelector('.form-step:not(.hidden)');
+    if (!currentStepEl) return;
+
+    const focusable = Array.from(
+        currentStepEl.querySelectorAll('input:not([type="hidden"]):not([disabled]), select, button, textarea')
+    ).filter(el => el.offsetParent !== null);
+
+    const index = focusable.indexOf(active);
+
+    if (index > -1 && index < focusable.length - 1) {
+        focusable[index + 1].focus();
+    } else {
+        const nextBtn = currentStepEl.querySelector('button[onclick^="nextStep"], button[type="button"]');
+        if (nextBtn) nextBtn.click();
+    }
+});
 </script>
 
 <style>
