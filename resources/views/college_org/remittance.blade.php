@@ -8,16 +8,48 @@
 
     <h2 class="text-lg font-semibold mb-4">Remittance History</h2>
 
+    <form method="GET" class="mb-4 flex gap-3 items-center">
+
+   <select name="to_filter"
+            class="border-gray-300 rounded-md text-sm">
+
+        <option value="">All</option>
+
+        @if($osaOrg)
+            <option value="osa" {{ request('to_filter') == 'osa' ? 'selected' : '' }}>
+                {{ $osaOrg->name }} 
+            </option>
+        @endif
+
+        @if($motherOrg)
+            <option value="mother" {{ request('to_filter') == 'mother' ? 'selected' : '' }}>
+                {{ $motherOrg->name }} 
+            </option>
+        @endif
+
+    </select>
+
+    <button class="bg-indigo-600 text-white px-4 py-1 rounded-md text-sm">
+        Filter
+    </button>
+
+    @if(request()->filled('to_filter'))
+        <a href="{{ url()->current() }}"
+           class="text-sm text-gray-500 underline">
+            Reset
+        </a>
+    @endif
+
+</form>
+
     <div class="overflow-x-auto">
         <table class="w-full text-sm">
 
             <thead>
                 <tr class="border-b">
                     <th class="text-left py-2">Date</th>
-                    <th class="text-left py-2">Fee</th>
                     <th class="text-left py-2">To</th>
                     <th class="text-left py-2">Amount</th>
-                    <th class="text-left py-2">Status</th>
                     <th class="text-left py-2">Attachment</th>
                 </tr>
             </thead>
@@ -31,10 +63,6 @@
                         </td>
 
                         <td class="py-2">
-                            {{ $remit->fee->fee_name ?? '—' }}
-                        </td>
-
-                        <td class="py-2">
                             {{ $remit->toOrganization->name ?? 'OSA' }}
                         </td>
 
@@ -42,12 +70,6 @@
                             ₱{{ number_format($remit->amount, 2) }}
                         </td>
 
-                        <td class="py-2">
-                            <span class="px-2 py-1 rounded text-xs
-                                {{ $remit->status === 'confirmed' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700' }}">
-                                {{ ucfirst($remit->status) }}
-                            </span>
-                        </td>
                         <td class="py-2">
                         @if($remit->proof_image)
                             <button

@@ -9,35 +9,60 @@ use App\Models\Organization;
 
 class CollegeOrgRemittanceController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $user = Auth::user();
         $organization = $user->organization;
 
+
         abort_unless($organization, 404);
 
-        // Get OSA organization dynamically (NO hardcoding)
-        $osaId = Organization::where('role', 'osa')->value('id');
+        $osaId = Organization::where(function ($q) {
+            $q->where('org_code', 'OSA')
+                ->orWhere('name', 'Office of Student Affairs')
+                ->orWhere('role', 'osa');
+        })->value('id');
 
-        // Get ALL remittances from this org
-        $remittances = Remittance::with(['fee', 'toOrganization'])
-            ->where('from_organization_id', $organization->id)
-            ->latest()
-            ->get()
-            ->map(function ($remit) use ($osaId, $organization) {
+        $query = Remittance::with(['fee', 'toOrganization'])
+            ->where('from_organization_id', $organization->id);
 
-                // Tag type for display
-                if ($remit->to_organization_id == $osaId) {
-                    $remit->type = 'OSA Inherited Fee';
-                } elseif ($remit->to_organization_id == $organization->mother_organization_id) {
-                    $remit->type = 'Mother Organization Fee';
-                } else {
-                    $remit->type = 'Other';
-                }
+        if ($request->filled('to_filter')) {
 
-                return $remit;
-            });
+            if ($request->to_filter === 'osa') {
+                $query->where('to_organization_id', $osaId);
+            }
 
-        return view('college_org.remittance', compact('remittances'));
+            if ($request->to_filter === 'mother') {
+                $query->where('to_organization_id', $organization->mother_organization_id);
+            }
+        }
+
+        $remittances = $query->latest()->get()->map(function ($remit) use ($osaId, $organization) {
+
+            if ($remit->to_organization_id == $osaId) {
+                $remit->type = 'OSA Inherited Fee';
+            } elseif ($remit->to_organization_id == $organization->mother_organization_id) {
+                $remit->type = 'Mother Organization Fee';
+            } else {
+                $remit->type = 'Other';
+            }
+
+            return $remit;
+        });
+
+        $motherOrg = $organization->motherOrganization; 
+        $motherOrgId = $organization->mother_organization_id;
+
+        $osaOrg = Organization::where(function ($q) {
+            $q->where('org_code', 'OSA')
+            ->orWhere('name', 'Office of Student Affairs')
+            ->orWhere('role', 'osa');
+        })->first();
+
+        return view('college_org.remittance', compact(
+            'remittances',
+            'osaOrg',
+            'motherOrg'
+        ));
     }
 }
