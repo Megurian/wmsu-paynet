@@ -466,7 +466,7 @@
                     </div>
                     <div>
                         <label class="text-sm font-medium">Email</label>
-                        <input type="email" name="email" placeholder="Optional" class="w-full border rounded px-3 py-2 text-sm">
+                        <input type="email" name="email" placeholder="Required" class="w-full border rounded px-3 py-2 text-sm" required>
                     </div>
                 </div>
 

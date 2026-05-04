@@ -172,6 +172,7 @@ class AdviserStudentUploadController extends Controller
             'last_name' => 'required|string|max:255',
             'first_name' => 'required|string|max:255',
             'middle_name' => 'nullable|string|max:255',
+            'email' => 'required|email|max:255',
             'course_id' => Auth::user()->role === 'adviser'
                 ? 'nullable'
                 : 'required|exists:courses,id',
