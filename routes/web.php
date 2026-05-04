@@ -38,6 +38,7 @@ use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\CollegeOrgDashboardController;
 use App\Http\Controllers\CollegeOrgManagementController;
 use App\Http\Controllers\CollegeLogController;
+use App\Http\Controllers\CollegeOrgRemittanceController;
 
 Route::get('/test-route', function () {
     return 'Laravel route works!';
@@ -263,7 +264,9 @@ Route::get('/college-org/generate-report',
 
     Route::put('/college_org/info/name', [CollegeOrgManagementController::class, 'updateName'])
     ->name('college_org.info.updateName');
-    });
+    Route::get('/college_org/remittance', [CollegeOrgRemittanceController::class, 'index'])
+    ->name('college_org.remittance');
+ });
 
 Route::middleware(['auth','role:adviser'])->group(function(){
     Route::get('/college/students/my-upload', [AdviserStudentUploadController::class, 'index'])
