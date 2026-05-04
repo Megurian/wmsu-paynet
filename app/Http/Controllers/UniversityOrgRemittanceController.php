@@ -170,6 +170,7 @@ class UniversityOrgRemittanceController extends Controller
             'amount' => 'required|numeric|min:0.01',
             'school_year_id' => 'required|exists:school_years,id',
             'semester_id' => 'required|exists:semesters,id',
+            'proof_image' => 'required|image|mimes:jpg,jpeg,png|max:5120',
         ]);
 
         $motherOrg = $user->organization;
@@ -215,6 +216,12 @@ class UniversityOrgRemittanceController extends Controller
             return back()->with('error', 'Amount cannot exceed remaining balance of ₱' . number_format($remaining, 2));
         }
 
+        $path = null;
+
+        if ($request->hasFile('proof_image')) {
+            $path = $request->file('proof_image')->store('remittance_proofs', 'public');
+        }
+
         Remittance::create([
             'from_organization_id' => $childOrg->id,
             'to_organization_id' => $motherOrg->id,
@@ -223,7 +230,8 @@ class UniversityOrgRemittanceController extends Controller
             'semester_id' => $semester->id,
             'amount' => $request->amount,
             'confirmed_by' => Auth::id(),
-            'status' => 'confirmed'
+            'status' => 'confirmed',
+            'proof_image' => $path,
         ]);
 
         return back()->with('status', 'Remittance confirmed successfully');
