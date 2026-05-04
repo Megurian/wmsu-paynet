@@ -5,8 +5,108 @@
 
 @section('content')
 <div class="bg-white p-6 rounded-xl shadow">
-    <h2 class="text-lg font-semibold mb-4">Remittance Page</h2>
 
-    <p>This is your new remittance page for College Org.</p>
+    <h2 class="text-lg font-semibold mb-4">Remittance History</h2>
+
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+
+            <thead>
+                <tr class="border-b">
+                    <th class="text-left py-2">Date</th>
+                    <th class="text-left py-2">Fee</th>
+                    <th class="text-left py-2">To</th>
+                    <th class="text-left py-2">Amount</th>
+                    <th class="text-left py-2">Status</th>
+                    <th class="text-left py-2">Attachment</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                @forelse($remittances as $remit)
+                    <tr class="border-b">
+
+                        <td class="py-2">
+                            {{ $remit->created_at->format('M d, Y') }}
+                        </td>
+
+                        <td class="py-2">
+                            {{ $remit->fee->fee_name ?? '—' }}
+                        </td>
+
+                        <td class="py-2">
+                            {{ $remit->toOrganization->name ?? 'OSA' }}
+                        </td>
+
+                        <td class="py-2">
+                            ₱{{ number_format($remit->amount, 2) }}
+                        </td>
+
+                        <td class="py-2">
+                            <span class="px-2 py-1 rounded text-xs
+                                {{ $remit->status === 'confirmed' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700' }}">
+                                {{ ucfirst($remit->status) }}
+                            </span>
+                        </td>
+                        <td class="py-2">
+                        @if($remit->proof_image)
+                            <button
+                                onclick="openProofModal('{{ asset('storage/' . $remit->proof_image) }}')"
+                                class="text-blue-600 hover:underline text-sm font-medium">
+                                View
+                            </button>
+                        @else
+                            <span class="text-gray-400 text-xs">No proof</span>
+                        @endif
+                    </td>
+
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="6" class="text-center py-4 text-gray-500">
+                            No remittance records found.
+                        </td>
+                    </tr>
+                @endforelse
+            </tbody>
+
+        </table>
+    </div>
 </div>
+
+<div id="proofModal"
+     class="fixed inset-0 hidden items-center justify-center bg-black bg-opacity-60 z-50">
+
+    <div class="bg-white rounded-lg shadow-lg max-w-2xl w-full p-4 relative">
+
+        <button onclick="closeProofModal()"
+                class="absolute top-2 right-3 text-gray-600 text-xl font-bold">
+            &times;
+        </button>
+
+        <img id="proofImage"
+             src=""
+             class="w-full max-h-[80vh] object-contain rounded" />
+    </div>
+</div>
+
+<script>
+function openProofModal(imageUrl) {
+    const modal = document.getElementById('proofModal');
+    const img = document.getElementById('proofImage');
+
+    img.src = imageUrl;
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+
+function closeProofModal() {
+    const modal = document.getElementById('proofModal');
+    const img = document.getElementById('proofImage');
+
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    img.src = '';
+}
+</script>
 @endsection

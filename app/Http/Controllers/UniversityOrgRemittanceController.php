@@ -38,7 +38,12 @@ class UniversityOrgRemittanceController extends Controller
         $remittanceData = [];
 
         foreach ($childOrgs as $child) {
-            $fees = Fee::where('organization_id', $motherOrg->id)->get();
+            $fees = Fee::where('organization_id', $motherOrg->id)
+                ->where(function ($q) {
+                    $q->whereNull('fee_scope')
+                    ->orWhere('fee_scope', '!=', 'osa');
+                })
+                ->get();
 
             $totalCollectedPerChild = 0;
             $expectedPerChild = 0;
@@ -84,8 +89,15 @@ class UniversityOrgRemittanceController extends Controller
             }
 
             $remitted = Remittance::where('from_organization_id', $child->id)
-                ->when($selectedSchoolYear, fn($query) => $query->where('school_year_id', $selectedSchoolYear->id))
-                ->when($selectedSemester, fn($query) => $query->where('semester_id', $selectedSemester->id))
+                ->whereHas('fee', function ($q) use ($motherOrg) {
+                    $q->where('organization_id', $motherOrg->id);
+                })
+                ->when($selectedSchoolYear, fn($q) =>
+                    $q->where('school_year_id', $selectedSchoolYear->id)
+                )
+                ->when($selectedSemester, fn($q) =>
+                    $q->where('semester_id', $selectedSemester->id)
+                )
                 ->sum('amount');
 
             $remaining = max(0, $expectedPerChild - $remitted);
@@ -116,15 +128,22 @@ class UniversityOrgRemittanceController extends Controller
         }
 
         $totalCollected = collect($remittanceData)->sum('totalCollected');
-        $totalRemitted = collect($remittanceData)->sum('remitted');
+        $totalRemitted = Remittance::where('to_organization_id', $motherOrg->id)
+        ->whereHas('fee', function ($q) use ($motherOrg) {
+            $q->where('organization_id', $motherOrg->id);
+        })
+        ->sum('amount');
         $totalExpected = collect($remittanceData)->sum('expected');
         $remaining = max(0, $totalExpected - $totalRemitted);
 
-        $history = Remittance::with(['fromOrganization', 'confirmer'])
+       $history = Remittance::with(['fromOrganization', 'confirmer', 'fee'])
             ->where('to_organization_id', $motherOrg->id)
-            ->when($selectedSchoolYear, fn($query) => $query->where('school_year_id', $selectedSchoolYear->id))
-            ->when($selectedSemester, fn($query) => $query->where('semester_id', $selectedSemester->id))
-            ->latest()
+            ->whereHas('fee', function ($q) {
+                $q->where(function ($q2) {
+                    $q2->whereNull('fee_scope')
+                    ->orWhere('fee_scope', '!=', 'osa');
+                });
+            })
             ->get();
 
         return view('university_org.remittance', compact(

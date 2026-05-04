@@ -365,11 +365,7 @@
                 </a>
 
                 @if(
-                    in_array('college_org', $roles) &&
-                    $organization &&
-                    $organization->college_id &&
-                    $organization->mother_organization_id
-                )
+                    in_array('college_org', $roles) && $organization && $organization->college_id && $organization->mother_organization_id)
                     <a href="{{ route('college_org.remittance') }}" class="block px-4 py-2 rounded-md transition
                         {{ request()->routeIs('college_org.remittance') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
                         <span>Remittance</span>
