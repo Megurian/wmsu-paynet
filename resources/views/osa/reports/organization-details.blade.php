@@ -50,6 +50,17 @@
     @if($childOrgs->isNotEmpty())
     <div class="p-4 bg-white rounded shadow">
         <h3 class="text-lg font-semibold mb-4">Child Organizations</h3>
+
+        <div class="flex justify-between items-center mb-3">
+            <h3 class="text-lg font-semibold">Child Organizations</h3>
+
+            <input 
+                type="text"
+                id="childOrgSearch"
+                placeholder="Search organization..."
+                class="border rounded px-3 py-2 text-sm w-64"
+            >
+        </div>
         <div class="overflow-x-auto">
             <table class="min-w-full text-sm border border-gray-200">
                 <thead class="bg-gray-50">
@@ -63,7 +74,10 @@
                 </thead>
                 <tbody>
                     @foreach($childOrgs as $child)
-                    <tr class="hover:bg-gray-50">
+                    <tr class="hover:bg-gray-50 child-org-row"
+                        data-name="{{ strtolower($child->name) }}"
+                        data-code="{{ strtolower($child->org_code) }}"
+                        data-college="{{ strtolower($child->college->name ?? '') }}">
                         <td class="p-2 border-b">
                             @if($child->logo)
                             <img src="{{ asset('storage/'.$child->logo) }}" class="w-10 h-10 object-contain border rounded">
@@ -128,4 +142,31 @@
     @endif
 
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const searchInput = document.getElementById('childOrgSearch');
+    const rows = document.querySelectorAll('.child-org-row');
+
+    searchInput.addEventListener('input', function () {
+        const query = this.value.toLowerCase();
+
+        rows.forEach(row => {
+            const name = row.dataset.name;
+            const code = row.dataset.code;
+            const college = row.dataset.college;
+
+            if (
+                name.includes(query) ||
+                code.includes(query) ||
+                college.includes(query)
+            ) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    });
+});
+</script>
 @endsection
