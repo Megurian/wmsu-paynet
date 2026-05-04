@@ -400,9 +400,28 @@
                     </div>
                 </div>
 
-                <div>
+                <div x-data="{ openNew: false }">
                     <label class="text-sm font-medium">Religion</label>
-                    <input type="text" name="religion" placeholder="Optional" class="w-full border rounded px-3 py-2 text-sm" value="{{ old('religion') }}">
+
+                    <select name="religion_id"
+                            @change="openNew = ($event.target.value === 'other')"
+                            class="w-full border rounded px-3 py-2 text-sm">
+
+                        <option value="">Select Religion</option>
+
+                        @foreach($religions as $id => $name)
+                            <option value="{{ $id }}">{{ $name }}</option>
+                        @endforeach
+
+                        <option value="other">Other (Please specify)</option>
+                    </select>
+
+                    <div x-show="openNew" class="mt-2">
+                        <input type="text"
+                            name="new_religion"
+                            placeholder="Enter new religion"
+                            class="w-full border rounded px-3 py-2 text-sm">
+                    </div>
                 </div>
 
 

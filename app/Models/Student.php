@@ -19,7 +19,7 @@ class Student extends Authenticatable
         'suffix',
         'contact',
         'email',
-        'religion',
+        'religion_id',
         'password',
         'is_graduated',
     ];
@@ -129,5 +129,10 @@ public function organizationOfficers()
 public function hasOrganizationAccess(): bool
 {
     return $this->organizationOfficers()->exists();
+}
+
+public function religionRelation()
+{
+    return $this->belongsTo(Religion::class, 'religion_id');
 }
 }

@@ -12,6 +12,7 @@ use App\Models\Semester;
 use App\Models\Course;
 use App\Models\YearLevel;
 use App\Models\Section;
+  use App\Models\Religion;
 
 class AdviserStudentUploadController extends Controller
 {
@@ -57,6 +58,7 @@ class AdviserStudentUploadController extends Controller
     $activeSY = SchoolYear::where('is_active', true)->first();
     $activeSem = Semester::where('is_active', true)->first();
     $activeSemesterName = $activeSem?->name;
+    $religions = Religion::orderBy('name')->pluck('name', 'id');
 
    $students = Student::query()
         ->where('is_graduated', false)
@@ -154,7 +156,8 @@ class AdviserStudentUploadController extends Controller
         'activeSY',
         'activeSem',
         'activeSemesterName',
-       'adviser'
+       'adviser',
+       'religions'
     ));
 }
 
@@ -176,6 +179,16 @@ class AdviserStudentUploadController extends Controller
             'section_id' => 'required|exists:sections,id',
         ]);
 
+        $religionId = $request->religion_id;
+
+        if ($request->religion_id === 'other' && $request->filled('new_religion')) {
+            $religion = Religion::firstOrCreate([
+                'name' => trim($request->new_religion)
+            ]);
+
+            $religionId = $religion->id;
+        }
+
       $student = Student::updateOrCreate(
             ['student_id' => $request->student_id],
             [
@@ -185,7 +198,7 @@ class AdviserStudentUploadController extends Controller
                 'contact'     => $request->contact,
                 'email'       => $request->email,
                 'suffix'      => $request->suffix,
-                'religion'    => $request->religion,
+                'religion_id' => $religionId,
             ]
         );
 
