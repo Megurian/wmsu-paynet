@@ -58,6 +58,11 @@
                             <p id="cardSemester" class="truncate font-semibold text-slate-900"></p>
                         </div>
                     </div>
+                    <button id="paymentHistoryButton" disabled
+                        class="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                        View Payment History
+                    </button>
                 </div>
             </div>
         </div>
@@ -158,6 +163,22 @@
     </div>
 </div>
 
+<div id="paymentHistoryModal" class="hidden fixed inset-0 z-50 items-center justify-center bg-slate-900/50 p-4">
+    <div class="w-full max-w-4xl overflow-hidden rounded-3xl bg-white shadow-xl">
+        <div class="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+            <div>
+                <h3 class="text-lg font-semibold text-slate-900">Payment History</h3>
+                <p id="paymentHistoryStudentLabel" class="text-sm text-slate-500"></p>
+            </div>
+            <button id="paymentHistoryClose" type="button" class="rounded-full bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-200">
+                Close
+            </button>
+        </div>
+        <div id="paymentHistoryBody" class="max-h-[70vh] overflow-auto p-6">
+            <p class="text-sm text-slate-500">Payment history will appear here.</p>
+        </div>
+    </div>
+</div>
 
 <script>
 const searchInput = document.getElementById('studentSearch');
@@ -179,6 +200,12 @@ const promissoryCashInput = document.getElementById('promissoryCashInput');
 const promissoryChangeAmountEl = document.getElementById('promissoryChangeAmount');
 const promissoryProceedBtn = document.getElementById('promissoryProceedPayment');
 
+const paymentHistoryButton = document.getElementById('paymentHistoryButton');
+const paymentHistoryModal = document.getElementById('paymentHistoryModal');
+const paymentHistoryBody = document.getElementById('paymentHistoryBody');
+const paymentHistoryStudentLabel = document.getElementById('paymentHistoryStudentLabel');
+const paymentHistoryClose = document.getElementById('paymentHistoryClose');
+
 let FEES = [];
 let PAID_FEES = [];
 let ACTIVE_PROMISSORY_NOTE = null;
@@ -193,7 +220,7 @@ searchInput.addEventListener('input', function () {
         return;
     }
 
-    fetch(`/college/students/search?q=${encodeURIComponent(query)}`)
+    fetch(`/college_org/search-students?q=${encodeURIComponent(query)}`)
         .then(res => {
             if (!res.ok) throw new Error('Search failed');
             return res.json();
@@ -273,6 +300,7 @@ function loadStudentDetails(studentId) {
             promissoryCashInput.disabled = !ACTIVE_PROMISSORY_NOTE;
             updateRegularProceedBtnState();
             updatePromissoryProceedBtnState();
+            setPaymentHistoryButtonState();
         })
         .catch(err => {
             alert('Error loading student details: ' + (err.message || 'Please try again.'));
@@ -488,6 +516,131 @@ function renderPromissoryNoteSummary() {
 regularCashInput.addEventListener('input', calculateRegularChange);
 promissoryCashInput.addEventListener('input', calculatePromissoryChange);
 
+paymentHistoryButton.addEventListener('click', () => {
+    if (!SELECTED_STUDENT) return;
+    openPaymentHistoryModal();
+    loadPaymentHistory(SELECTED_STUDENT.id);
+});
+
+paymentHistoryClose.addEventListener('click', closePaymentHistoryModal);
+paymentHistoryModal.addEventListener('click', (event) => {
+    if (event.target === paymentHistoryModal) {
+        closePaymentHistoryModal();
+    }
+});
+
+function openPaymentHistoryModal() {
+    paymentHistoryModal.classList.remove('hidden');
+    paymentHistoryModal.classList.add('flex');
+}
+
+function closePaymentHistoryModal() {
+    paymentHistoryModal.classList.add('hidden');
+    paymentHistoryModal.classList.remove('flex');
+}
+
+function setPaymentHistoryButtonState() {
+    paymentHistoryButton.disabled = !SELECTED_STUDENT;
+}
+
+function loadPaymentHistory(studentId) {
+    paymentHistoryStudentLabel.textContent = '';
+    paymentHistoryBody.innerHTML = '<p class="text-sm text-slate-500">Loading payment history...</p>';
+
+    fetch(`/college_org/students/${studentId}/payment-history`)
+        .then(res => res.ok ? res.json() : res.json().then(data => { throw new Error(data.message || 'Failed to load payment history.'); }))
+        .then(data => {
+            paymentHistoryStudentLabel.textContent = `${data.student.name} • ${data.student.student_id}`;
+            renderPaymentHistory(data.payments || []);
+        })
+        .catch(err => {
+            paymentHistoryBody.innerHTML = `<p class="text-sm text-red-600">${err.message}</p>`;
+        });
+}
+
+function renderPaymentHistory(payments) {
+    if (!payments.length) {
+        paymentHistoryBody.innerHTML = '<p class="text-sm text-slate-500">No payment history found.</p>';
+        return;
+    }
+
+    const semesterOrder = {
+        '1st SEMESTER': 1,
+        '2nd SEMESTER': 2,
+        'SUMMER': 3,
+    };
+
+    const grouped = payments.reduce((acc, payment) => {
+        const key = `${payment.school_year}|${payment.semester}`;
+        if (!acc[key]) {
+            const schoolYearStart = parseInt(payment.school_year.split(' - ')[0], 10) || 0;
+            acc[key] = {
+                school_year: payment.school_year,
+                semester: payment.semester,
+                order: [schoolYearStart, semesterOrder[payment.semester] || 99],
+                payments: [],
+            };
+        }
+        acc[key].payments.push(payment);
+        return acc;
+    }, {});
+
+    const sortedGroups = Object.values(grouped).sort((a, b) => {
+        if (a.order[0] !== b.order[0]) return b.order[0] - a.order[0];
+        return b.order[1] - a.order[1];
+    });
+
+    paymentHistoryBody.innerHTML = sortedGroups.map(group => {
+        const rows = group.payments
+            .sort((a, b) => new Date(b.date) - new Date(a.date))
+            .map(payment => {
+            const feeList = payment.fees.map(fee =>
+                `<div class="text-xs text-slate-600">${fee.name} — ₱ ${fee.amount_paid.toFixed(2)}</div>`
+            ).join('');
+
+            const paymentTypeLabel = payment.payment_type === 'PROMISSORY' ? 'Promissory' : 'Cash';
+            const collectorName = payment.collector_name || '—';
+
+            return `
+                <tr class="hover:bg-slate-50 transition">
+                    <td class="px-4 py-3 text-sm text-slate-700">${payment.date}</td>
+                    <td class="px-4 py-3 text-sm text-slate-700">${paymentTypeLabel}</td>
+                    <td class="px-4 py-3 text-sm text-slate-700">${collectorName}</td>
+                    <td class="px-4 py-3 text-sm text-slate-700">₱ ${payment.cash_received.toFixed(2)}</td>
+                    <td class="px-4 py-3 text-sm text-slate-700">${feeList}</td>
+                </tr>
+            `;
+        }).join('');
+
+        return `
+            <div class="rounded-3xl border border-slate-200 bg-slate-50 p-4 mb-4">
+                <div class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <p class="text-sm font-semibold text-slate-900">${group.school_year}</p>
+                        <p class="text-xs text-slate-600">${group.semester}</p>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full text-left text-sm">
+                        <thead class="bg-white border-b border-slate-200 text-slate-500 text-[11px] uppercase tracking-wide">
+                            <tr>
+                                <th class="px-4 py-3">Date</th>
+                                <th class="px-4 py-3">Type</th>
+                                <th class="px-4 py-3">Collector</th>
+                                <th class="px-4 py-3">Amount</th>
+                                <th class="px-4 py-3">Fees</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-200 text-slate-700">
+                            ${rows}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
 regularProceedBtn.addEventListener('click', () => {
     if(!SELECTED_STUDENT) {
         alert('Select a student first.');
@@ -616,6 +769,8 @@ function hideStudentCard() {
     renderPromissoryFees();
     resetRegularPayment();
     resetPromissoryPayment();
+    closePaymentHistoryModal();
+    setPaymentHistoryButtonState();
 }
 
 renderPromissoryNoteSummary();

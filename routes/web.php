@@ -252,6 +252,7 @@ Route::get('/college-org/generate-report',
     [OrganizationPaymentController::class,'getStudentFees'])
     ->name('college_org.students.fees');
     Route::get('/college_org/students/{student}/promissory-notes', [OrganizationPaymentController::class, 'getPromissoryNotes']);
+    Route::get('/college_org/students/{student}/payment-history', [OrganizationPaymentController::class, 'getStudentPaymentHistory']);
     Route::post('/college_org/payment/collect', [OrganizationPaymentController::class,'collectPayment']);
     
     Route::get('/college_org/documents', [DocumentController::class, 'index'])->name('college_org.documents.index')->defaults('role', 'college_org');

@@ -32,7 +32,7 @@ class OrganizationPaymentController extends Controller
             return response()->json([]);
         }
 
-        $collegeId = $user->organization->college_id ?? null;
+        $collegeId = $user->organization->college_id ?? $user->college_id ?? null;
         if (!$collegeId) {
             return response()->json([]);
         }
@@ -336,6 +336,68 @@ class OrganizationPaymentController extends Controller
                 : null,
             'semester' => $settleablePN->enrollment->semester?->name,
             'fees' => $fees,
+        ]);
+    }
+
+    public function getStudentPaymentHistory(Student $student)
+    {
+        $user = Auth::user();
+        if (! $user || ! $user->organization) {
+            return response()->json(['message' => 'Unauthorized.'], 403);
+        }
+
+        $organization = $user->organization;
+        $collegeId = $organization->college_id;
+
+        $isSameCollegeStudent = $student->enrollments()
+            ->where('college_id', $collegeId)
+            ->exists();
+
+        if (! $isSameCollegeStudent) {
+            return response()->json(['message' => 'Student not found in your college.'], 404);
+        }
+
+        $payments = Payment::with(['fees', 'schoolYear', 'semester', 'collector'])
+            ->where('student_id', $student->id)
+            ->whereHas('enrollment', function ($query) use ($collegeId) {
+                $query->where('college_id', $collegeId);
+            })
+            ->orderBy('school_year_id')
+            ->orderBy('semester_id')
+            ->orderBy('created_at')
+            ->get();
+
+        return response()->json([
+            'student' => [
+                'id' => $student->id,
+                'student_id' => $student->student_id,
+                'name' => trim("{$student->last_name}, {$student->first_name} {$student->middle_name}"),
+            ],
+            'payments' => $payments->map(function ($payment) {
+                return [
+                    'id' => $payment->id,
+                    'date' => $payment->created_at?->format('F d, Y H:i') ?? null,
+                    'school_year' => $payment->schoolYear ?
+                        $payment->schoolYear->sy_start->format('Y') . ' - ' . $payment->schoolYear->sy_end->format('Y')
+                        : '—',
+                    'semester' => $payment->semester?->name ?? '—',
+                    'payment_type' => $payment->payment_type,
+                    'collector_id' => $payment->collected_by,
+                    'collector_name' => $payment->collector?->name
+                        ?? trim((string) ($payment->collector?->first_name . ' ' . $payment->collector?->last_name))
+                        ?: '—',
+                    'amount_due' => (float) $payment->amount_due,
+                    'cash_received' => (float) $payment->cash_received,
+                    'change' => (float) $payment->change,
+                    'fees' => $payment->fees->map(function ($fee) {
+                        return [
+                            'id' => $fee->id,
+                            'name' => $fee->fee_name,
+                            'amount_paid' => (float) $fee->pivot->amount_paid,
+                        ];
+                    })->values(),
+                ];
+            })->values(),
         ]);
     }
 
