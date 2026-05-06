@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Fee;
 use App\Models\FeeRequest;
 use App\Models\Organization;
+use App\Models\College;
 use App\Models\Document;
 use App\Models\SchoolYear;
 use App\Models\Semester;
@@ -15,7 +16,7 @@ class OSAFeesController extends Controller
 {
     public function index(Request $request)
 {
-        $pendingFees = Fee::with(['organization', 'user', 'appeals'])
+        $pendingFees = Fee::with(['organization', 'college', 'user', 'appeals'])
         ->where(function ($q) {
 
             $q->where(function ($q2) {
@@ -35,7 +36,7 @@ class OSAFeesController extends Controller
             ->get();
 
 
-        $approvedFees = Fee::with(['organization', 'user'])
+        $approvedFees = Fee::with(['organization', 'college', 'user'])
             ->where('status', 'approved')
             ->orderByDesc('approved_at')
             ->get();
@@ -53,6 +54,7 @@ class OSAFeesController extends Controller
             ->get();
         $disabledFees = Fee::with([
             'organization',
+            'college',
             'user',
             'feeRequests' => function ($q) {
                 $q->where('type', 'disable')
@@ -66,7 +68,7 @@ class OSAFeesController extends Controller
 
         $status = $request->get('status', 'approved');
 
-        $filteredQuery = Fee::with(['organization', 'user'])
+        $filteredQuery = Fee::with(['organization', 'college', 'user'])
             ->where(function ($q) {
                 $q->where('fee_scope', 'university-wide')
                     ->orWhere(function ($q2) {
@@ -99,6 +101,30 @@ class OSAFeesController extends Controller
             $filteredQuery->where('organization_id', $request->organization_id);
         }
 
+        if ($request->filled('college_id')) {
+            $filteredQuery->where(function ($q) use ($request) {
+                $q->where('college_id', $request->college_id)
+                  ->orWhereHas('organization', function ($q2) use ($request) {
+                      $q2->where('college_id', $request->college_id);
+                  });
+            });
+        }
+
+        if ($request->filled('search')) {
+            $search = trim($request->search);
+            $filteredQuery->where(function ($q) use ($search) {
+                $q->where('fee_name', 'like', "%{$search}%")
+                  ->orWhere('purpose', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%")
+                  ->orWhereHas('organization', function ($q2) use ($search) {
+                      $q2->where('name', 'like', "%{$search}%");
+                  })
+                  ->orWhereHas('college', function ($q2) use ($search) {
+                      $q2->where('name', 'like', "%{$search}%");
+                  });
+            });
+        }
+
         if ($request->filled('requirement_level')) {
             $filteredQuery->where('requirement_level', $request->requirement_level);
         }
@@ -113,12 +139,13 @@ class OSAFeesController extends Controller
             $filteredQuery->whereIn('organization_id', $orgIds);
         }
 
-        $filteredFees = $filteredQuery->orderBy('created_at', 'desc')->get();
+        $filteredFees = $filteredQuery->orderBy('created_at', 'desc')->paginate(12);
 
         $organizations = Organization::orderBy('name')->get();
+        $colleges = College::orderBy('name')->get();
 
         return view('osa.fees', compact('pendingFees', 'filteredFees',   'pendingDisableRequests',
-    'pendingEnableRequests', 'disabledFees', 'organizations', 'status', 'approvedFees'));
+    'pendingEnableRequests', 'disabledFees', 'organizations', 'colleges', 'status', 'approvedFees'));
     }
 
     public function create()
