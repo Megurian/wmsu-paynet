@@ -9,16 +9,53 @@ use App\Models\SchoolYear;
 use App\Models\Semester;
 class CollegeFeeController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $collegeId = auth()->user()->college_id;
+        $search = $request->input('search');
+        $organizationId = $request->input('organization_id');
 
-        // Get base college fees
+        $organizations = \App\Models\Organization::query()
+            ->where(function ($query) use ($collegeId) {
+                $query->whereNull('college_id')
+                      ->orWhere('college_id', $collegeId);
+            })
+            ->orderBy('name')
+            ->get();
+
+        $selectedChildOrg = null;
+        if ($organizationId) {
+            $selectedChildOrg = \App\Models\Organization::where('id', $organizationId)
+                ->where('college_id', $collegeId)
+                ->whereNotNull('mother_organization_id')
+                ->first();
+        }
+
+        // Get base college fees, including fees scoped to college whose organization belongs to this college.
         $baseFees = Fee::with(['organization.motherOrganization'])
             ->where('fee_scope', 'college')
-            ->where('college_id', $collegeId)
-            ->orderByDesc('created_at')
-            ->get();
+            ->where(function ($query) use ($collegeId) {
+                $query->where('college_id', $collegeId)
+                      ->orWhereHas('organization', function ($query) use ($collegeId) {
+                          $query->where('college_id', $collegeId);
+                      });
+            });
+
+        if ($organizationId) {
+            $baseFees->where('organization_id', $organizationId);
+        }
+
+        if ($search) {
+            $baseFees->where(function ($q) use ($search) {
+                $q->where('fee_name', 'like', "%{$search}%")
+                  ->orWhere('requirement_level', 'like', "%{$search}%")
+                  ->orWhereHas('organization', function ($q) use ($search) {
+                      $q->where('name', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        $baseFees = $baseFees->orderByDesc('created_at')->get();
 
         // Include fees inherited by child organizations under this college
         $childOrgs = \App\Models\Organization::where('college_id', $collegeId)
@@ -32,8 +69,29 @@ class CollegeFeeController extends Controller
 
         if (!empty($motherOrgIds)) {
             $inheritedFees = Fee::with(['organization.motherOrganization'])
-                ->whereIn('organization_id', $motherOrgIds)
-                ->get();
+                ->whereIn('organization_id', $motherOrgIds);
+
+            if ($organizationId) {
+                $inheritedFees->where(function ($q) use ($organizationId, $selectedChildOrg) {
+                    $q->where('organization_id', $organizationId);
+
+                    if ($selectedChildOrg) {
+                        $q->orWhere('organization_id', $selectedChildOrg->mother_organization_id);
+                    }
+                });
+            }
+
+            if ($search) {
+                $inheritedFees->where(function ($q) use ($search) {
+                    $q->where('fee_name', 'like', "%{$search}%")
+                      ->orWhere('requirement_level', 'like', "%{$search}%")
+                      ->orWhereHas('organization', function ($q) use ($search) {
+                          $q->where('name', 'like', "%{$search}%");
+                      });
+                });
+            }
+
+            $inheritedFees = $inheritedFees->get();
 
             // Special-case: include OSA fees if any child's mother org inherits OSA fees
             $hasOsaInheritingChild = $childOrgs->firstWhere('motherOrganization.inherits_osa_fees', true);
@@ -41,10 +99,25 @@ class CollegeFeeController extends Controller
                 $osaId = \App\Models\Organization::where('org_code', 'OSA')->value('id');
                 if ($osaId) {
                     $osaFees = Fee::with(['organization.motherOrganization'])
-                        ->where('organization_id', $osaId)
-                        ->get();
+                        ->where('organization_id', $osaId);
 
-                    $inheritedFees = $inheritedFees->merge($osaFees);
+                    if ($organizationId) {
+                        if (! $selectedChildOrg) {
+                            $osaFees->where('organization_id', $organizationId);
+                        }
+                    }
+
+                    if ($search) {
+                        $osaFees->where(function ($q) use ($search) {
+                            $q->where('fee_name', 'like', "%{$search}%")
+                              ->orWhere('requirement_level', 'like', "%{$search}%")
+                              ->orWhereHas('organization', function ($q) use ($search) {
+                                  $q->where('name', 'like', "%{$search}%");
+                              });
+                        });
+                    }
+
+                    $inheritedFees = $inheritedFees->merge($osaFees->get());
                 }
             }
         }
@@ -52,7 +125,7 @@ class CollegeFeeController extends Controller
         // Merge, dedupe and order by created_at (desc)
         $fees = $baseFees->merge($inheritedFees)->unique('id')->sortByDesc('created_at')->values();
 
-        return view('college.fees.index', compact('fees'));
+        return view('college.fees.index', compact('fees', 'organizations'));
     }
 
     public function create()
