@@ -118,49 +118,33 @@
                     </h2>
 
                     @php
-                    $rolePriority = [
-                        'student_coordinator',
-                        'assessor',
-                        'treasurer',
-                        'adviser',
-                        'college',
+                    $roleLabels = [
+                        'student_coordinator' => 'Student Coordinator',
+                        'assessor' => 'Assessor',
+                        'treasurer' => 'Treasurer',
+                        'adviser' => 'Adviser',
+                        'college' => 'College Dean',
                     ];
 
-                    $primaryRole = null;
+                    $assignedRoles = array_values(array_filter($roles, function ($role) use ($roleLabels) {
+                        return array_key_exists($role, $roleLabels);
+                    }));
 
-                    foreach ($rolePriority as $role) {
-                        if (in_array($role, $roles)) {
-                            $primaryRole = $role;
-                            break;
-                        }
-                    }
+                    $displayRoles = array_map(fn($role) => $roleLabels[$role], $assignedRoles);
                 @endphp
 
                 <div class="mt-2 text-sm opacity-90 font-semibold text-center">
-
-                    @if($primaryRole === 'student_coordinator')
-                        <div>Student Coordinator</div>
-
-                    @elseif($primaryRole === 'assessor')
-                        <div>Assessor</div>
-
-                    @elseif($primaryRole === 'treasurer')
-                        <div>Treasurer</div>
-
-                    @elseif($primaryRole === 'adviser')
-                        <div class="flex flex-col items-center gap-1">
-                            <span>Adviser</span>
-
-                            <span class="inline-block bg-blue-100 text-blue-800 text-xs font-semibold px-3 py-1 rounded-full">
-                                {{ Auth::user()->course?->name ?? 'No course assigned' }}
-                            </span>
+                    @foreach($displayRoles as $index => $roleLabel)
+                        <div class="py-2 {{ $index !== array_key_last($displayRoles) ? 'border-b border-white/30' : '' }}">
+                            {{ $roleLabel }}
                         </div>
+                    @endforeach
 
-                    @elseif($primaryRole === 'college')
-                        <div>College Dean</div>
-
+                    @if(in_array('adviser', $roles))
+                        <span class="inline-block bg-blue-100 text-blue-800 text-xs font-semibold px-3 py-1 rounded-full mt-2">
+                            {{ Auth::user()->course?->name ?? 'No course assigned' }}
+                        </span>
                     @endif
-
                 </div>
 
                 @elseif(in_array('osa', $roles))
