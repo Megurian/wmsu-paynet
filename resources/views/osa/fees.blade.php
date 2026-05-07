@@ -223,9 +223,10 @@
                             @endif
                         </span>
                     </p>
+                    @php $disableRequest = $fee->feeRequests->first(); @endphp
                     <p class="text-sm text-gray-400 mt-1">
-                      {{ optional($fee->feeRequests->first()?->disable_approved_at)
-                        ? \Carbon\Carbon::parse($fee->feeRequests->first()->disable_approved_at)->format('M d, Y')
+                      {{ optional($disableRequest)->disable_approved_at
+                        ? \Carbon\Carbon::parse($disableRequest->disable_approved_at)->format('M d, Y')
                         : '-' }}
                     </p>
                 </div>

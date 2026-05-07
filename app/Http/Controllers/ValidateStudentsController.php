@@ -915,14 +915,20 @@ class ValidateStudentsController extends Controller
         $activeSY = SchoolYear::where('is_active', true)->first();
         $activeSem = Semester::where('is_active', true)->first();
 
-        return \App\Models\Fee::where('status', 'APPROVED')
+        $query = \App\Models\Fee::where('status', 'APPROVED')
             ->where(function ($q) use ($allOrgIds, $collegeId) {
                 $q->whereIn('organization_id', $allOrgIds)
                     ->orWhere(function ($q2) use ($collegeId) {
                         $q2->where('college_id', $collegeId)
                             ->whereNull('organization_id');
                     });
-            })
+            });
+
+        if (strtoupper(optional($activeSem)->name) === 'SUMMER') {
+            $query->where('recurrence', '!=', 'semestrial');
+        }
+
+        return $query
             ->with([
                 'organization',
                 'payments' => fn($q) => $q->where('student_id', $student->id),

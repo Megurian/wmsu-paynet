@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
+use App\Models\SchoolYear;
+use App\Models\Semester;
 use App\Traits\LogsActivity;
 
 class StudentEnrollment extends Model
@@ -168,9 +170,21 @@ class StudentEnrollment extends Model
         return $financialStatus;
     }
 
+    public function shouldIncludeDisabledFees(): bool
+    {
+        $activeSY = SchoolYear::where('is_active', true)->first();
+        $activeSem = Semester::where('is_active', true)->first();
+
+        if (! $activeSY || ! $activeSem) {
+            return false;
+        }
+
+        return $this->school_year_id !== $activeSY->id || $this->semester_id !== $activeSem->id;
+    }
+
     public function applicableFees()
     {
-        return Fee::where('status', 'approved')
+        $query = Fee::whereIn('status', $this->shouldIncludeDisabledFees() ? ['approved', 'disabled'] : ['approved'])
             ->where('college_id', $this->college_id)
             ->where(function ($q) {
                 $q->whereNull('organization_id')
@@ -187,8 +201,13 @@ class StudentEnrollment extends Model
             ->where(function ($q) {
                 $q->whereNull('created_semester_id')
                     ->orWhere('created_semester_id', '<=', $this->semester_id);
-            })
-            ->orderBy('created_at', 'desc')
+            });
+
+        if (strtoupper(optional($this->semester)->name) === 'SUMMER') {
+            $query->where('recurrence', '!=', 'semestrial');
+        }
+
+        return $query->orderBy('created_at', 'desc')
             ->get()
             ->unique('id')
             ->values();

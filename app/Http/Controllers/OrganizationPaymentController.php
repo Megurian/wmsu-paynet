@@ -51,6 +51,11 @@ class OrganizationPaymentController extends Controller
                     ->where('semester_id', $activeSem->id)
                     ->where('college_id', $collegeId);
             })
+            ->orWhereHas('enrollments', function ($q) use ($collegeId) {
+                $q->where('status', 'FOR_PAYMENT_VALIDATION')
+                    ->where('is_void', false)
+                    ->where('college_id', $collegeId);
+            })
             ->orWhereHas('promissoryNotes', function ($q) use ($collegeId) {
                 $q->whereIn('status', [
                         PromissoryNote::STATUS_DEFAULT,
@@ -70,7 +75,7 @@ class OrganizationPaymentController extends Controller
             ->limit(10)
             ->get()
             ->map(function ($s) {
-                $enrollment = $s->enrollments->first();
+                $enrollment = $s->enrollments->sortByDesc('id')->first();
                 return [
                     'id' => $s->id,
                     'student_id' => $s->student_id,
@@ -140,7 +145,7 @@ class OrganizationPaymentController extends Controller
             }
 
             $feesQuery = Fee::with(['createdSchoolYear', 'createdSemester'])
-                ->where('status', 'approved')
+                ->whereIn('status', $paymentEnrollment->shouldIncludeDisabledFees() ? ['approved', 'disabled'] : ['approved'])
                 ->where(function ($q) use ($organizationIds, $userOrg, $paymentEnrollment) {
                     $paymentPeriodCondition = function ($query) use ($paymentEnrollment) {
                         $query->where(function ($q2) use ($paymentEnrollment) {
@@ -163,14 +168,30 @@ class OrganizationPaymentController extends Controller
                                 ->where($paymentPeriodCondition);
                         });
                     }
-                })
-                ->orderBy('created_at', 'desc');
+                });
+
+            if (strtoupper(optional($paymentEnrollment->semester)->name) === 'SUMMER') {
+                $feesQuery->where('recurrence', '!=', 'semestrial');
+            }
+
+            $feesQuery->orderBy('created_at', 'desc');
 
             if (!empty($pnFeeIds)) {
                 $feesQuery->whereNotIn('id', $pnFeeIds);
             }
 
-            $fees = $feesQuery->get()->unique('id')->values()->map(function ($fee) use ($paymentEnrollment) {
+            $feesCollection = $feesQuery->get()->unique('id')->values();
+
+            $paidFeeIds = \App\Models\Fee::paidFeeIdsForStudentByPeriod(
+                $student->id,
+                $feesCollection->pluck('id')->toArray(),
+                $paymentEnrollment->school_year_id,
+                $paymentEnrollment->semester_id
+            );
+
+            $fees = $feesCollection->reject(function ($fee) use ($paidFeeIds) {
+                return $fee->recurrence === 'one_time' && in_array($fee->id, $paidFeeIds, true);
+            })->values()->map(function ($fee) use ($paymentEnrollment) {
                 return [
                     'id' => $fee->id,
                     'fee_name' => $fee->fee_name,
@@ -183,12 +204,9 @@ class OrganizationPaymentController extends Controller
                 ];
             });
 
-            $paidFeeIds = \App\Models\Fee::paidFeeIdsForStudentByPeriod(
-                $student->id,
-                $fees->pluck('id')->toArray(),
-                $paymentEnrollment->school_year_id,
-                $paymentEnrollment->semester_id
-            );
+            $paidFeeIds = array_values(array_filter($paidFeeIds, function ($feeId) use ($fees) {
+                return $fees->contains('id', $feeId);
+            }));
         }
 
         return response()->json([
@@ -442,10 +460,14 @@ class OrganizationPaymentController extends Controller
             $previousEnrollment = StudentEnrollment::with(['course', 'yearLevel', 'section', 'schoolYear', 'semester'])
                 ->where('student_id', $student->id)
                 ->where('id', '<', $activeEnrollment->id)
+                ->where('status', StudentEnrollment::FOR_PAYMENT_VALIDATION)
+                ->where('is_void', false)
+                ->orderBy('school_year_id', 'desc')
+                ->orderBy('semester_id', 'desc')
                 ->orderBy('id', 'desc')
                 ->first();
 
-            if ($previousEnrollment && !$previousEnrollment->is_void && $previousEnrollment->status === StudentEnrollment::FOR_PAYMENT_VALIDATION) {
+            if ($previousEnrollment) {
                 return $previousEnrollment;
             }
 
@@ -455,6 +477,7 @@ class OrganizationPaymentController extends Controller
         return StudentEnrollment::with(['course', 'yearLevel', 'section', 'schoolYear', 'semester'])
             ->where('student_id', $student->id)
             ->where('status', StudentEnrollment::FOR_PAYMENT_VALIDATION)
+            ->where('is_void', false)
             ->latest('id')
             ->first();
     }
@@ -598,25 +621,29 @@ class OrganizationPaymentController extends Controller
 
         $transactionId = "{$orgCode}-{$dateStr}-{$sequenceNum}-{$randomSuffix}";
 
-        $payment = Payment::create([
-            'student_id' => $student->id,
-            'enrollment_id' => $enrollment->id,
-            'organization_id' => $organization->id,
-            'school_year_id' => $enrollment->school_year_id,
-            'semester_id' => $enrollment->semester_id,
-            'payment_type' => 'CASH',
-            'amount_due' => $totalAmount,
-            'cash_received' => $request->cash_received,
-            'change' => $change,
-            'collected_by' => Auth::id(),
-            'transaction_id' => $transactionId,
-        ]);
+        $payment = DB::transaction(function () use ($student, $enrollment, $organization, $transactionId, $totalAmount, $change, $request, $fees) {
+            $payment = Payment::create([
+                'student_id' => $student->id,
+                'enrollment_id' => $enrollment->id,
+                'organization_id' => $organization->id,
+                'school_year_id' => $enrollment->school_year_id,
+                'semester_id' => $enrollment->semester_id,
+                'payment_type' => 'CASH',
+                'amount_due' => $totalAmount,
+                'cash_received' => $request->cash_received,
+                'change' => $change,
+                'collected_by' => Auth::id(),
+                'transaction_id' => $transactionId,
+            ]);
 
-        foreach ($fees as $fee) {
-            $payment->fees()->attach($fee->id, ['amount_paid' => $fee->amount]);
-        }
+            foreach ($fees as $fee) {
+                $payment->fees()->attach($fee->id, ['amount_paid' => $fee->amount]);
+            }
 
-        $enrollment->updatePaymentStatusForApplicableFees();
+            $enrollment->updatePaymentStatusForApplicableFees();
+
+            return $payment;
+        });
 
         return response()->json([
             'message' => 'Payment collected successfully.',
@@ -647,7 +674,7 @@ class OrganizationPaymentController extends Controller
             }
         }
 
-        return Fee::where('status', 'approved')
+        $query = Fee::whereIn('status', $enrollment->shouldIncludeDisabledFees() ? ['approved', 'disabled'] : ['approved'])
             ->where(function ($q) use ($organizationIds, $organization, $enrollment) {
                 $paymentPeriodCondition = function ($query) use ($enrollment) {
                     $query->where(function ($q2) use ($enrollment) {
@@ -670,8 +697,13 @@ class OrganizationPaymentController extends Controller
                             ->where($paymentPeriodCondition);
                     });
                 }
-            })
-            ->orderBy('created_at', 'desc')
+            });
+
+        if (strtoupper(optional($enrollment->semester)->name) === 'SUMMER') {
+            $query->where('recurrence', '!=', 'semestrial');
+        }
+
+        return $query->orderBy('created_at', 'desc')
             ->get()
             ->unique('id')
             ->values();

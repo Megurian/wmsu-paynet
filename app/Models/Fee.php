@@ -131,7 +131,8 @@ class Fee extends Model
                         }
                     });
             })
-            ->groupBy('fee_payment.fee_id')
+            ->groupBy('fee_payment.fee_id', 'fees.amount')
+            ->havingRaw('SUM(fee_payment.amount_paid) >= fees.amount')
             ->pluck('fee_payment.fee_id')
             ->unique()
             ->toArray();
