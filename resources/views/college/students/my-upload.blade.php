@@ -10,7 +10,7 @@
 <div x-data="myStudentsUpload()" x-init="init()">
     {{-- Import Modal --}}
     <div x-show="showImportModal" x-cloak class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-        <div @click.away="resetImport()" class="bg-white rounded-xl shadow-lg w-full max-w-lg p-6 relative">
+        <div @click.away="resetImport()" class="bg-white rounded-xl shadow-lg w-full max-w-6xl p-6 relative max-h-[90vh] overflow-y-auto">
             <button @click="resetImport()" class="absolute top-2 right-3 text-gray-500 hover:text-gray-800 text-xl">&times;</button>
 
             {{-- Step 1: File Select --}}
@@ -24,6 +24,7 @@
                 </a>
                 <form id="importForm" action="{{ route('college.students.import') }}" method="POST" enctype="multipart/form-data">
                     @csrf
+                    <input type="hidden" id="religionOverrideInput" name="religion_override_id" value="">
                     <input type="file" id="importFileInput" name="student_file" accept=".csv, .xls, .xlsx"
                         @change="importFile = $event.target.files[0]"
                         class="block w-full text-sm text-gray-700 border border-gray-300 rounded-lg px-3 py-2 mb-4">
@@ -39,54 +40,119 @@
                 </form>
             </div>
 
-            {{-- Step 2: Preview / Confirm --}}
-            <div x-show="importStep === 'confirm'">
-                <h3 class="text-lg font-semibold mb-3">Confirm Import</h3>
+            {{-- Step 2: Religion Selection --}}
+            <div x-show="importStep === 'religion'">
+                <h3 class="text-lg font-semibold mb-2">Select Specific Religion</h3>
+                <p class="text-sm text-gray-600 mb-4">
+                    Some rows use a broad religion label like Christian. Choose the specific religion to apply before continuing.
+                </p>
 
-                {{-- Summary bar --}}
-                <div class="flex gap-3 mb-4 text-sm">
-                    <span class="px-3 py-1 bg-green-100 text-green-700 rounded-full font-medium" x-text="importPreview.new_count + ' new'"></span>
-                    <span class="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full font-medium" x-text="importPreview.existing_match.length + ' will be updated'"></span>
-                    <template x-if="importPreview.existing_mismatch.length > 0">
-                        <span class="px-3 py-1 bg-red-100 text-red-700 rounded-full font-medium" x-text="importPreview.existing_mismatch.length + ' will be skipped'"></span>
-                    </template>
+                <template x-if="broadReligionRows.length > 0">
+                    <div class="mb-4">
+                        <p class="text-sm font-semibold text-indigo-700 mb-2">Detected rows needing a specific religion:</p>
+                        <div class="max-h-36 overflow-y-auto border border-indigo-200 rounded-lg bg-indigo-50 text-xs divide-y divide-indigo-100">
+                            <template x-for="row in broadReligionRows" :key="row.student_id + row.last_name">
+                                <div class="px-3 py-1.5">
+                                    <span class="font-mono font-semibold" x-text="row.student_id"></span>
+                                    <span x-text="' - ' + row.last_name + ', ' + row.first_name"></span>
+                                    <span class="text-gray-500" x-text="' (' + row.religion + ')' "></span>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </template>
+
+                <div class="mb-4">
+                    <label class="text-sm font-medium block mb-1">Specific Religion</label>
+                    <select x-model="broadReligionId" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                        <option value="">Select specific religion</option>
+                        @foreach($religions as $id => $name)
+                            <option value="{{ $id }}">{{ $name }}</option>
+                        @endforeach
+                    </select>
                 </div>
 
-                {{-- Students that will be updated --}}
-                <template x-if="importPreview.existing_match.length > 0">
-                    <div class="mb-4">
-                        <p class="text-sm font-semibold text-yellow-700 mb-1">⚠ The following students already exist and their information will be updated:</p>
-                        <div class="max-h-36 overflow-y-auto border border-yellow-200 rounded-lg bg-yellow-50 text-xs divide-y divide-yellow-100">
-                            <template x-for="s in importPreview.existing_match" :key="s.student_id">
-                                <div class="px-3 py-1.5 flex gap-3">
-                                    <span class="font-mono font-semibold" x-text="s.student_id"></span>
-                                    <span x-text="s.last_name + ', ' + s.first_name"></span>
-                                </div>
-                            </template>
-                        </div>
-                    </div>
-                </template>
-
-                {{-- Students that will be skipped (mismatch) --}}
-                <template x-if="importPreview.existing_mismatch.length > 0">
-                    <div class="mb-4">
-                        <p class="text-sm font-semibold text-red-700 mb-1">🚫 The following rows will be <strong>skipped</strong> — student ID exists but last name does not match:</p>
-                        <div class="max-h-36 overflow-y-auto border border-red-200 rounded-lg bg-red-50 text-xs divide-y divide-red-100">
-                            <template x-for="s in importPreview.existing_mismatch" :key="s.student_id">
-                                <div class="px-3 py-1.5">
-                                    <span class="font-mono font-semibold" x-text="s.student_id"></span> —
-                                    File: <span class="font-medium" x-text="s.file_last_name"></span>
-                                    vs DB: <span class="font-medium" x-text="s.db_last_name"></span>
-                                </div>
-                            </template>
-                        </div>
-                    </div>
-                </template>
-
-                <p class="text-sm text-gray-600 mb-4">Do you want to proceed with the import?</p>
-
                 <div class="flex justify-end gap-2">
-                    <button type="button" @click="importStep = 'select'" class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 text-sm">Back</button>
+                    <button type="button" @click="resetImport()" class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 text-sm">Cancel</button>
+                    <button type="button" @click="confirmReligionSelection()" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-500 text-sm">Continue</button>
+                </div>
+            </div>
+
+            {{-- Step 3: Preview / Confirm --}}
+            <div x-show="importStep === 'preview'">
+                <div class="flex items-start justify-between gap-4 mb-3">
+                    <div>
+                        <h3 class="text-lg font-semibold">Preview Imported Students</h3>
+                        <p class="text-sm text-gray-600 mt-1">
+                            Review every row before finalizing the upload.
+                        </p>
+                    </div>
+                    <button type="button" @click="importStep = broadReligionRows.length > 0 ? 'religion' : 'select'" class="text-sm text-gray-500 hover:text-gray-800">Back</button>
+                </div>
+
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4 text-sm">
+                    <span class="px-3 py-2 bg-green-100 text-green-700 rounded-lg font-medium" x-text="(importPreview.new_count || 0) + ' new'"></span>
+                    <span class="px-3 py-2 bg-yellow-100 text-yellow-700 rounded-lg font-medium" x-text="importPreview.existing_match.length + ' will be updated'"></span>
+                    <span class="px-3 py-2 bg-red-100 text-red-700 rounded-lg font-medium" x-text="importPreview.existing_mismatch.length + ' will be skipped'"></span>
+                    <span class="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium" x-text="importPreview.preview_rows.length + ' rows total'"></span>
+                </div>
+
+                <template x-if="broadReligionRows.length > 0">
+                    <div class="mb-4 p-3 bg-indigo-50 border border-indigo-200 rounded-lg text-sm text-indigo-800">
+                        The specific religion you select will be applied before the import is finalized.
+                    </div>
+                </template>
+
+                <div class="border border-gray-200 rounded-xl overflow-hidden">
+                    <div class="max-h-[55vh] overflow-auto">
+                        <table class="w-full text-sm">
+                            <thead class="bg-gray-100 sticky top-0 z-10">
+                                <tr class="text-left">
+                                    <th class="px-4 py-3 w-32">Student ID</th>
+                                    <th class="px-4 py-3">Name</th>
+                                    <th class="px-4 py-3 w-36">Year Level</th>
+                                    <th class="px-4 py-3 w-36">Section</th>
+                                    <th class="px-4 py-3 w-48">Religion</th>
+                                    <th class="px-4 py-3 w-64">Remark</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100">
+                                <template x-for="(row, index) in importPreview.preview_rows" :key="row.student_id + '-' + index">
+                                    <tr class="align-top">
+                                        <td class="px-4 py-3 font-mono text-xs font-semibold text-gray-700">
+                                            <span x-text="row.student_id || '—'"></span>
+                                        </td>
+                                        <td class="px-4 py-3 text-gray-800">
+                                            <div class="font-medium" x-text="[row.last_name, row.first_name].filter(Boolean).join(', ') || '—'"></div>
+                                            <div class="text-xs text-gray-500" x-show="row.middle_name || row.suffix">
+                                                <span x-text="row.middle_name || ''"></span>
+                                                <span x-show="row.middle_name && row.suffix"> </span>
+                                                <span x-text="row.suffix || ''"></span>
+                                            </div>
+                                        </td>
+                                        <td class="px-4 py-3 text-gray-700" x-text="row.year_level || '—'"></td>
+                                        <td class="px-4 py-3 text-gray-700" x-text="row.section || '—'"></td>
+                                        <td class="px-4 py-3 text-gray-700" x-text="row.religion || '—'"></td>
+                                        <td class="px-4 py-3">
+                                            <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold"
+                                                :class="{
+                                                    'bg-green-100 text-green-700': row.status === 'new',
+                                                    'bg-yellow-100 text-yellow-700': row.status === 'update',
+                                                    'bg-red-100 text-red-700': row.status === 'skipped',
+                                                    'bg-gray-100 text-gray-700': row.status === 'duplicate' || row.status === 'invalid'
+                                                }"
+                                                x-text="row.remark">
+                                            </span>
+                                        </td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-2 mt-4">
+                    <button type="button" @click="importStep = broadReligionRows.length > 0 ? 'religion' : 'select'" class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 text-sm">Back</button>
                     <button type="button" @click="submitImport()" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-500 text-sm">Confirm &amp; Import</button>
                 </div>
             </div>
@@ -265,7 +331,14 @@
         <p class="font-semibold mb-1">⚠ The following rows were skipped (student ID / last name mismatch):</p>
         <ul class="list-disc list-inside space-y-0.5">
             @foreach(session('import_skipped') as $row)
-            <li><span class="font-mono">{{ $row['student_id'] }}</span> — file: "{{ $row['file_last_name'] }}" vs DB: "{{ $row['db_last_name'] }}"</li>
+            <li>
+                <span class="font-mono">{{ $row['student_id'] }}</span>
+                @if(isset($row['reason']))
+                — {{ $row['reason'] }}
+                @else
+                — file: "{{ $row['file_last_name'] }}" vs DB: "{{ $row['db_last_name'] }}"
+                @endif
+            </li>
             @endforeach
         </ul>
     </div>
@@ -741,8 +814,10 @@
         showImportModal: false,
         importStep: 'select',    // 'select' | 'confirm'
         importFile: null,
-        importPreview: { new_count: 0, existing_match: [], existing_mismatch: [] },
+        importPreview: { new_count: 0, existing_match: [], existing_mismatch: [], broad_religion_rows: [], preview_rows: [] },
         importPreviewing: false,
+        broadReligionRows: [],
+        broadReligionId: '',
         students: @json($alpineStudents),
 
         selectedStudents: [],
@@ -838,18 +913,24 @@
             this.showImportModal = false;
             this.importStep = 'select';
             this.importFile = null;
-            this.importPreview = { new_count: 0, existing_match: [], existing_mismatch: [] };
+            this.importPreview = { new_count: 0, existing_match: [], existing_mismatch: [], broad_religion_rows: [], preview_rows: [] };
+            this.broadReligionRows = [];
+            this.broadReligionId = '';
             this.importPreviewing = false;
             const fi = document.getElementById('importFileInput');
             if (fi) fi.value = '';
         },
 
-        async runPreviewImport() {
-            if (!this.importFile) return;
+        async loadImportPreview(religionOverrideId = '') {
+            if (!this.importFile) return false;
             this.importPreviewing = true;
             const fd = new FormData();
             fd.append('student_file', this.importFile);
             fd.append('_token', '{{ csrf_token() }}');
+            if (religionOverrideId) {
+                fd.append('religion_override_id', religionOverrideId);
+            }
+
             try {
                 const res = await fetch('{{ route("college.students.import.preview") }}', {
                     method: 'POST',
@@ -857,20 +938,46 @@
                 });
                 if (!res.ok) throw new Error('Preview request failed');
                 this.importPreview = await res.json();
-                if (this.importPreview.existing_match.length === 0 && this.importPreview.existing_mismatch.length === 0) {
-                    this.submitImport();
-                } else {
-                    this.importStep = 'confirm';
-                }
+                this.broadReligionRows = this.importPreview.broad_religion_rows || [];
+                return true;
             } catch (e) {
                 alert('Could not preview file. Please check the file format and try again.');
+                return false;
             } finally {
                 this.importPreviewing = false;
             }
         },
 
+        async runPreviewImport() {
+            const loaded = await this.loadImportPreview();
+            if (!loaded) return;
+
+            if (this.broadReligionRows.length > 0) {
+                this.importStep = 'religion';
+            } else {
+                this.importStep = 'preview';
+            }
+        },
+
         submitImport() {
+            const overrideInput = document.getElementById('religionOverrideInput');
+            if (overrideInput) {
+                overrideInput.value = this.broadReligionId || '';
+            }
             document.getElementById('importForm').submit();
+        },
+
+        confirmReligionSelection() {
+            if (!this.broadReligionId) {
+                alert('Please select a specific religion.');
+                return;
+            }
+
+            this.loadImportPreview(this.broadReligionId).then((loaded) => {
+                if (loaded) {
+                    this.importStep = 'preview';
+                }
+            });
         },
 
         updateStudent(studentId, field, value) {
