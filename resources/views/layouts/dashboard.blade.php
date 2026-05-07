@@ -340,7 +340,7 @@
 
                 <a href="{{ route('college_org.payment') }}" class="block px-4 py-2 rounded-md transition
                     {{ request()->routeIs('college_org.payment') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-                    <span>Payment</span>
+                    <span>Cashiering</span>
                 </a>
 
                 <a href="{{ route('college_org.records') }}" class="block px-4 py-2 rounded-md transition
@@ -379,7 +379,7 @@
             @if(in_array('treasurer', $roles))
                 <a href="{{ route('treasurer.cashiering') }}" class="block px-4 py-2 rounded-md transition
                     {{ request()->routeIs('treasurer.cashiering') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-                    <span>Payments</span>
+                    <span>Cashiering</span>
                 </a>
             @endif
 
