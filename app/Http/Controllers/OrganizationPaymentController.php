@@ -174,6 +174,8 @@ class OrganizationPaymentController extends Controller
                 $feesQuery->where('recurrence', '!=', 'semestrial');
             }
 
+            $this->applyStudentFeeMatchingScope($feesQuery, $student, $paymentEnrollment);
+
             $feesQuery->orderBy('created_at', 'desc');
 
             if (!empty($pnFeeIds)) {
@@ -586,6 +588,14 @@ class OrganizationPaymentController extends Controller
             ], 403);
         }
 
+        $applicableFees = $this->getApplicableFeesForEnrollment($enrollment, $organization);
+        $invalidSelectedFees = $fees->reject(fn ($fee) => $applicableFees->contains('id', $fee->id))->pluck('id')->toArray();
+        if (!empty($invalidSelectedFees)) {
+            return response()->json([
+                'message' => 'One or more selected fees are not applicable to this student.'
+            ], 422);
+        }
+
         $totalAmount = $fees->sum('amount');
 
         if ($request->cash_received < $totalAmount) {
@@ -703,10 +713,31 @@ class OrganizationPaymentController extends Controller
             $query->where('recurrence', '!=', 'semestrial');
         }
 
+        $this->applyStudentFeeMatchingScope($query, $enrollment->student, $enrollment);
+
         return $query->orderBy('created_at', 'desc')
             ->get()
             ->unique('id')
             ->values();
+    }
+
+    private function applyStudentFeeMatchingScope($query, Student $student, ?StudentEnrollment $enrollment)
+    {
+        $query->where(function ($q) use ($student, $enrollment) {
+            $q->whereNull('year_level_id');
+            if ($enrollment && $enrollment->yearLevel?->name) {
+                $q->orWhereHas('yearLevel', function ($yearQ) use ($enrollment) {
+                    $yearQ->where('name', $enrollment->yearLevel->name);
+                });
+            }
+        });
+
+        $query->where(function ($q) use ($student) {
+            $q->whereNull('religion_id');
+            if ($student->religion_id) {
+                $q->orWhere('religion_id', $student->religion_id);
+            }
+        });
     }
 
     /**

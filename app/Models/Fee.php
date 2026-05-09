@@ -23,6 +23,8 @@ class Fee extends Model
         'accreditation_document_id',
         'resolution_document_id',
         'supporting_document_id',
+        'year_level_id',
+        'religion_id',
         'status',
         'fee_scope',
         'college_id',
@@ -61,6 +63,16 @@ class Fee extends Model
     public function appeals()
     {
         return $this->hasMany(Appeal::class);
+    }
+
+    public function yearLevel()
+    {
+        return $this->belongsTo(YearLevel::class);
+    }
+
+    public function religion()
+    {
+        return $this->belongsTo(Religion::class);
     }
 
      public function college()

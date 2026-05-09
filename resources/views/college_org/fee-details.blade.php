@@ -13,6 +13,8 @@
     <p class="text-sm text-gray-600 mb-2">Organization: {{ $fee->organization->name }} ({{ $fee->organization->org_code }})</p>
     <p class="text-sm text-gray-600 mb-2">Amount: ₱{{ number_format($fee->amount, 2) }}</p>
     <p class="text-sm text-gray-600 mb-2">Requirement: {{ ucfirst($fee->requirement_level) }}</p>
+    <p class="text-sm text-gray-600 mb-2">Year Level Specific: {{ optional($fee->yearLevel)->name ?? 'All year levels' }}</p>
+    <p class="text-sm text-gray-600 mb-2">Religion Specific: {{ optional($fee->religion)->name ?? 'All religions' }}</p>
     <p class="text-sm text-gray-600 mb-4">Status: {{ ucfirst($fee->status) }}</p>
 
     <div class="mb-4 space-y-2">

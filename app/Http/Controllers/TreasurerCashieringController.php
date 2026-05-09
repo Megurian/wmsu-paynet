@@ -124,6 +124,8 @@ class TreasurerCashieringController extends Controller
             $feesQuery->where('recurrence', '!=', 'semestrial');
         }
 
+        $this->applyStudentFeeMatchingScope($feesQuery, $student, $enrollment);
+
         if (!empty($pnFeeIds)) {
             $feesQuery->whereNotIn('id', $pnFeeIds);
         }
@@ -378,12 +380,11 @@ class TreasurerCashieringController extends Controller
             return response()->json(['message' => 'One or more fees do not exist or are not valid for college-level cashiering.'], 422);
         }
 
-        // Admin collects only college-level fees (no org fees)
-        $invalidFees = [];
-
-        if (!empty($invalidFees)) {
+        $applicableFees = $this->getApplicableFeesForEnrollment($enrollment, $collegeId);
+        $invalidSelectedFees = $fees->reject(fn ($fee) => $applicableFees->contains('id', $fee->id))->pluck('id')->toArray();
+        if (!empty($invalidSelectedFees)) {
             return response()->json([
-                'message' => 'One or more selected fees are not valid for college-level collection.'
+                'message' => 'One or more selected fees are not applicable to this student.'
             ], 422);
         }
 
@@ -488,8 +489,32 @@ class TreasurerCashieringController extends Controller
             $query->where('recurrence', '!=', 'semestrial');
         }
 
+        $student = $enrollment->student ?? $enrollment->student()->first();
+        if ($student) {
+            $this->applyStudentFeeMatchingScope($query, $student, $enrollment);
+        }
+
         return $query->orderBy('created_at', 'desc')
             ->get();
+    }
+
+    private function applyStudentFeeMatchingScope($query, Student $student, ?StudentEnrollment $enrollment)
+    {
+        $query->where(function ($q) use ($student, $enrollment) {
+            $q->whereNull('year_level_id');
+            if ($enrollment && $enrollment->yearLevel?->name) {
+                $q->orWhereHas('yearLevel', function ($yearQ) use ($enrollment) {
+                    $yearQ->where('name', $enrollment->yearLevel->name);
+                });
+            }
+        });
+
+        $query->where(function ($q) use ($student) {
+            $q->whereNull('religion_id');
+            if ($student->religion_id) {
+                $q->orWhere('religion_id', $student->religion_id);
+            }
+        });
     }
 
     /**

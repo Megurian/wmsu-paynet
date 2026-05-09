@@ -7,8 +7,10 @@ use App\Models\FeeRequest;
 use App\Models\Organization;
 use App\Models\College;
 use App\Models\Document;
+use App\Models\Religion;
 use App\Models\SchoolYear;
 use App\Models\Semester;
+use App\Models\YearLevel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -157,7 +159,11 @@ class OSAFeesController extends Controller
         );
 
         $organizations = Organization::orderBy('name')->get();
-        return view('osa.create-fee', compact('organizations'));
+        $yearLevels = YearLevel::orderBy('name')->get()
+            ->unique(fn ($year) => strtolower(trim((string) $year->name)))
+            ->values();
+        $religions = Religion::orderBy('name')->get();
+        return view('osa.create-fee', compact('organizations', 'yearLevels', 'religions'));
     }
 
     public function store(Request $request)
@@ -171,6 +177,8 @@ class OSAFeesController extends Controller
             'remittance_percent' => 'nullable|numeric|min:0|max:100',
             'requirement_level' => 'required|in:mandatory,optional',
             'recurrence' => 'required|in:one_time,semestrial,annual',
+            'year_level_id' => 'nullable|exists:year_levels,id',
+            'religion_id' => 'nullable|exists:religions,id',
             'legal_basis_file' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
         ]);
 
@@ -202,6 +210,8 @@ class OSAFeesController extends Controller
             'remittance_percent' => $request->remittance_percent ?? null,
             'requirement_level' => $request->requirement_level,
             'recurrence' => $request->recurrence,
+            'year_level_id' => $request->year_level_id,
+            'religion_id' => $request->religion_id,
             'fee_scope' => $feeScope,
             // OSA-created fees are auto-approved
             'status' => 'approved',

@@ -7,6 +7,9 @@ use Illuminate\Support\Facades\Auth;
 
 use App\Models\SchoolYear;
 use App\Models\Semester;
+use App\Models\Religion;
+use App\Models\YearLevel;
+
 class CollegeFeeController extends Controller
 {
     public function index(Request $request)
@@ -130,7 +133,11 @@ class CollegeFeeController extends Controller
 
     public function create()
     {
-        return view('college.fees.create');
+        $yearLevels = YearLevel::orderBy('name')->get()
+            ->unique(fn ($year) => strtolower(trim((string) $year->name)))
+            ->values();
+        $religions = Religion::orderBy('name')->get();
+        return view('college.fees.create', compact('yearLevels', 'religions'));
 
     }
 
@@ -146,6 +153,8 @@ class CollegeFeeController extends Controller
             'amount' => 'required|numeric|min:0',
             'requirement_level' => 'required|in:mandatory,optional',
             'recurrence' => 'required|in:one_time,semestrial,annual',
+            'year_level_id' => 'nullable|exists:year_levels,id',
+            'religion_id' => 'nullable|exists:religions,id',
         ]);
 
         $activeSY = SchoolYear::where('is_active', true)->first();
@@ -160,7 +169,7 @@ class CollegeFeeController extends Controller
             'approval_level' => 'dean',
             'status' => 'pending',
             'created_school_year_id' => $activeSY?->id,
-        'created_semester_id' => $activeSem?->id,
+            'created_semester_id' => $activeSem?->id,
         ]);
 
         log_activity(

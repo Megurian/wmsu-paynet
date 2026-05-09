@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Fee;
 use App\Models\Document;
+use App\Models\Religion;
+use App\Models\YearLevel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -82,8 +84,13 @@ class CollegeOrgFeesController extends Controller
             ->where('document_type', 'Resolution of Collection')
             ->latest()
             ->get();
+
+        $yearLevels = YearLevel::orderBy('name')->get()
+            ->unique(fn ($year) => strtolower(trim((string) $year->name)))
+            ->values();
+        $religions = Religion::orderBy('name')->get();
         
-        return view('college_org.create-fee', compact('organization', 'accreditationDocuments', 'resolutionDocuments'));
+        return view('college_org.create-fee', compact('organization', 'accreditationDocuments', 'resolutionDocuments', 'yearLevels', 'religions'));
     }
 
     public function store(Request $request)
@@ -98,6 +105,9 @@ class CollegeOrgFeesController extends Controller
             'amount' => 'required|numeric|min:0',
             'remittance_percent' => 'nullable|numeric|min:0|max:100',
             'requirement_level' => 'required|in:mandatory,optional',
+            'recurrence' => 'required|in:one_time,semestrial,annual',
+            'year_level_id' => 'nullable|exists:year_levels,id',
+            'religion_id' => 'nullable|exists:religions,id',
             'accreditation_file' => 'nullable|file|mimes:pdf,jpg,jpeg,png,doc,docx|max:5120',
             'accreditation_document_id' => 'nullable|exists:documents,id',
             'resolution_file' => 'nullable|file|mimes:pdf,jpg,jpeg,png,doc,docx|max:5120',
@@ -131,6 +141,8 @@ class CollegeOrgFeesController extends Controller
             'remittance_percent' => $request->remittance_percent ?? null,
             'requirement_level' => $request->requirement_level,
             'recurrence' => $request->recurrence,
+            'year_level_id' => $request->year_level_id,
+            'religion_id' => $request->religion_id,
             'status' => 'pending',
             'fee_scope' => 'college',
             'college_id' => $organization->college_id,

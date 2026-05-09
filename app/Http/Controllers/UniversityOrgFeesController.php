@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\Fee;
 use App\Models\Document;
 use App\Models\Organization;
+use App\Models\Religion;
 use App\Models\SchoolYear;
 use App\Models\Semester;
+use App\Models\YearLevel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -224,8 +226,13 @@ class UniversityOrgFeesController extends Controller
             ->where('document_type', 'Resolution of Collection')
             ->latest()
             ->get();
+
+        $yearLevels = YearLevel::orderBy('name')->get()
+            ->unique(fn ($year) => strtolower(trim((string) $year->name)))
+            ->values();
+        $religions = Religion::orderBy('name')->get();
         
-        return view('university_org.create-fees', compact('organization', 'accreditationDocuments', 'resolutionDocuments'));
+        return view('university_org.create-fees', compact('organization', 'accreditationDocuments', 'resolutionDocuments', 'yearLevels', 'religions'));
     }
 
     public function store(Request $request)
@@ -238,6 +245,9 @@ class UniversityOrgFeesController extends Controller
             'amount' => 'required|numeric|min:0',
             'remittance_percent' => 'nullable|numeric|min:0|max:100',
             'requirement_level' => 'required|in:mandatory,optional',
+            'recurrence' => 'required|in:one_time,semestrial,annual',
+            'year_level_id' => 'nullable|exists:year_levels,id',
+            'religion_id' => 'nullable|exists:religions,id',
             'accreditation_file' => 'nullable|file|mimes:pdf,jpg,jpeg,png,doc,docx|max:5120',
             'accreditation_document_id' => 'nullable|exists:documents,id',
             'resolution_file' => 'nullable|file|mimes:pdf,jpg,jpeg,png,doc,docx|max:5120',
@@ -274,6 +284,8 @@ class UniversityOrgFeesController extends Controller
             'remittance_percent' => $request->remittance_percent ?? null,
             'requirement_level' => $request->requirement_level,
             'recurrence' => $request->recurrence,
+            'year_level_id' => $request->year_level_id,
+            'religion_id' => $request->religion_id,
             'fee_scope' => 'university-wide',
             'status' => 'pending',
         ];
