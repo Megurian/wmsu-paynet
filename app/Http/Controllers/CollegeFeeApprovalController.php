@@ -17,22 +17,75 @@ class CollegeFeeApprovalController extends Controller
 
         $collegeId = $user->college_id;
         $tab = $request->get('tab', 'pending');
+        $search = $request->input('search');
+        $organizationId = $request->input('organization_id');
+
+        $organizations = \App\Models\Organization::query()
+            ->where(function ($query) use ($collegeId) {
+                $query->whereNull('college_id')
+                      ->orWhere('college_id', $collegeId);
+            })
+            ->orderBy('name')
+            ->get();
+
+        $selectedOrg = $organizationId ? \App\Models\Organization::with('motherOrganization')->find($organizationId) : null;
+
+        $collegeFeeScope = function ($query) use ($collegeId) {
+            $query->where('fee_scope', 'college')
+                  ->where(function ($query) use ($collegeId) {
+                      $query->where('college_id', $collegeId)
+                            ->orWhereHas('organization', function ($query) use ($collegeId) {
+                                $query->where('college_id', $collegeId);
+                            });
+                  });
+        };
 
         $baseQuery = Fee::with(['organization.motherOrganization'])
-            ->where('fee_scope', 'college')
-            ->where('college_id', $collegeId);
+            ->where($collegeFeeScope);
+
+        if ($search) {
+            $baseQuery->where(function ($q) use ($search) {
+                $q->where('fee_name', 'like', "%{$search}%")
+                  ->orWhere('requirement_level', 'like', "%{$search}%")
+                  ->orWhereHas('organization', function ($q) use ($search) {
+                      $q->where('name', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        if ($organizationId) {
+            $baseQuery->where('organization_id', $organizationId);
+        }
 
         // Include fees that require dean approval — this includes fees created by child organizations (they still need dean approval first).
         $pendingFees = (clone $baseQuery)
             ->where('status', 'pending')
             ->where(function ($q) {
                 $q->where('approval_level', 'dean')
-                  ->orWhereNull('organization_id'); 
+                  ->orWhereNull('organization_id');
             })
             ->orderByDesc('created_at')
             ->get();
+
         $pendingRequests = FeeRequest::with(['fee.organization', 'requestedBy'])
             ->where('status', 'pending')
+            ->whereHas('fee', function ($q) use ($collegeFeeScope, $search, $organizationId) {
+                $q->where($collegeFeeScope);
+
+                if ($search) {
+                    $q->where(function ($q) use ($search) {
+                        $q->where('fee_name', 'like', "%{$search}%")
+                          ->orWhere('requirement_level', 'like', "%{$search}%")
+                          ->orWhereHas('organization', function ($q) use ($search) {
+                              $q->where('name', 'like', "%{$search}%");
+                          });
+                    });
+                }
+
+                if ($organizationId) {
+                    $q->where('organization_id', $organizationId);
+                }
+            })
             ->latest()
             ->get();
             
@@ -66,8 +119,29 @@ class CollegeFeeApprovalController extends Controller
                     $q->where('status', 'pending')
                     ->whereIn('type', ['disable', 'enable']);
                 })
-                ->whereIn('organization_id', $motherOrgIds)
-                ->get();
+                ->whereIn('organization_id', $motherOrgIds);
+
+            if ($organizationId) {
+                $inheritedFees->where(function ($q) use ($organizationId, $selectedOrg) {
+                    $q->where('organization_id', $organizationId);
+
+                    if ($selectedOrg && $selectedOrg->mother_organization_id) {
+                        $q->orWhere('organization_id', $selectedOrg->mother_organization_id);
+                    }
+                });
+            }
+
+            if ($search) {
+                $inheritedFees->where(function ($q) use ($search) {
+                    $q->where('fee_name', 'like', "%{$search}%")
+                      ->orWhere('requirement_level', 'like', "%{$search}%")
+                      ->orWhereHas('organization', function ($q) use ($search) {
+                          $q->where('name', 'like', "%{$search}%");
+                      });
+                });
+            }
+
+            $inheritedFees = $inheritedFees->get();
 
             // Special-case: include OSA fees if any child's mother org inherits OSA fees
             $hasOsaInheritingChild = $childOrgs->firstWhere('motherOrganization.inherits_osa_fees', true);
@@ -80,10 +154,26 @@ class CollegeFeeApprovalController extends Controller
                             $q->where('status', 'pending')
                             ->whereIn('type', ['disable', 'enable']);
                         })
-                        ->where('organization_id', $osaId)
-                        ->get();
+                        ->where('organization_id', $osaId);
 
-                    $inheritedFees = $inheritedFees->merge($osaFees);
+                    if ($search) {
+                        $osaFees->where(function ($q) use ($search) {
+                            $q->where('fee_name', 'like', "%{$search}%")
+                              ->orWhere('requirement_level', 'like', "%{$search}%")
+                              ->orWhereHas('organization', function ($q) use ($search) {
+                                  $q->where('name', 'like', "%{$search}%");
+                              });
+                        });
+                    }
+
+                    if ($organizationId) {
+                        // Only filter OSA fees to this org if it's NOT a child org
+                        if (!($selectedOrg && $selectedOrg->mother_organization_id)) {
+                            $osaFees->where('organization_id', $organizationId);
+                        }
+                    }
+
+                    $inheritedFees = $inheritedFees->merge($osaFees->get());
                 }
             }
         }
@@ -91,7 +181,7 @@ class CollegeFeeApprovalController extends Controller
         // Merge, dedupe and order by approved_at (desc)
         $approvedFees = $approvedFees->merge($inheritedFees)->unique('id')->sortByDesc('approved_at')->values();
 
-        return view('college.fees.approval', compact('pendingFees', 'approvedFees', 'pendingRequests','disabledFees', 'tab'));
+        return view('college.fees.approval', compact('pendingFees', 'approvedFees', 'pendingRequests','disabledFees', 'tab', 'organizations'));
     }
 
     /**
@@ -101,7 +191,11 @@ class CollegeFeeApprovalController extends Controller
     {
         $user = auth()->user();
         abort_unless($user, 403);
-        abort_unless($fee->college_id === $user->college_id, 403);
+        abort_unless(
+            $fee->college_id === $user->college_id ||
+            optional($fee->organization)->college_id === $user->college_id,
+            403
+        );
 
         $fee->load(['organization', 'appeals', 'user']);
 
@@ -121,7 +215,11 @@ class CollegeFeeApprovalController extends Controller
             return back()->withErrors(['password' => 'Password verification failed.'])->withInput();
         }
 
-        abort_unless($fee->college_id === $user->college_id, 403);
+        abort_unless(
+            $fee->college_id === $user->college_id ||
+            optional($fee->organization)->college_id === $user->college_id,
+            403
+        );
 
         // If this fee belongs to a college organization (college_org) or a child office,
         // the dean's approval should forward it to OSA for final approval (dean -> OSA).
@@ -168,6 +266,51 @@ class CollegeFeeApprovalController extends Controller
         );
 
         return back()->with('success', 'Fee approved.');
+    }
+
+    public function reject(Request $request, Fee $fee)
+    {
+        $user = auth()->user();
+        abort_unless($user, 403);
+
+        $request->validate([
+            'password' => 'required|string',
+        ]);
+
+        if (! Hash::check($request->password, $user->password)) {
+            return back()->withErrors(['password' => 'Password verification failed.'])->withInput();
+        }
+
+        abort_unless(
+            $fee->college_id === $user->college_id ||
+            optional($fee->organization)->college_id === $user->college_id,
+            403
+        );
+
+        if ($fee->status !== 'pending') {
+            return back()->with('error', 'Only pending fees can be rejected.');
+        }
+
+        $fee->update([
+            'status' => 'rejected',
+            'approved_at' => now(),
+        ]);
+
+        log_activity(
+            'Fee Rejected',
+            "Fee '{$fee->fee_name}' rejected by dean",
+            null, null, null,
+            [
+                'fee_id' => $fee->id,
+                'college_id' => $fee->college_id,
+                'rejected_by' => $user->id,
+                'rejected_at' => now(),
+                'previous_status' => 'pending',
+                'new_status' => 'rejected',
+            ]
+        );
+
+        return back()->with('success', 'Fee rejected.');
     }
 
     public function requestDisable(Request $request, Fee $fee)

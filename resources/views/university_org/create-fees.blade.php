@@ -109,10 +109,32 @@
                 <div>
                     <label for="recurrence" class="block text-sm font-medium text-gray-700 mb-1">Fee Recurrence</label>
                     <select id="recurrence" name="recurrence" required class="w-full border rounded px-3 py-2">
-                        <option value="one_time">One Time</option>
-                        <option value="semestrial">Semestrial</option>
-                        <option value="annual">Annual</option>
+                        <option value="one_time" {{ old('recurrence') == 'one_time' ? 'selected' : '' }}>One Time</option>
+                        <option value="semestrial" {{ old('recurrence') == 'semestrial' ? 'selected' : '' }}>Semestrial</option>
+                        <option value="annual" {{ old('recurrence') == 'annual' ? 'selected' : '' }}>Annual</option>
                     </select>
+                </div>
+
+                <div>
+                    <label for="year_level_id" class="block text-sm font-medium text-gray-700 mb-1">Year Level Specific <span class="text-gray-500 text-sm">(optional)</span></label>
+                    <select id="year_level_id" name="year_level_id" class="w-full border rounded px-3 py-2">
+                        <option value="">All year levels</option>
+                        @foreach($yearLevels as $year)
+                            <option value="{{ $year->id }}" {{ old('year_level_id') == $year->id ? 'selected' : '' }}>{{ $year->name }}</option>
+                        @endforeach
+                    </select>
+                    @error('year_level_id') <p class="text-red-600 text-sm">{{ $message }}</p> @enderror
+                </div>
+
+                <div>
+                    <label for="religion_id" class="block text-sm font-medium text-gray-700 mb-1">Religion Specific <span class="text-gray-500 text-sm">(optional)</span></label>
+                    <select id="religion_id" name="religion_id" class="w-full border rounded px-3 py-2">
+                        <option value="">All religions</option>
+                        @foreach($religions as $religion)
+                            <option value="{{ $religion->id }}" {{ old('religion_id') == $religion->id ? 'selected' : '' }}>{{ $religion->name }}</option>
+                        @endforeach
+                    </select>
+                    @error('religion_id') <p class="text-red-600 text-sm">{{ $message }}</p> @enderror
                 </div>
 
                 <div>

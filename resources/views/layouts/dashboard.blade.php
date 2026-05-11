@@ -118,49 +118,33 @@
                     </h2>
 
                     @php
-                    $rolePriority = [
-                        'student_coordinator',
-                        'assessor',
-                        'treasurer',
-                        'adviser',
-                        'college',
+                    $roleLabels = [
+                        'student_coordinator' => 'Student Coordinator',
+                        'assessor' => 'Assessor',
+                        'treasurer' => 'Treasurer',
+                        'adviser' => 'Adviser',
+                        'college' => 'College Dean',
                     ];
 
-                    $primaryRole = null;
+                    $assignedRoles = array_values(array_filter($roles, function ($role) use ($roleLabels) {
+                        return array_key_exists($role, $roleLabels);
+                    }));
 
-                    foreach ($rolePriority as $role) {
-                        if (in_array($role, $roles)) {
-                            $primaryRole = $role;
-                            break;
-                        }
-                    }
+                    $displayRoles = array_map(fn($role) => $roleLabels[$role], $assignedRoles);
                 @endphp
 
                 <div class="mt-2 text-sm opacity-90 font-semibold text-center">
-
-                    @if($primaryRole === 'student_coordinator')
-                        <div>Student Coordinator</div>
-
-                    @elseif($primaryRole === 'assessor')
-                        <div>Assessor</div>
-
-                    @elseif($primaryRole === 'treasurer')
-                        <div>Treasurer</div>
-
-                    @elseif($primaryRole === 'adviser')
-                        <div class="flex flex-col items-center gap-1">
-                            <span>Adviser</span>
-
-                            <span class="inline-block bg-blue-100 text-blue-800 text-xs font-semibold px-3 py-1 rounded-full">
-                                {{ Auth::user()->course?->name ?? 'No course assigned' }}
-                            </span>
+                    @foreach($displayRoles as $index => $roleLabel)
+                        <div class="py-2 {{ $index !== array_key_last($displayRoles) ? 'border-b border-white/30' : '' }}">
+                            {{ $roleLabel }}
                         </div>
+                    @endforeach
 
-                    @elseif($primaryRole === 'college')
-                        <div>College Dean</div>
-
+                    @if(in_array('adviser', $roles))
+                        <span class="inline-block bg-blue-100 text-blue-800 text-xs font-semibold px-3 py-1 rounded-full mt-2">
+                            {{ Auth::user()->course?->name ?? 'No course assigned' }}
+                        </span>
                     @endif
-
                 </div>
 
                 @elseif(in_array('osa', $roles))
@@ -337,6 +321,8 @@
 
 
             @if(in_array('college_org', $roles))
+
+            
                 <a href="{{ route('college_org.dashboard') }}" class="block px-4 py-2 rounded-md transition
                     {{ request()->routeIs('college_org.dashboard') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
                     <span>Dashboard</span>
@@ -354,13 +340,21 @@
 
                 <a href="{{ route('college_org.payment') }}" class="block px-4 py-2 rounded-md transition
                     {{ request()->routeIs('college_org.payment') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-                    <span>Payment</span>
+                    <span>Cashiering</span>
                 </a>
 
                 <a href="{{ route('college_org.records') }}" class="block px-4 py-2 rounded-md transition
                     {{ request()->routeIs('college_org.records') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
                     <span>Records</span>
                 </a>
+
+                @if(
+                    in_array('college_org', $roles) && $organization && $organization->college_id && $organization->mother_organization_id)
+                    <a href="{{ route('college_org.remittance') }}" class="block px-4 py-2 rounded-md transition
+                        {{ request()->routeIs('college_org.remittance') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
+                        <span>Remittance</span>
+                    </a>
+                @endif
 
                 <a href="{{ route('college_org.organization_management') }}" class="block px-4 py-2 rounded-md transition
                     {{ request()->routeIs('college_org.organization_management') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
@@ -385,7 +379,7 @@
             @if(in_array('treasurer', $roles))
                 <a href="{{ route('treasurer.cashiering') }}" class="block px-4 py-2 rounded-md transition
                     {{ request()->routeIs('treasurer.cashiering') ? 'bg-red-700 font-semibold' : 'hover:bg-red-700' }}">
-                    <span>Payments</span>
+                    <span>Cashiering</span>
                 </a>
             @endif
 

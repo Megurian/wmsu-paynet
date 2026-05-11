@@ -7,15 +7,18 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use App\Models\Student;
 use App\Models\StudentEnrollment;
 use App\Models\PromissoryNote;
+use App\Models\Religion;
 use App\Models\SchoolYear;
 use App\Models\Semester;
 use App\Models\Course;
 use App\Models\YearLevel;
 use App\Models\Section;
 use App\Services\PromissoryNoteIssuanceService;
+use App\Services\ReligionResolver;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\TemplateExport;
 use App\Imports\StudentsImport;
@@ -278,9 +281,19 @@ class ValidateStudentsController extends Controller
     {
         $request->validate([
             'student_file' => 'required|file|mimes:xlsx,xls,csv',
+            'religion_override_id' => 'nullable|exists:religions,id',
         ]);
 
-        $importer = new StudentsImport();
+        $resolver = app(ReligionResolver::class);
+        $broadRows = $this->detectBroadReligionRows($request->file('student_file'), $resolver);
+
+        if ($broadRows->isNotEmpty() && ! $request->filled('religion_override_id')) {
+            return back()->withErrors([
+                'religion_override_id' => 'Please choose a specific religion for the detected Christian/broad religion rows before importing.',
+            ]);
+        }
+
+        $importer = new StudentsImport($resolver, $request->integer('religion_override_id'));
         Excel::import($importer, $request->file('student_file'));
 
         $result = $importer->getResult();
@@ -312,9 +325,11 @@ class ValidateStudentsController extends Controller
     {
         $request->validate([
             'student_file' => 'required|file|mimes:xlsx,xls,csv',
+            'religion_override_id' => 'nullable|exists:religions,id',
         ]);
 
         $collegeId = Auth::user()->college_id;
+        $resolver = app(ReligionResolver::class);
 
         // Read file into collection using Maatwebsite (first sheet, with heading row)
         $collection = Excel::toCollection(new \App\Imports\StudentsImportPreview(), $request->file('student_file'));
@@ -322,16 +337,68 @@ class ValidateStudentsController extends Controller
 
         $existing_match    = [];   // student_id + last_name both match → will be updated
         $existing_mismatch = [];   // student_id matches but last_name differs → will be skipped
+        $broad_religion_rows = [];
+        $preview_rows = [];
+        $seen_student_ids = [];
         $new_count         = 0;
+        $overrideReligionName = null;
+        if ($request->filled('religion_override_id')) {
+            $overrideReligionName = Religion::find($request->integer('religion_override_id'))?->name;
+        }
 
         foreach ($rows as $row) {
             $row = collect($row)->mapWithKeys(fn($v, $k) => [strtolower(str_replace(' ', '_', $k)) => $v]);
 
             $studentId = trim($row['student_id'] ?? '');
             $lastName  = trim($row['last_name']  ?? '');
+            $firstName  = trim($row['first_name'] ?? '');
+            $middleName = trim($row['middle_name'] ?? '');
+            $suffix     = trim($row['suffix'] ?? '');
+            $yearLevel  = trim((string) ($row['year_level'] ?? ''));
+            $section    = trim((string) ($row['section'] ?? ''));
+            $religionValue = trim((string) ($row['religion'] ?? ''));
 
             if (!$studentId || !$lastName) {
+                $preview_rows[] = [
+                    'student_id' => $studentId,
+                    'last_name' => $lastName,
+                    'first_name' => $firstName,
+                    'middle_name' => $middleName,
+                    'suffix' => $suffix,
+                    'year_level' => $yearLevel,
+                    'section' => $section,
+                    'remark' => 'Skipped: missing student ID or last name',
+                    'status' => 'invalid',
+                ];
+
                 continue;
+            }
+
+            $studentKey = strtolower($studentId);
+            $duplicateInUpload = isset($seen_student_ids[$studentKey]);
+            $seen_student_ids[$studentKey] = true;
+
+            $previewStatus = $duplicateInUpload ? 'duplicate' : 'new';
+            $remark = $duplicateInUpload
+                ? 'Duplicate row in upload'
+                : 'New student';
+
+            $religionRemark = '';
+
+            if ($resolver->isBroadChristianValue($religionValue)) {
+                $broad_religion_rows[] = [
+                    'student_id' => $studentId,
+                    'last_name' => $lastName,
+                    'first_name' => $firstName,
+                    'religion' => $religionValue,
+                ];
+
+                $religionRemark = $overrideReligionName
+                    ? 'Selected religion will be applied'
+                    : 'Needs specific religion selection';
+                if ($overrideReligionName) {
+                    $religionValue = $overrideReligionName;
+                }
             }
 
             $existing = \App\Models\Student::where('student_id', $studentId)->first();
@@ -345,6 +412,21 @@ class ValidateStudentsController extends Controller
                 if (!$inCollege) {
                     // Student exists globally but not in this college, treat as new
                     $new_count++;
+                    $remark = $duplicateInUpload
+                        ? 'Duplicate row in upload; will be created as new student'
+                        : 'New student (new to college)';
+                    $preview_rows[] = [
+                        'student_id' => $studentId,
+                        'last_name' => $lastName,
+                        'first_name' => $firstName,
+                        'middle_name' => $middleName,
+                        'suffix' => $suffix,
+                        'year_level' => $yearLevel,
+                        'section' => $section,
+                        'religion' => $religionValue,
+                        'status' => $previewStatus,
+                        'remark' => $remark,
+                    ];
                     continue;
                 }
 
@@ -352,26 +434,70 @@ class ValidateStudentsController extends Controller
                     $existing_match[] = [
                         'student_id' => $studentId,
                         'last_name'  => $lastName,
-                        'first_name' => trim($row['first_name'] ?? ''),
+                        'first_name' => $firstName,
                     ];
+
+                    $remark = $duplicateInUpload
+                        ? 'Duplicate row in upload; will be updated'
+                        : 'Will be updated';
+                    $previewStatus = $duplicateInUpload ? 'duplicate' : 'update';
                 } else {
                     $existing_mismatch[] = [
                         'student_id'     => $studentId,
                         'file_last_name' => $lastName,
                         'db_last_name'   => $existing->last_name,
-                        'first_name'     => trim($row['first_name'] ?? ''),
+                        'first_name'     => $firstName,
                     ];
+
+                    $remark = 'Skipped: student ID exists but last name does not match';
+                    $previewStatus = 'skipped';
                 }
             } else {
                 $new_count++;
+
+                if ($duplicateInUpload) {
+                    $remark = 'Duplicate row in upload; will be created as new student';
+                }
             }
+
+            if ($religionRemark !== '') {
+                $remark .= '; ' . $religionRemark;
+            }
+
+            $preview_rows[] = [
+                'student_id' => $studentId,
+                'last_name' => $lastName,
+                'first_name' => $firstName,
+                'middle_name' => $middleName,
+                'suffix' => $suffix,
+                'year_level' => $yearLevel,
+                'section' => $section,
+                'religion' => $religionValue,
+                'status' => $previewStatus,
+                'remark' => $remark,
+            ];
         }
 
         return response()->json([
             'existing_match'    => $existing_match,
             'existing_mismatch' => $existing_mismatch,
+            'broad_religion_rows' => $broad_religion_rows,
             'new_count'         => $new_count,
+            'preview_rows'      => $preview_rows,
         ]);
+    }
+
+    private function detectBroadReligionRows($file, ReligionResolver $resolver): Collection
+    {
+        $collection = Excel::toCollection(new StudentsImportPreview(), $file);
+        $rows = $collection->first() ?? collect();
+
+        return collect($rows)->filter(function ($row) use ($resolver) {
+            $row = collect($row)->mapWithKeys(fn($v, $k) => [strtolower(str_replace(' ', '_', $k)) => $v]);
+            $religionValue = trim((string) ($row['religion'] ?? ''));
+
+            return $resolver->isBroadChristianValue($religionValue);
+        })->values();
     }
 
     public function markPaid(Student $student)
@@ -789,14 +915,20 @@ class ValidateStudentsController extends Controller
         $activeSY = SchoolYear::where('is_active', true)->first();
         $activeSem = Semester::where('is_active', true)->first();
 
-        return \App\Models\Fee::where('status', 'APPROVED')
+        $query = \App\Models\Fee::where('status', 'APPROVED')
             ->where(function ($q) use ($allOrgIds, $collegeId) {
                 $q->whereIn('organization_id', $allOrgIds)
                     ->orWhere(function ($q2) use ($collegeId) {
                         $q2->where('college_id', $collegeId)
                             ->whereNull('organization_id');
                     });
-            })
+            });
+
+        if (strtoupper(optional($activeSem)->name) === 'SUMMER') {
+            $query->where('recurrence', '!=', 'semestrial');
+        }
+
+        return $query
             ->with([
                 'organization',
                 'payments' => fn($q) => $q->where('student_id', $student->id),

@@ -5,9 +5,12 @@ namespace App\Http\Controllers;
 use App\Models\Fee;
 use App\Models\FeeRequest;
 use App\Models\Organization;
+use App\Models\College;
 use App\Models\Document;
+use App\Models\Religion;
 use App\Models\SchoolYear;
 use App\Models\Semester;
+use App\Models\YearLevel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -15,7 +18,7 @@ class OSAFeesController extends Controller
 {
     public function index(Request $request)
 {
-        $pendingFees = Fee::with(['organization', 'user', 'appeals'])
+        $pendingFees = Fee::with(['organization', 'college', 'user', 'appeals'])
         ->where(function ($q) {
 
             $q->where(function ($q2) {
@@ -35,7 +38,7 @@ class OSAFeesController extends Controller
             ->get();
 
 
-        $approvedFees = Fee::with(['organization', 'user'])
+        $approvedFees = Fee::with(['organization', 'college', 'user'])
             ->where('status', 'approved')
             ->orderByDesc('approved_at')
             ->get();
@@ -53,6 +56,7 @@ class OSAFeesController extends Controller
             ->get();
         $disabledFees = Fee::with([
             'organization',
+            'college',
             'user',
             'feeRequests' => function ($q) {
                 $q->where('type', 'disable')
@@ -66,7 +70,7 @@ class OSAFeesController extends Controller
 
         $status = $request->get('status', 'approved');
 
-        $filteredQuery = Fee::with(['organization', 'user'])
+        $filteredQuery = Fee::with(['organization', 'college', 'user'])
             ->where(function ($q) {
                 $q->where('fee_scope', 'university-wide')
                     ->orWhere(function ($q2) {
@@ -99,6 +103,30 @@ class OSAFeesController extends Controller
             $filteredQuery->where('organization_id', $request->organization_id);
         }
 
+        if ($request->filled('college_id')) {
+            $filteredQuery->where(function ($q) use ($request) {
+                $q->where('college_id', $request->college_id)
+                  ->orWhereHas('organization', function ($q2) use ($request) {
+                      $q2->where('college_id', $request->college_id);
+                  });
+            });
+        }
+
+        if ($request->filled('search')) {
+            $search = trim($request->search);
+            $filteredQuery->where(function ($q) use ($search) {
+                $q->where('fee_name', 'like', "%{$search}%")
+                  ->orWhere('purpose', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%")
+                  ->orWhereHas('organization', function ($q2) use ($search) {
+                      $q2->where('name', 'like', "%{$search}%");
+                  })
+                  ->orWhereHas('college', function ($q2) use ($search) {
+                      $q2->where('name', 'like', "%{$search}%");
+                  });
+            });
+        }
+
         if ($request->filled('requirement_level')) {
             $filteredQuery->where('requirement_level', $request->requirement_level);
         }
@@ -113,12 +141,13 @@ class OSAFeesController extends Controller
             $filteredQuery->whereIn('organization_id', $orgIds);
         }
 
-        $filteredFees = $filteredQuery->orderBy('created_at', 'desc')->get();
+        $filteredFees = $filteredQuery->orderBy('created_at', 'desc')->paginate(12);
 
         $organizations = Organization::orderBy('name')->get();
+        $colleges = College::orderBy('name')->get();
 
         return view('osa.fees', compact('pendingFees', 'filteredFees',   'pendingDisableRequests',
-    'pendingEnableRequests', 'disabledFees', 'organizations', 'status', 'approvedFees'));
+    'pendingEnableRequests', 'disabledFees', 'organizations', 'colleges', 'status', 'approvedFees'));
     }
 
     public function create()
@@ -130,7 +159,11 @@ class OSAFeesController extends Controller
         );
 
         $organizations = Organization::orderBy('name')->get();
-        return view('osa.create-fee', compact('organizations'));
+        $yearLevels = YearLevel::orderBy('name')->get()
+            ->unique(fn ($year) => strtolower(trim((string) $year->name)))
+            ->values();
+        $religions = Religion::orderBy('name')->get();
+        return view('osa.create-fee', compact('organizations', 'yearLevels', 'religions'));
     }
 
     public function store(Request $request)
@@ -144,6 +177,8 @@ class OSAFeesController extends Controller
             'remittance_percent' => 'nullable|numeric|min:0|max:100',
             'requirement_level' => 'required|in:mandatory,optional',
             'recurrence' => 'required|in:one_time,semestrial,annual',
+            'year_level_id' => 'nullable|exists:year_levels,id',
+            'religion_id' => 'nullable|exists:religions,id',
             'legal_basis_file' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
         ]);
 
@@ -175,6 +210,8 @@ class OSAFeesController extends Controller
             'remittance_percent' => $request->remittance_percent ?? null,
             'requirement_level' => $request->requirement_level,
             'recurrence' => $request->recurrence,
+            'year_level_id' => $request->year_level_id,
+            'religion_id' => $request->religion_id,
             'fee_scope' => $feeScope,
             // OSA-created fees are auto-approved
             'status' => 'approved',

@@ -30,8 +30,11 @@ class OSACollegeController extends Controller
     public function show($id)
     {
         $college = College::with([
-            'admins' => function ($query) {$query->where('role', 'college');},
-            'courses' 
+            'admins' => function ($query) {
+                $query->where('role', 'college');
+            },
+            'courses',
+            'sections', // ✅ add this
         ])->findOrFail($id);
 
         $organizations = Organization::where('college_id', $college->id)
@@ -40,7 +43,6 @@ class OSACollegeController extends Controller
 
         return view('osa.college-details', compact('college', 'organizations'));
     }
-
 
 
 

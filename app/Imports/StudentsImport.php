@@ -8,11 +8,13 @@ use App\Models\YearLevel;
 use App\Models\Section;
 use App\Models\SchoolYear;
 use App\Models\Semester;
+use App\Services\ReligionResolver;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 
 class StudentsImport implements ToCollection, WithHeadingRow
 {
@@ -20,6 +22,14 @@ class StudentsImport implements ToCollection, WithHeadingRow
     protected int $updated  = 0;
     protected int $skipped  = 0;
     protected array $skippedRows = [];
+    private ReligionResolver $religionResolver;
+    private ?int $broadReligionOverrideId;
+
+    public function __construct(?ReligionResolver $religionResolver = null, ?int $broadReligionOverrideId = null)
+    {
+        $this->religionResolver = $religionResolver ?? app(ReligionResolver::class);
+        $this->broadReligionOverrideId = $broadReligionOverrideId;
+    }
 
     public function collection(Collection $rows)
     {
@@ -70,6 +80,31 @@ class StudentsImport implements ToCollection, WithHeadingRow
 
             $wasNew = $existing === null;
 
+            $religionValue = trim((string) ($row['religion'] ?? ''));
+            $religionId = null;
+
+            try {
+                if ($this->religionResolver->isBroadChristianValue($religionValue)) {
+                    if (! $this->broadReligionOverrideId) {
+                        throw ValidationException::withMessages([
+                            'religion' => 'Please select a specific religion for rows that use "Christian" or another broad Christian label.',
+                        ]);
+                    }
+
+                    $religionId = $this->broadReligionOverrideId;
+                } else {
+                    $religionId = $this->religionResolver->resolveId($religionValue);
+                }
+            } catch (ValidationException $exception) {
+                $this->skipped++;
+                $this->skippedRows[] = [
+                    'student_id' => $studentId,
+                    'reason' => $exception->errors()['religion'][0] ?? 'Invalid religion value.',
+                ];
+                Log::warning("Skipping student_id {$studentId}: invalid religion '{$religionValue}'");
+                continue;
+            }
+
             $student = Student::updateOrCreate(
                 ['student_id' => $studentId],
                 [
@@ -79,7 +114,7 @@ class StudentsImport implements ToCollection, WithHeadingRow
                     'suffix'      => $row['suffix']      ?? null,
                     'contact'     => $row['contact']     ?? null,
                     'email'       => $row['email']       ?? null,
-                    'religion'    => $row['religion']    ?? null,
+                    'religion_id' => $religionId,
                 ]
             );
 

@@ -3,8 +3,8 @@
     <!-- Header -->
     <div class="flex justify-between items-center">
         <div>
-            <h2 class="text-2xl font-bold text-gray-800">Staff Management</h2>
-            <p class="text-sm text-gray-500">Master list of employees (Dean/Admin)</p>
+            <h2 class="text-2xl font-bold text-gray-800">Faculty Management</h2>
+            <p class="text-sm text-gray-500">Master list of faculty</p>
         </div>
 
         <div class="flex gap-2">

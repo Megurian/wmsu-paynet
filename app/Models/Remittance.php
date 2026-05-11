@@ -14,7 +14,8 @@ class Remittance extends Model
         'school_year_id',
         'semester_id',
         'confirmed_by',
-        'status'
+        'status',
+        'proof_image',
     ];
 
     public function fromOrganization()

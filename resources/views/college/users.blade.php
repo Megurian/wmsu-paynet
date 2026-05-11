@@ -13,7 +13,7 @@ $activeTab = request()->get('tab', 'college');
         College Info
     </a>
     <a href="{{ route('college.users.index', ['tab' => 'employees']) }}" class="px-4 py-2 font-medium {{ $activeTab === 'employees' ? 'border-b-2 border-red-600 text-red-600' : 'text-gray-600 hover:text-red-600' }}">
-        Staff Management
+        Faculty Management
     </a>
     <a href="{{ route('college.users.index', ['tab' => 'accounts']) }}" class="px-4 py-2 font-medium {{ $activeTab === 'accounts' ? 'border-b-2 border-red-600 text-red-600' : 'text-gray-600 hover:text-red-600' }}">
         Account Management

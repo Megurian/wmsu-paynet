@@ -50,11 +50,18 @@ class TreasurerCashieringController extends Controller
             return response()->json([]);
         }
 
-        $students = Student::whereHas('enrollments', function($q) use ($activeSY, $activeSem, $collegeId) {
-            $q->whereIn('status', ['FOR_PAYMENT_VALIDATION', 'ENROLLED'])
-              ->where('school_year_id', $activeSY->id)
-              ->where('semester_id', $activeSem->id)
-              ->where('college_id', $collegeId);
+        $students = Student::where(function($studentQuery) use ($activeSY, $activeSem, $collegeId) {
+            $studentQuery->whereHas('enrollments', function($q) use ($activeSY, $activeSem, $collegeId) {
+                $q->whereIn('status', ['FOR_PAYMENT_VALIDATION', 'ENROLLED'])
+                  ->where('school_year_id', $activeSY->id)
+                  ->where('semester_id', $activeSem->id)
+                  ->where('college_id', $collegeId);
+            })
+            ->orWhereHas('enrollments', function($q) use ($collegeId) {
+                $q->where('status', 'FOR_PAYMENT_VALIDATION')
+                  ->where('is_void', false)
+                  ->where('college_id', $collegeId);
+            });
         })
         ->where(function($q) use ($query) {
             $q->where('student_id', 'like', "%$query%")
@@ -105,7 +112,7 @@ class TreasurerCashieringController extends Controller
 
         $pnFeeIds = $activePromissoryNote ? $activePromissoryNote->fees->pluck('id')->toArray() : [];
 
-        $feesQuery = Fee::where('status', 'approved')
+        $feesQuery = Fee::whereIn('status', $enrollment->shouldIncludeDisabledFees() ? ['approved', 'disabled'] : ['approved'])
             ->where('fee_scope', 'college')
             ->where('college_id', $collegeId)
             ->whereNull('organization_id')
@@ -113,11 +120,28 @@ class TreasurerCashieringController extends Controller
                 $q->whereJsonContains('role', 'student_coordinator');
             });
 
+        if (strtoupper(optional($enrollment->semester)->name) === 'SUMMER') {
+            $feesQuery->where('recurrence', '!=', 'semestrial');
+        }
+
+        $this->applyStudentFeeMatchingScope($feesQuery, $student, $enrollment);
+
         if (!empty($pnFeeIds)) {
             $feesQuery->whereNotIn('id', $pnFeeIds);
         }
 
-        $fees = $feesQuery->get()->map(function ($fee) use ($enrollment) {
+        $feesCollection = $feesQuery->get();
+
+        $paidFeeIds = \App\Models\Fee::paidFeeIdsForStudentByPeriod(
+            $student->id,
+            $feesCollection->pluck('id')->toArray(),
+            $enrollment->school_year_id,
+            $enrollment->semester_id
+        );
+
+        $fees = $feesCollection->reject(function ($fee) use ($paidFeeIds) {
+            return $fee->recurrence === 'one_time' && in_array($fee->id, $paidFeeIds, true);
+        })->values()->map(function ($fee) use ($enrollment) {
             return [
                 'id' => $fee->id,
                 'fee_name' => $fee->fee_name,
@@ -128,12 +152,9 @@ class TreasurerCashieringController extends Controller
             ];
         });
 
-        $paidFeeIds = \App\Models\Fee::paidFeeIdsForStudentByPeriod(
-            $student->id,
-            $fees->pluck('id')->toArray(),
-            $enrollment->school_year_id,
-            $enrollment->semester_id
-        );
+        $paidFeeIds = array_values(array_filter($paidFeeIds, function ($feeId) use ($fees) {
+            return $fees->contains('id', $feeId);
+        }));
 
         return response()->json([
             'student' => [
@@ -359,12 +380,11 @@ class TreasurerCashieringController extends Controller
             return response()->json(['message' => 'One or more fees do not exist or are not valid for college-level cashiering.'], 422);
         }
 
-        // Admin collects only college-level fees (no org fees)
-        $invalidFees = [];
-
-        if (!empty($invalidFees)) {
+        $applicableFees = $this->getApplicableFeesForEnrollment($enrollment, $collegeId);
+        $invalidSelectedFees = $fees->reject(fn ($fee) => $applicableFees->contains('id', $fee->id))->pluck('id')->toArray();
+        if (!empty($invalidSelectedFees)) {
             return response()->json([
-                'message' => 'One or more selected fees are not valid for college-level collection.'
+                'message' => 'One or more selected fees are not applicable to this student.'
             ], 422);
         }
 
@@ -457,15 +477,44 @@ class TreasurerCashieringController extends Controller
 
     private function getApplicableFeesForEnrollment(StudentEnrollment $enrollment, int $collegeId)
     {
-        return Fee::where('status', 'approved')
+        $query = Fee::whereIn('status', $enrollment->shouldIncludeDisabledFees() ? ['approved', 'disabled'] : ['approved'])
             ->where('fee_scope', 'college')
             ->where('college_id', $collegeId)
             ->whereNull('organization_id')
             ->whereHas('creator', function ($q) {
                 $q->whereJsonContains('role', 'student_coordinator');
-            })
-            ->orderBy('created_at', 'desc')
+            });
+
+        if (strtoupper(optional($enrollment->semester)->name) === 'SUMMER') {
+            $query->where('recurrence', '!=', 'semestrial');
+        }
+
+        $student = $enrollment->student ?? $enrollment->student()->first();
+        if ($student) {
+            $this->applyStudentFeeMatchingScope($query, $student, $enrollment);
+        }
+
+        return $query->orderBy('created_at', 'desc')
             ->get();
+    }
+
+    private function applyStudentFeeMatchingScope($query, Student $student, ?StudentEnrollment $enrollment)
+    {
+        $query->where(function ($q) use ($student, $enrollment) {
+            $q->whereNull('year_level_id');
+            if ($enrollment && $enrollment->yearLevel?->name) {
+                $q->orWhereHas('yearLevel', function ($yearQ) use ($enrollment) {
+                    $yearQ->where('name', $enrollment->yearLevel->name);
+                });
+            }
+        });
+
+        $query->where(function ($q) use ($student) {
+            $q->whereNull('religion_id');
+            if ($student->religion_id) {
+                $q->orWhere('religion_id', $student->religion_id);
+            }
+        });
     }
 
     /**
@@ -596,10 +645,14 @@ class TreasurerCashieringController extends Controller
             $previousEnrollment = StudentEnrollment::with(['course', 'yearLevel', 'section', 'schoolYear', 'semester'])
                 ->where('student_id', $student->id)
                 ->where('id', '<', $activeEnrollment->id)
-                ->orderByDesc('id')
+                ->where('status', StudentEnrollment::FOR_PAYMENT_VALIDATION)
+                ->where('is_void', false)
+                ->orderBy('school_year_id', 'desc')
+                ->orderBy('semester_id', 'desc')
+                ->orderBy('id', 'desc')
                 ->first();
 
-            if ($previousEnrollment && !$previousEnrollment->is_void && $previousEnrollment->status === StudentEnrollment::FOR_PAYMENT_VALIDATION) {
+            if ($previousEnrollment) {
                 return $previousEnrollment;
             }
 
@@ -609,6 +662,7 @@ class TreasurerCashieringController extends Controller
         return StudentEnrollment::with(['course', 'yearLevel', 'section', 'schoolYear', 'semester'])
             ->where('student_id', $student->id)
             ->where('status', StudentEnrollment::FOR_PAYMENT_VALIDATION)
+            ->where('is_void', false)
             ->latest('id')
             ->first();
     }

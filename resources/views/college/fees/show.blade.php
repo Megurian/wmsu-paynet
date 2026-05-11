@@ -50,6 +50,17 @@
             </div>
         </div>
 
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            <div>
+                <h3 class="font-medium">Year Level Specific</h3>
+                <p class="text-gray-700">{{ optional($fee->yearLevel)->name ?? 'All year levels' }}</p>
+            </div>
+            <div>
+                <h3 class="font-medium">Religion Specific</h3>
+                <p class="text-gray-700">{{ optional($fee->religion)->name ?? 'All religions' }}</p>
+            </div>
+        </div>
+
         <div>
             <h3 class="font-medium">Supporting Documents</h3>
             <div class="mt-2 space-y-2">

@@ -107,6 +107,30 @@
             @error('recurrence') <p class="text-red-600 text-sm">{{ $message }}</p> @enderror
         </div>
 
+        {{-- Year Level Specific --}}
+        <div class="mb-4">
+            <label class="block text-sm font-medium mb-1">Year Level Specific <span class="text-gray-500 text-sm">(optional)</span></label>
+            <select name="year_level_id" class="w-full border rounded px-3 py-2">
+                <option value="">All year levels</option>
+                @foreach($yearLevels as $year)
+                    <option value="{{ $year->id }}" {{ old('year_level_id') == $year->id ? 'selected' : '' }}>{{ $year->name }}</option>
+                @endforeach
+            </select>
+            @error('year_level_id') <p class="text-red-600 text-sm">{{ $message }}</p> @enderror
+        </div>
+
+        {{-- Religion Specific --}}
+        <div class="mb-4">
+            <label class="block text-sm font-medium mb-1">Religion Specific <span class="text-gray-500 text-sm">(optional)</span></label>
+            <select name="religion_id" class="w-full border rounded px-3 py-2">
+                <option value="">All religions</option>
+                @foreach($religions as $religion)
+                    <option value="{{ $religion->id }}" {{ old('religion_id') == $religion->id ? 'selected' : '' }}>{{ $religion->name }}</option>
+                @endforeach
+            </select>
+            @error('religion_id') <p class="text-red-600 text-sm">{{ $message }}</p> @enderror
+        </div>
+
         {{-- Files --}}
         <div class="mb-4">
             <label class="block text-sm font-medium mb-1">Legal Basis Document (required)</label>

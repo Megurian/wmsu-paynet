@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\EmployeeTemplateExport;
 use App\Imports\EmployeesImport;
@@ -62,7 +63,12 @@ class EmployeeController extends Controller
             'first_name' => 'required',
             'last_name' => 'required',
             'suffix' => 'nullable|string|max:10',
-            'email' => 'required|email',
+            'email' => [
+                'required',
+                'email',
+                Rule::unique('employees', 'email')->ignore($employee->id),
+                Rule::unique('users', 'email')->ignore($employee->user_id),
+            ],
             'department' => 'nullable|string',
         ]);
 
@@ -70,6 +76,12 @@ class EmployeeController extends Controller
 
         if ($request->department === 'other') {
             $department = $request->other_department;
+        }
+
+        if ($employee->user && $employee->user->email !== $request->email) {
+            $employee->user->update([
+                'email' => $request->email,
+            ]);
         }
 
         $employee->update([

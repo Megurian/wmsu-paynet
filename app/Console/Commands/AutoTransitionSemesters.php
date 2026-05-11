@@ -91,12 +91,8 @@ class AutoTransitionSemesters extends Command
                 ->where('status', StudentEnrollment::PAID)
                 ->update(['status' => StudentEnrollment::ENROLLED]);
 
-            if ($this->isFinalSemester($semester)) {
-                StudentEnrollment::where('school_year_id', $semester->school_year_id)
-                    ->where('status', StudentEnrollment::FOR_PAYMENT_VALIDATION)
-                    ->where('is_void', false)
-                    ->update(['is_void' => true]);
-            }
+            // Do not void unresolved FOR_PAYMENT_VALIDATION enrollments at year-end.
+            // They must remain payable until cleared.
 
             app(PromissoryNoteDelinquencyService::class)->processDelinquency(now());
 

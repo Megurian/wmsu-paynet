@@ -77,49 +77,124 @@
         Confirm Remittance
     </h3>
 
-<form method="POST" action="{{ route('osa.remittance.confirm') }}" class="grid grid-cols-1 md:grid-cols-3 gap-5 items-end">
+<form id="remittanceForm"
+      method="POST"
+      action="{{ route('osa.remittance.confirm') }}"
+      enctype="multipart/form-data"
+      class="grid grid-cols-1 md:grid-cols-3 gap-5 items-end">
 
-        @csrf
-        <input type="hidden" name="school_year_id" id="school_year_id" value="{{ $selectedSchoolYear?->id }}">
-        <input type="hidden" name="semester_id" id="semester_id" value="{{ $selectedSemester?->id }}">
+    @csrf
 
-        <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">
-                Select Organization
-            </label>
+    <input type="hidden" name="school_year_id" value="{{ $selectedSchoolYear?->id }}">
+    <input type="hidden" name="semester_id" value="{{ $selectedSemester?->id }}">
 
-        <select id="from_organization_id" name="organization_id" required  class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" onchange="updateRemaining()">
+    <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">
+            Select Organization
+        </label>
+
+        <select name="organization_id" required
+            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+
             <option value="">-- Choose Organization --</option>
+
             @foreach($remittanceData as $row)
-                <option value="{{ $row['organization']->id }}" data-remaining="{{ $row['remaining'] }}">
-                    {{ $row['organization']->name }} (Remaining: ₱{{ number_format($row['remaining'],2) }})
+                <option value="{{ $row['organization']->id }}"
+                        data-remaining="{{ $row['remaining'] }}">
+                    {{ $row['organization']->name }}
+                    (Remaining: ₱{{ number_format($row['remaining'],2) }})
                 </option>
             @endforeach
-        </select>
 
+        </select>
+    </div>
+
+    <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">
+            Amount
+        </label>
+
+        <input type="number"
+               step="0.01"
+               name="amount"
+               required
+               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+    </div>
+
+    <div>
+        <button type="button"
+                onclick="openProofModal()"
+                class="w-full bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700">
+            Confirm Remittance
+        </button>
+    </div>
+</form>
+
+<div id="proofModal"
+     class="fixed inset-0 hidden items-center justify-center z-50 bg-black/50 backdrop-blur-sm">
+
+    <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden">
+
+        <div class="px-6 py-4 border-b bg-gradient-to-r from-red-600 to-red-600 text-white">
+            <h2 class="text-lg font-semibold">Upload Proof of Remittance</h2>
+            <p class="text-xs text-white/80 mt-1">
+                Please attach a clear image of proof of remittance
+            </p>
         </div>
 
-        <div>
+        <div class="p-6 space-y-5">
 
-            <label class="block text-sm font-medium text-gray-700 mb-1">
-                Amount
+            <label for="proof_image"
+                   class="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-xl p-6 cursor-pointer hover:border-indigo-500 transition">
+
+                <svg class="w-10 h-10 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M7 16V4m0 0L3 8m4-4l4 4m6 8v4m0 0l4-4m-4 4l-4-4" />
+                </svg>
+
+                <p class="text-sm font-medium text-gray-700">
+                    Click to upload or drag and drop
+                </p>
+
+                <p class="text-xs text-gray-400 mt-1">
+                    PNG, JPG, JPEG up to 5MB
+                </p>
+
+                <input type="file"
+                       name="proof_image"
+                       id="proof_image"
+                       accept="image/*"
+                       form="remittanceForm"
+                       class="hidden"
+                       onchange="previewFileName(this)">
             </label>
 
-            <input id="amount" type="number" step="0.01" name="amount" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+            <!-- File Preview -->
+            <div id="filePreview" class="hidden text-sm text-gray-600 bg-gray-50 p-3 rounded-lg border">
+                Selected file: <span id="fileName" class="font-medium"></span>
+            </div>
 
         </div>
 
-        <div>
+        <!-- FOOTER -->
+        <div class="px-6 py-4 border-t flex justify-between items-center bg-gray-50">
 
-            <button type="submit" class="w-full bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition">
+            <button type="button"
+                    onclick="closeProofModal()"
+                    class="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm">
+                Cancel
+            </button>
 
-                Confirm Remittance
-
+            <button type="button"
+                    onclick="submitRemittance()"
+                    class="px-5 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-medium shadow">
+                Submit Remittance
             </button>
 
         </div>
 
-    </form>
+    </div>
+</div>
 
 </div>
 
@@ -172,6 +247,74 @@
         updateSemesterOptions();
         updateRemaining();
     });
+
+function openProofModal() {
+    const fileInput = document.getElementById('proof_image');
+    fileInput.value = ''; 
+
+    document.getElementById('proofModal')
+        .classList.remove('hidden');
+
+    document.getElementById('proofModal')
+        .classList.add('flex');
+}
+
+function closeProofModal() {
+    document.getElementById('proofModal')
+        .classList.add('hidden');
+
+    document.getElementById('proofModal')
+        .classList.remove('flex');
+}
+
+function submitRemittance() {
+    const fileInput = document.getElementById('proof_image');
+
+    if (!fileInput.files.length) {
+        alert('Please select a proof image first.');
+        return;
+    }
+
+    const form = document.getElementById('remittanceForm');
+
+    if (!form) {
+        console.error('Remittance form not found');
+        return;
+    }
+    form.requestSubmit();
+}
+
+function previewFileName(input) {
+    const preview = document.getElementById('filePreview');
+    const fileName = document.getElementById('fileName');
+
+    if (input.files && input.files.length > 0) {
+        fileName.textContent = input.files[0].name;
+        preview.classList.remove('hidden');
+    } else {
+        preview.classList.add('hidden');
+    }
+}
+
+function viewProof(url) {
+    const modal = document.getElementById('proofViewModal');
+    const img = document.getElementById('proofImagePreview');
+
+    img.src = url;
+
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+
+function closeProofView() {
+    const modal = document.getElementById('proofViewModal');
+    const img = document.getElementById('proofImagePreview');
+
+    img.src = '';
+
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+}
 </script>
 
 
@@ -299,7 +442,7 @@ bg-red-100 text-red-700
                     <th class="p-3 text-center">Amount</th>
                     <th class="p-3 text-center">Date</th>
                     <th class="p-3 text-left">Confirmed By</th>
-
+                    <th class="p-3 text-left">Attchment</th>
                 </tr>
 
             </thead>
@@ -326,6 +469,17 @@ bg-red-100 text-red-700
                         {{ $item->confirmer->name ?? 'System' }}
                     </td>
 
+                    <td class="p-3 text-center">
+                        @if($item->proof_image)
+                            <button
+                                onclick="viewProof('{{ asset('storage/'.$item->proof_image) }}')"
+                                class="px-3 py-1 text-xs font-medium bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition">
+                                View
+                            </button>
+                        @else
+                            <span class="text-xs text-gray-400">No Attachment</span>
+                        @endif
+                    </td>
                 </tr>
 
                 @endforeach
@@ -333,9 +487,38 @@ bg-red-100 text-red-700
             </tbody>
 
         </table>
+    </div>
+</div>
+
+<div id="proofViewModal"
+     class="fixed inset-0 hidden items-center justify-center z-50 bg-black/60 backdrop-blur-sm">
+
+    <div class="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden">
+
+        <div class="flex items-center justify-between px-6 py-4 border-b bg-gray-50">
+            <h2 class="text-lg font-semibold text-gray-800">Remittance Attachment</h2>
+
+            <button onclick="closeProofView()"
+                    class="text-gray-500 hover:text-gray-700 text-xl">
+                &times;
+            </button>
+        </div>
+
+        <div class="p-6 flex justify-center bg-gray-100">
+            <img id="proofImagePreview"
+                 src=""
+                 class="max-h-[500px] rounded-lg shadow-md border"
+                 alt="Proof Image">
+        </div>
+
+        <div class="px-6 py-4 flex justify-end bg-white border-t">
+            <button onclick="closeProofView()"
+                    class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg text-sm">
+                Close
+            </button>
+        </div>
 
     </div>
-
 </div>
 
 @endsection

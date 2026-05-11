@@ -12,9 +12,28 @@ use App\Models\Semester;
 use App\Models\Course;
 use App\Models\YearLevel;
 use App\Models\Section;
+use App\Models\Religion;
+use App\Services\ReligionResolver;
 
 class AdviserStudentUploadController extends Controller
 {
+   public function __construct(private readonly ReligionResolver $religionResolver)
+   {
+   }
+
+   private function isBroadChristianReligionName(?string $value): bool
+   {
+       return in_array(mb_strtolower(trim((string) $value)), [
+           'christian',
+           'christianity',
+           'christian religion',
+           'christians',
+           'christian faith',
+           'believer',
+           'believers',
+       ], true);
+   }
+
    private function getPreviousTermEnrollment(int $studentId, ?SchoolYear $activeSY, ?Semester $activeSem): ?StudentEnrollment
    {
        if (!$activeSY || !$activeSem) {
@@ -57,6 +76,9 @@ class AdviserStudentUploadController extends Controller
     $activeSY = SchoolYear::where('is_active', true)->first();
     $activeSem = Semester::where('is_active', true)->first();
     $activeSemesterName = $activeSem?->name;
+    $religions = Religion::orderBy('name')
+        ->pluck('name', 'id')
+        ->reject(fn ($name) => $this->isBroadChristianReligionName($name));
 
    $students = Student::query()
         ->where('is_graduated', false)
@@ -154,7 +176,8 @@ class AdviserStudentUploadController extends Controller
         'activeSY',
         'activeSem',
         'activeSemesterName',
-       'adviser'
+       'adviser',
+       'religions'
     ));
 }
 
@@ -169,12 +192,27 @@ class AdviserStudentUploadController extends Controller
             'last_name' => 'required|string|max:255',
             'first_name' => 'required|string|max:255',
             'middle_name' => 'nullable|string|max:255',
+            'email' => 'required|email|max:255',
             'course_id' => Auth::user()->role === 'adviser'
                 ? 'nullable'
                 : 'required|exists:courses,id',
             'year_level_id' => 'required|exists:year_levels,id',
             'section_id' => 'required|exists:sections,id',
+            'religion_id' => 'nullable',
+            'new_religion' => 'required_if:religion_id,other|nullable|string|max:255',
         ]);
+
+        $religionSelection = $request->input('religion_id');
+
+        $religionId = null;
+
+        if ($religionSelection !== null && $religionSelection !== '') {
+            if ($religionSelection === 'other') {
+                $religionId = $this->religionResolver->resolveId($request->input('new_religion'));
+            } else {
+                $religionId = $this->religionResolver->resolveId((string) $religionSelection);
+            }
+        }
 
       $student = Student::updateOrCreate(
             ['student_id' => $request->student_id],
@@ -185,7 +223,7 @@ class AdviserStudentUploadController extends Controller
                 'contact'     => $request->contact,
                 'email'       => $request->email,
                 'suffix'      => $request->suffix,
-                'religion'    => $request->religion,
+                'religion_id' => $religionId,
             ]
         );
 

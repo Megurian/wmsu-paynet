@@ -244,13 +244,7 @@ class OSASetupController extends Controller
                     ->where('status', StudentEnrollment::PAID)
                     ->update(['status' => StudentEnrollment::ENROLLED]);
 
-                // End-of-academic-year cleanup: void stale FOR_PAYMENT_VALIDATION records when the final semester closes.
-                if ($this->isFinalSemester($schoolYear, $activeSemester)) {
-                    StudentEnrollment::where('school_year_id', $schoolYear->id)
-                        ->where('status', StudentEnrollment::FOR_PAYMENT_VALIDATION)
-                        ->where('is_void', false)
-                        ->update(['is_void' => true]);
-                }
+                // Old unresolved FOR_PAYMENT_VALIDATION enrollments are retained and not voided.
 
                 // Trigger delinquency processing when semester ends
                 $delinquencyService = app(\App\Services\PromissoryNoteDelinquencyService::class);

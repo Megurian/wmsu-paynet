@@ -71,7 +71,7 @@
 <div class="bg-white rounded-xl shadow p-6 mb-10">
     <h3 class="text-lg font-semibold mb-5 border-b pb-2">Remit Funds</h3>
 
-    <form method="POST" action="{{ route('university_org.remittance.confirm') }}" class="grid grid-cols-1 md:grid-cols-3 gap-5 items-end">
+    <form id="remittanceForm"  method="POST" action="{{ route('university_org.remittance.confirm') }}" enctype="multipart/form-data" class="grid grid-cols-1 md:grid-cols-3 gap-5 items-end">
         @csrf
         <input type="hidden" name="school_year_id" id="school_year_id" value="{{ $selectedSchoolYear?->id }}">
         <input type="hidden" name="semester_id" id="semester_id" value="{{ $selectedSemester?->id }}">
@@ -99,12 +99,83 @@
         </div>
 
         <div>
-            <button type="submit"
-                class="w-full bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition">
-                Confirm Remittance
+            <button type="button"
+                    onclick="openProofModal()"
+                    class="w-full bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition disabled:opacity-50"
+                    id="openModalBtn">
+                Review & Confirm Remittance
             </button>
         </div>
     </form>
+
+    <div id="proofModal"
+     class="fixed inset-0 hidden items-center justify-center z-50 bg-black/60 backdrop-blur-sm">
+
+    <div class="bg-white w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden">
+
+        <!-- HEADER -->
+        <div class="px-6 py-4 bg-indigo-600 text-white">
+            <h2 class="text-lg font-semibold">Confirm Remittance</h2>
+            <p class="text-xs text-white/80">
+                Upload proof before submitting the remittance
+            </p>
+        </div>
+
+        <!-- BODY -->
+        <div class="p-6 space-y-5">
+
+            <!-- Summary -->
+            <div class="bg-gray-50 border rounded-lg p-4 text-sm space-y-1">
+                <p><span class="font-medium">Organization:</span> <span id="summaryOrg">—</span></p>
+                <p><span class="font-medium">Amount:</span> ₱<span id="summaryAmount">0.00</span></p>
+            </div>
+
+            <!-- Upload -->
+            <label class="block">
+                <span class="text-sm font-medium text-gray-700">Proof of Remittance</span>
+
+                <div class="mt-2 border-2 border-dashed rounded-xl p-6 text-center cursor-pointer hover:border-indigo-500 transition">
+
+                    <input type="file"
+                           name="proof_image"
+                           id="proof_image"
+                           accept="image/*"
+                           form="remittanceForm"
+                           class="hidden"
+                           onchange="previewFileName(this)">
+
+                    <p class="text-sm text-gray-600">Click to upload image</p>
+                    <p class="text-xs text-gray-400">PNG, JPG up to 5MB</p>
+
+                    <p id="fileName" class="text-xs text-indigo-600 mt-2"></p>
+                </div>
+            </label>
+
+            <!-- Preview -->
+            <img id="previewImg"
+                 class="hidden w-full max-h-64 object-contain rounded-lg border" />
+
+        </div>
+
+        <!-- FOOTER -->
+        <div class="px-6 py-4 bg-gray-50 flex justify-between">
+
+            <button type="button"
+                    onclick="closeProofModal()"
+                    class="px-4 py-2 bg-gray-200 rounded-lg text-sm hover:bg-gray-300">
+                Cancel
+            </button>
+
+            <button type="button"
+                    onclick="submitRemittance()"
+                    class="px-5 py-2 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700">
+                Submit Remittance
+            </button>
+
+        </div>
+
+    </div>
+</div>
 </div>
 
 <script>
@@ -166,6 +237,85 @@ window.addEventListener('DOMContentLoaded', function () {
     updateSemesterOptions();
     updateRemaining();
 });
+
+let selectedOrgText = '';
+let selectedAmount = 0;
+
+function openProofModal() {
+    const form = document.getElementById('remittanceForm');
+
+    const orgSelect = form.querySelector('select[name="from_organization_id"]');
+    const amountInput = form.querySelector('input[name="amount"]');
+
+    if (!orgSelect.value || !amountInput.value) {
+        alert("Please select organization and amount first.");
+        return;
+    }
+
+    selectedOrgText = orgSelect.options[orgSelect.selectedIndex].text;
+    selectedAmount = parseFloat(amountInput.value);
+
+    document.getElementById('summaryOrg').textContent = selectedOrgText;
+    document.getElementById('summaryAmount').textContent = selectedAmount.toFixed(2);
+
+    document.getElementById('proofModal').classList.remove('hidden');
+    document.getElementById('proofModal').classList.add('flex');
+}
+
+function closeProofModal() {
+    document.getElementById('proofModal').classList.add('hidden');
+    document.getElementById('proofModal').classList.remove('flex');
+
+    document.getElementById('proof_image').value = '';
+    document.getElementById('fileName').textContent = '';
+    document.getElementById('previewImg').classList.add('hidden');
+}
+
+function submitRemittance() {
+    const fileInput = document.getElementById('proof_image');
+
+    if (!fileInput.files.length) {
+        alert("Please upload proof first.");
+        return;
+    }
+
+    document.getElementById('remittanceForm').requestSubmit();
+}
+
+function previewFileName(input) {
+    const file = input.files[0];
+
+    if (!file) return;
+
+    document.getElementById('fileName').textContent = file.name;
+
+    const reader = new FileReader();
+    reader.onload = e => {
+        const img = document.getElementById('previewImg');
+        img.src = e.target.result;
+        img.classList.remove('hidden');
+    };
+
+    reader.readAsDataURL(file);
+}
+
+function viewProof(url) {
+    const modal = document.getElementById('proofViewerModal');
+    const img = document.getElementById('proofViewerImg');
+
+    img.src = url;
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+
+function closeProofViewer() {
+    const modal = document.getElementById('proofViewerModal');
+    const img = document.getElementById('proofViewerImg');
+
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    img.src = '';
+}
 </script>
 
 {{-- Remittance by Office --}}
@@ -182,6 +332,7 @@ window.addEventListener('DOMContentLoaded', function () {
                     <th class="p-3 font-medium text-center">Remitted</th>
                     <th class="p-3 font-medium text-center">Remaining</th>
                     <th class="p-3 font-medium text-center">Status</th>
+                    
                 </tr>
             </thead>
             <tbody class="divide-y">
@@ -229,6 +380,7 @@ window.addEventListener('DOMContentLoaded', function () {
                     <th class="p-3 font-medium text-center">Amount Remitted</th>
                     <th class="p-3 font-medium text-center">Date</th>
                     <th class="p-3 font-medium text-left">Confirmed By</th>
+                    <th class="p-3 font-medium text-center">Attachment</th>
                 </tr>
             </thead>
             <tbody class="divide-y">
@@ -238,10 +390,37 @@ window.addEventListener('DOMContentLoaded', function () {
                     <td class="p-3 text-center font-semibold text-green-600">₱ {{ number_format($item->amount,2) }}</td>
                     <td class="p-3 text-center">{{ $item->created_at->format('M d Y') }}</td>
                     <td class="p-3">{{ $item->confirmer->name ?? 'System' }}</td>
+                    <td class="p-3 text-center">
+                        @if($item->proof_image)
+                            <button type="button"
+                                onclick="viewProof('{{ asset('storage/'.$item->proof_image) }}')"
+                                class="px-3 py-1 bg-indigo-600 text-white text-xs rounded hover:bg-indigo-700">
+                                View
+                            </button>
+                        @else
+                            <span class="text-gray-400 text-xs">No file</span>
+                        @endif
+                    </td>
                 </tr>
                 @endforeach
             </tbody>
         </table>
+    </div>
+</div>
+
+<div id="proofViewerModal"
+     class="fixed inset-0 hidden items-center justify-center bg-black/60 z-50">
+
+    <div class="bg-white rounded-xl shadow-lg max-w-3xl w-full p-4 relative">
+
+        <button onclick="closeProofViewer()"
+                class="absolute top-2 right-2 text-gray-500 hover:text-black">
+            ✕
+        </button>
+
+        <img id="proofViewerImg"
+             class="w-full max-h-[80vh] object-contain rounded-lg" />
+
     </div>
 </div>
 
